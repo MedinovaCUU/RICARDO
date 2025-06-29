@@ -39,8 +39,15 @@
       background-size: cover;
       background-color: #001d25;
       font-family: 'Segoe UI', sans-serif;
-      padding-top: env(safe-area-insert-top);
-      margin: 0;
+    }
+    @media (max-width: 767px){
+      body{
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        padding-top: env(safe-area-insert-top);
+        margin: 0;
+      }
     }
     .modal {
       position: fixed;
