@@ -4,35 +4,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default"> 
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#001d25">
   <link rel="apple-touch-icon" href="medinova_ios.png">
+  <link rel="icon" href="medinova.ico" type="image/x-icon" />
   <title>Medinova</title>
-  <script src="https://cdn.tailwindcss.com">
-  
-  function agregarFila(ref, lote, estado) {
-    const tabla = document.getElementById("tablaRegistros");
-    const contenedor = document.getElementById("tablaContenedora");
 
-    // Asegura que el contenedor esté visible
-    contenedor.classList.remove("hidden");
-    setTimeout(() => contenedor.classList.remove("opacity-0"), 10);
+  <!-- ✅ Scripts externos bien cerrados -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
-    // Crea la fila
-    const fila = document.createElement("tr");
-    fila.innerHTML = `
-      <td class='p-1'>${ref}</td>
-      <td class='p-1'>${lote}</td>
-      <td class='p-1'>${estado}</td>
-      <td class='p-1 text-center'><button onclick='eliminarFila(this)' class='text-red-600'>✖</button></td>
-    `;
-    tabla.appendChild(fila);
-  }
-
-</script>
-  <link rel="icon" href="medinova_icon.ico" type="image/x-icon" />
-  
   <style>
     body {
       background: url('bcg_centrum.png') no-repeat center center fixed;
@@ -41,7 +23,7 @@
       font-family: 'Segoe UI', sans-serif;
     }
     @media (max-width: 767px){
-      body{
+      body {
         background-size: cover;
         background-repeat: no-repeat;
         background-position: top center;
@@ -72,7 +54,7 @@
       border-radius: 6px;
       z-index: 9999;
     }
-       #mensajeQR {
+    #mensajeQR {
       position: fixed;
       top: 40%;
       left: 50%;
@@ -88,7 +70,7 @@
       max-width: 80%;
       box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
-        .blur-fondo::before {
+    .blur-fondo::before {
       content: "";
       position: fixed;
       inset: 0;
@@ -100,9 +82,43 @@
     .completada {
       background-color: #d1fae5;
     }
+    @font-face {
+      font-family: 'MagmaWave';
+      src: url('MagmawaveCaps-Bold.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+    }
+    .fuente-magma {
+      font-family: 'MagmaWave', sans-serif;
+    }
+    .modo-basurero {
+      background-image: url('blackhole.png');
+      background-size: cover;
+      background-position: center;
+      transition: background 3s ease-in-out;
+    }
+    .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    #qr-reader {
+  border: 2px solid #0f766e;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
   </style>
 </head>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">function agregarFila(ref, lote, estado) {
     const tabla = document.getElementById("tablaRegistros");
     const contenedor = document.getElementById("tablaContenedora");
@@ -123,18 +139,35 @@
   }
 </script>
 
-<div class="absolute top-4 right-4 flex flex-col items-center text-center">
-  <h1 class="text-sm font-bold tracking-widest text-white">in collab with:</h1>
-    <img src="centrum.png" alt="Logo Centrum" class="h-20 mt-1 md:h-16" />
-  </a>
+<div id="loaderOverlay" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[99999] hidden select-none">
+  <img src="loader.gif" alt="Cargando..." class="w-24 h-24 pointer-events-none">
 </div>
+
+<!-- MODAL QR draggable -->
+<div id="modalQR" class="fixed top-4 right-4 bg-white border rounded-xl shadow-lg z-[9999] p-2 w-[340px] max-w-full hidden cursor-move">
+  <div class="relative" id="handleQR">
+    <button onclick="cerrarModalQR()" class="absolute top-0 right-0 text-red-600 font-bold text-lg p-1 hover:text-red-800">×</button>
+    <h2 class="text-center font-semibold text-sm mb-1 text-gray-800">Escanea un QR</h2>
+    <div id="qr-reader" class="w-full rounded-md overflow-hidden"></div>
+  </div>
+</div>
+
+<!-- LOGO DE CENTRUM ARRIBA A LA DERECHA (solo visible en pantallas grandes) -->
+<div class="absolute top-4 right-4 flex-col items-center text-center hidden sm:flex">
+  <h1 class="text-xs font-bold tracking-widest text-white fuente-magma ">In Collab with:</h1>
+  <img src="centrum.png" alt="Logo Centrum" class="h-12 mt-1 md:h-10" />
+</div>
+
+<!-- IMAGEN PRINCIPAL DE PORTADA EN CENTRO -->
 <div class="text-center mb-10">
-  <img src="medinova_letras.png" alt="Logo Medinova" class="mx-auto h-28 mb-2" />
-  <h1 class="text-5xl font-bold tracking-widest text-white-100">R.I.C.A.R.D.O.</h1>
-  <p class="text-1x1 text-gray-100 font-medium max-w-2xl mx-auto">
+  <a href="https://instagram.com/medinova.cuu" target="_blank" rel="noopener noreferrer">
+    <img src="logoportada.png" alt="Logo Medinova" class="mx-auto h-28 mb-2" />
+  </a>
+  <h1 class="text-5xl font-bold tracking-widest text-white-100 fuente-magma">R.I.C.A.R.D.O.</h1>
+  <p class="text-1x1 text-gray-100 font-medium max-w-2xl mx-auto fuente-segoe-ui text-center">
     <strong>R</strong>egistro <strong>I</strong>nteligente de <strong>C</strong>ontrol, <strong>A</strong>lmacenamiento y <strong>R</strong>astreo <strong>D</strong>igital de <strong>O</strong>peraciones
   </p>
-</div>
+
 <!-- Modal de selección de modo -->
 <div id="modalModo" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
   <div class="bg-white p-6 rounded-2xl shadow-lg text-center w-[90%] max-w-xs text-gray-800">
@@ -204,9 +237,24 @@
 </div>
 
 <div id="modalAviso" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-  bg-gray-800 text-white text-center px-8 py-5 text-xl rounded-2xl shadow-lg z-50 hidden max-w-lg">
+  bg-red-800 text-white text-center px-8 py-5 text-xl rounded-2xl shadow-lg z-50 hidden max-w-lg">
 </div>
 <div id="overlayColor" class="fixed inset-0 z-40 hidden transition-opacity"></div>
+<div id="modalInventario" class="hidden fixed inset-0 bg-red-900 bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-red-900 border rounded-2xl border-red-500 text-white font-bold p-6 max-w-md text-center">
+   <h2 class="text-xl font-bold mb-4 text-center">⚠️ ¡CUIDADO!</h2>
+        <p class="mb-6 text-center leading-relaxed">
+          Al enviar los datos a Supabase esto<br>
+          <strong class="block text-lg mt-1">REEMPLAZARÁ LA BASE DE DATOS ACTUAL</strong><br>
+          esta acción<br>
+          <strong class="block text-lg">NO SE PUEDE DESHACER</strong>
+        </p>
+        <div class="flex justify-center gap-4">
+      <button onclick="document.getElementById('modalInventario').classList.add('hidden')" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-2xl">Cancelar</button>
+      <button onclick="enviarModoInventario()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-2xl">Aceptar</button>
+    </div>
+  </div>
+</div>
 <!-- Modal principal para ingresar NIP y unidad -->
 <div id="modalPinUnidad" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
   <div class="bg-white text-gray-800 p-6 rounded-2xl shadow-xl w-full max-w-md space-y-4">
@@ -298,24 +346,45 @@
         🔒 Modo inactivo
       </button>  -->    
           </div>
-<div class="flex justify-center">
+<div class="flex justify-center gap-x-4 mt-4">
   <button onclick="solicitarNIP()" class="bg-teal-900 text-white px-4 py-2 rounded-2xl shadow hover:bg-teal-800">
-    📝 Capturar Inventario
+    📝 Capturar Datos
+  </button>
+  <button onclick="abrirModalReporteMensual()" class="bg-teal-900 text-white px-4 py-2 rounded-2xl shadow hover:bg-teal-800">
+    📊 Generar Reporte 
   </button>
 </div>
-<div class="text-center mt-4">
-  <button onclick="abrirModalReporteMensual()" class="bg-gradient-to-r from-blue-900 to-teal-900 text-white px-5 py-3 rounded-2xl shadow-lg hover:opacity-90 transition">
-    📊 Generar Reporte Mensual
-  </button>
-</div>
+
  <!-- MODAL REPORTE MENSUAL -->
 <div id="modalReporteMensual" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden">
   <div class="bg-white text-gray-800 rounded-2xl p-6 shadow-2xl w-[90%] max-w-md relative">
     <button onclick="cerrarModalReporteMensual()" class="absolute top-3 right-4 text-red-600 text-2xl font-bold hover:text-red-800">×</button>
     <h2 class="text-xl font-bold text-center mb-6">📊 Generar reporte mensual</h2>
     <div class="mb-6">
-      <label for="inputMes" class="block text-sm font-semibold mb-2">Selecciona el mes:</label>
-      <input type="month" id="inputMes" class="w-full px-4 py-3 border rounded-xl shadow focus:outline-none focus:ring-2 focus:ring-teal-900 text-lg">
+      <div class="flex gap-2">
+        <div class="flex-1">
+          <label for="inputMesMes" class="sr-only">Mes:</label>
+          <select id="inputMesMes" title="Selecciona mes" class="w-full px-3 py-2 rounded-xl border shadow focus:outline-none focus:ring-2 focus:ring-teal-900 text-lg">
+            <option value="">Mes</option>
+            <option value="01">Enero</option>
+            <option value="02">Febrero</option>
+            <option value="03">Marzo</option>
+            <option value="04">Abril</option>
+            <option value="05">Mayo</option>
+            <option value="06">Junio</option>
+            <option value="07">Julio</option>
+            <option value="08">Agosto</option>
+            <option value="09">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div>
+          <label for="inputMesAnio" class="sr-only">Año:</label>
+          <select id="inputMesAnio" title="Selecciona año" class="w-24 px-3 py-2 rounded-xl border shadow focus:outline-none focus:ring-2 focus:ring-teal-900 text-lg"></select>
+        </div>
+      </div>
     </div>
     <div class="flex justify-end gap-3">
       <button onclick="cerrarModalReporteMensual()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 shadow">Cancelar</button>
@@ -323,6 +392,7 @@
     </div>
   </div>
 </div>
+
     <div class="mt-4">
       <input type="text" id="refBusqueda" placeholder="Buscar por referencia..." class="w-full p-3 mb-4 rounded-xl border text-center" oninput="buscarReferencia(this.value)" />
       <div id="resultadoBusqueda" class="text-sm text-gray-800"></div>
@@ -332,89 +402,144 @@
     <span id="usuarioActivo" class="text-lg font-extrabold ml-2">Selecciona un modo para iniciar</span>
   </div>
   <div class="mt-2">
-    <span id="modoLabel" class="inline-block font-bold px-3 py-1 rounded-xl text-white bg-gray-400 text-sm">
+    <span id="modoLabel" class="inline-block font-bold px-3 py-1 rounded-2xl text-white bg-gray-400 text-sm">
       INACTIVO
     </span>
   </div>
 </div>
-<!-- BOTÓN INDEPENDIENTE PARA CAMBIAR UNIDADES (solo visible para admin) -->
+<!-- BOTÓN INDEPENDIENTE PARA CAMBIAR UNIDADES (solo visible para admin)
 <div class="text-center mb-4">
   <button id="btnCambiarUnidades"
     onclick="mostrarModalAsignarUnidades()"
     class="text-xs px-3 py-1 bg-blue-800 text-white rounded-xl hover:bg-blue-700 hidden">
     ⚙️ Cambiar unidades
   </button>
-</div>
-<button onclick="mostrarOpcionesAdmin()" class="fixed bottom-4 right-4 z-50 bg-teal-900 text-white px-4 py-2 rounded-full shadow-lg hover:bg-teal-800 text-sm">
-  ⚙️ Opciones de usuario
-</button>
+</div> -->
+
+
 <div id="modalOpcionesAdmin" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
   <div class="bg-white text-gray-800 p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
     <h2 class="text-lg font-bold text-center mb-4">⚙️ Opciones de Usuario</h2>
 
     <div class="flex flex-col space-y-3">
-      
-      <!-- Botón Cambiar NIP -->
+
       <button onclick="cerrarModalOpcionesAdmin(); mostrarCambioNIP()" 
-        class="w-full bg-blue-900 text-white rounded-xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-blue-800">
+        class="w-full bg-blue-900 text-white rounded-2xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-blue-800">
         🔑 Cambiar NIP
       </button>
 
-      <!-- Botón Modificar Unidades (solo visible para admin) -->
       <button id="btnModificarUnidades" onclick="cerrarModalOpcionesAdmin(); mostrarModalAsignarUnidades()" 
-        class="w-full bg-green-900 text-white rounded-xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-green-800 hidden">
+        class="w-full bg-green-900 text-white rounded-2xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-green-800 hidden">
         🏥 Modificar Unidades
       </button>
 
-      <!-- Botón Restablecer NIP (solo visible para admin) -->
       <button id="btnRestablecerNIP" onclick="restablecerNIPUsuario()" 
-        class="w-full bg-red-900 text-white rounded-xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-red-800 hidden">
+        class="w-full bg-red-900 text-white rounded-2xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-red-800 hidden">
         🔁 Restablecer NIP de Usuario
       </button>
 
-      <!-- Botón Bloqueo de Remisiones (solo visible para admin) -->
-      <div id="seccionBloqueoRemision" style="display: none;">
-        <button id="btnBloqueoRemision" 
-          class="w-full bg-purple-900 text-white rounded-xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-purple-800">
-          🔒 Cargar estado de bloqueo
-        </button>
-      </div>
+      <button id="btnBloqueoRemision" onclick="cargarEstadoBloqueo()" 
+        class="w-full bg-purple-900 text-white rounded-2xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-purple-800 hidden">
+        🔒 Cargar estado de bloqueo
+      </button>
+
+     <!-- Botón Ver PIN Dinámico (solo visible para admin) -->
+    <button id="btnVerPinDinamico" onclick="abrirModalPinDinamico()" 
+      class="w-full bg-pink-900 text-white rounded-2xl shadow-lg px-4 py-3 text-base font-semibold hover:bg-yellow-500 hidden">
+      📟 Ver PIN Dinámico
+    </button>
 
     </div>
 
     <div class="text-center mt-5">
-      <button onclick="cerrarModalOpcionesAdmin()" class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold">
-        Cerrar
+      <button onclick="cerrarModalOpcionesAdmin()" 
+        class="w-full bg-gray-500 hover:bg-gray-600 text-white rounded-xl shadow-lg px-4 py-3 text-base font-semibold">
+        ❌ Cerrar
       </button>
     </div>
   </div>
 </div>
 
-    <input type="text" id="inputQR" placeholder="Escanea el código QR" class="w-full p-3 mb-4 rounded-xl border text-center" autofocus />
-    <div class="text-center mt-2 mb-4">
+<div id="contenedorQR" class="relative w-full mb-4 hidden">
+  <input type="text" id="inputQR" placeholder="Escanea el código QR"
+    class="w-full p-3 rounded-xl border text-center pr-12" autofocus />
+  <button type="button" onclick="abrirModalQR()"
+    aria-label="Escanear QR con cámara"
+    class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-2 rounded-full hover:bg-blue-50 focus:outline-none text-2xl">
+    📷
+  </button>
+</div>
+
     <div id="tablaRemisionSAP" class="hidden mt-4">
-      <h2 class="font-bold text-sm mb-2">🧾 Avance remisión SAP:</h2>
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="font-bold text-sm">🧾 Avance remisión SAP:</h2>
+        <button id="btnToggleFilasValidadas"
+                class="text-sm text-teal-600 hover:text-teal-900">
+          Ocultar validados
+        </button>
+      </div>
       <table class="w-full text-sm border rounded-xl bg-white">
         <thead>
-          <tr class="bg-gray-200 text-left">
+          <tr class="bg-gray-200 text-center">
             <th class="p-2">Referencia</th>
             <th class="p-2">Descripción</th>
+            <th class="p-2">Lote</th>
             <th class="p-2 text-center">Escaneados</th>
-            <th class="p-2 text-center">Total</th>
           </tr>
         </thead>
         <tbody id="bodyRemisionSAP"></tbody>
       </table>
     </div>
-    <div id="contenedorModal" class="hidden mt-4 p-4 rounded-xl text-center transition-all duration-300">
-  <div id="resultadoCarga" class="font-bold text-sm text-gray-800"></div>
+
+<div id="modalPinDinamico" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-xl p-6 max-w-sm w-full text-center shadow-xl">
+    <h2 class="text-xl font-bold mb-4">📟 PIN Dinámico</h2>
+    <p class="text-sm text-gray-600 mb-2">Válido por:</p>
+    <div id="contadorPin" class="text-lg font-semibold text-blue-700 mb-4">--:--</div>
+    <p class="text-sm text-gray-600">PIN actual:</p>
+    <div id="valorPinDinamicoSolo" class="text-4xl font-mono text-green-600 my-2">------</div>
+    <button onclick="cerrarModalPinDinamico()" class="w-full bg-gray-500 text-white font-semibold py-2 rounded-xl mt-4 hover:bg-gray-600">
+      Cerrar
+    </button>
+  </div>
 </div>
+
 
   <div class="text-center mt-4">
     <button id="btnAlertasCaducidad" class="bg-yellow-500 bg-opacity-20 px-4 py-1 rounded-xl hover:bg-yellow-600 font-semibold shadow">
       ⚠️ Ver productos próximos a caducar
     </button>
   </div>
+
+<div id="modalPINExceso" class="hidden fixed inset-0 bg-pink-300 bg-opacity-60 backdrop-blur-sm z-[9990] flex items-center justify-center">
+  <div class="bg-white border-2 border-pink-500 p-6 rounded-xl w-[360px] shadow-lg text-sm text-gray-800">
+    <div id="contenidoPINExceso" class="space-y-3"></div>
+
+    <div>
+      <label for="nipdinamico" class="block text-sm font-semibold mb-1 text-pink-700">NIP de autorización:</label>
+      <input
+        id="nipdinamico"
+        name="pin_temporal"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9A-Fa-f]{6}"
+        maxlength="6"
+        minlength="6"
+        autocomplete="off"
+        class="w-full border border-pink-800 rounded-2xl px-4 py-2 text-center font-mono text-xl tracking-widest"
+        placeholder="######"
+      />
+      <p id="pinError" class="text-red-600 text-xs mt-1 hidden">❌ PIN incorrecto</p>
+    </div>
+
+    <div class="flex justify-between gap-4 mt-4">
+      <button id="btnCancelarPIN" class="px-4 py-2 w-1/2 bg-pink-300 text-white rounded-xl hover:bg-pink-400">Cancelar</button>
+      <button id="btnConfirmarPin" class="px-4 py-2 w-1/2 bg-pink-600 text-white rounded-xl hover:bg-pink-700">Confirmar PIN</button>
+    </div>
+  </div>
+</div>
+
+
 
 <div id="tablaContenedora" class="hidden opacity-0 transition-opacity duration-300">
   <table class="min-w-full text-sm text-left" id="tablaRegistros">
@@ -429,8 +554,11 @@
    
   </table>
 </div>
-    <button onclick="enviarSupabase()" class="mt-4 w-full bg-teal-900 text-white py-2 rounded-2xl">Enviar a Base de Datos</button>
+<button id="btnEnviarSupabase" onclick="enviarSupabase()" class="hidden mt-4 w-full bg-teal-900 text-white py-2 rounded-2xl">
+  Enviar a Base de Datos
+</button>
   </div>
+  
   <div id="notificacion" class="modal text-center font-bold"></div>
 <div id="modalAsignarUnidades" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
   <div class="bg-white text-gray-800 p-6 rounded-xl w-full max-w-xl shadow-xl">
@@ -450,6 +578,10 @@
   </div>
 </div>
 
+<button onclick="confirmarModoInventario()" class="bg-red-800 hover:bg-red-900 rounded-2xl text-white font-bold py-2 px-4 rounded hidden">
+  INVENTARIO
+</button>
+
   <!-- MODAL NIP -->
 <div id="modalNIP" class="fixed inset-0 hidden z-50 flex items-center justify-center blur-fondo">
   <div class="bg-white text-black rounded-2xl p-6 shadow-lg w-full max-w-sm relative">
@@ -464,7 +596,9 @@
     <p id="nipError" class="text-red-600 text-sm mt-2 hidden">❌ NIP inválido.</p>
   </div>
 </div>
-
+<button onclick="mostrarOpcionesAdmin()" class=" bottom-4 right-4 z-50 bg-teal-900 text-white px-4 py-2 rounded-full shadow-lg hover:bg-teal-800 text-sm">
+  ⚙️ Opciones de usuario
+</button>
   <!-- MODAL CAPTURA -->
 <div id="modalCaptura" class="fixed inset-0 hidden z-50 flex items-center justify-center blur-fondo">
   <div class="bg-white text-black rounded-2xl p-6 shadow-lg w-[95%] max-w-6xl max-h-[95vh] overflow-auto">
@@ -586,6 +720,8 @@
   </table>
 </div>
 
+
+
   <script>
 const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkanJwZnNicGNmbmlubnRmZm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0MjcxNjYsImV4cCI6MjA2MjAwMzE2Nn0.vxPo7XXaeKPa-jDQRA2jvOJ7dvJZDHRNZB7blbONNZo";
 const VALIDAR_URL = "https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_qr";
@@ -601,7 +737,7 @@ let usuario = null;                 // Se debe asignar al seleccionar usuario
 let unidadSeleccionada = null;      // Se asigna desde la selección de unidad médica
 let modoSeleccionado = null;
 let esAdmin = false;
-let USUARIO_ACTUAL = null;          // Refleja al usuario activo, puede ser el mismo que `usuario`
+let nombre_usuario_validado = null;
 let UNIDAD_DESTINO = null;          // Se usa en modo salida para fraccionados
 let REF_GLOBAL = null;
 let modoExtraccionFraccionableActivo = false;
@@ -614,8 +750,10 @@ let remisionActual = null; // nueva variable global
 let remision = null;
 let callbackSobrescribir = null;
 let remisionActiva = "";
-let avanceRemision = {};  // referencia → { nombre, total, escaneados }
-
+let avanceRemision = {}; // { '10309546||252450': { nombre, lote, escaneados, total } }
+let ocultarValidados = false;
+let intervaloPin = null;
+let intervaloCuentaRegresiva = null;
     const unidadesDestino = {
   "C03442": "C.S. GALEANA", "C03441": "C.S. HIDALGO", "C03438": "C.S. NUEVO CASAS GRANDES", "C03443": "CAAPS ANAPRA", "C03439": "CESSA COLINAS", "C03440": "CESSA ZARAGOZA", "C03435": "H.C. NUEVO CASAS GRANDES", "C03436": "HIE JUAREZ",
   "C03420": "HOSPITAL DE LA MUJER CD JUAREZ", "C03419": "HOSPITAL GENERAL CD JUAREZ", "C03127": "HGZ 6", "C03131": "HGS 22", "C03135": "HGR 02", "C03133": "HGZ UMAA 35", "C03134": "HGR 66", "C03448": "C.S. GUACHOCHI", "C03447": "C.S. JIMENEZ", "C03446": "H. GPE Y CALVO", "C03132": "H.G.Z.M.F. 23", "C03122": "H.R.O. No. 26", "C03124": "H.R.O. No. 36", "C03445": "HOSPITAL CAMARGO", "C03421": "HOSPITAL DE JIMENEZ", "C03422": "HOSPITAL GINECOLOGIA PARRAL", "C03444": "HOSPITAL PARRAL", "C03451": "CESSA ALDAMA", "C03433": "CESSA MADERA",
@@ -626,42 +764,581 @@ let avanceRemision = {};  // referencia → { nombre, total, escaneados }
   "C03420": "hospital de la mujer", "C03419": "hg cd. juarez", "C03127": "HGZ 6", "C03131": "HGS 22", "C03135": "HGR 02", "C03133": "HGZ UMAA 35", "C03134": "HGR 66", "C03448": "CAAPS Guachochi", "C03447": "CS Jimenez", "C03446": "HC Guadalupe y Calvo", "C03132": "H.G.Z.M.F. 23", "C03122": "H.R.O. No. 26", "C03124": "H.R.O. No. 36", "C03445": "HG Camargo", "C03421": "hr jimenez", "C03422": "Ginecologia Parral", "C03444": "HG Parral", "C03451": "CESSA Aldama", "C03433": "CESSA Madera",
   "C03415": "hospital central", "C03424": "HG Cuauhtemoc", "C03416": "Ginecologia Cuauhtemoc", "C03432": "CESSA Tierra Nueva", "C03431": "CS Creel", "C03428": "CS Temoris", "C03123": "HRO No. 18 SAN JUANITO", "C03430": "CS Delicias", "C03425": "HC Ojinaga", "C03417": "hr delicias", "C03434": "CS Sta. Isabel", "C03429": "CAAPS Nogales", "C03427": "CS San Felipe", "C03426": "HC Gomez Farias", "C03418": "hie chihuahua", "C03423": "HG Chihuahua", "C03128": "H.G.Z.M.F. 11", "C03130": "H.G.Z.M.F. 16", "C03129": "HGO No. 15", "C03126": "HGR No. 1", "66": "ALMACEN PARRAL", "65": "ALMACEN JUAREZ", "CUU": "ALMACEN CHIHUAHUA"
 };
-function mostrarOpcionesAdmin() {
-  const esAdmin = Boolean(window.usuarioEsAdmin); // debe haberse asignado después de validar NIP
-  document.getElementById("modalOpcionesAdmin").classList.remove("hidden");
-  document.getElementById("btnModificarUnidades").classList.toggle("hidden", !esAdmin);
-  document.getElementById("btnRestablecerNIP").classList.toggle("hidden", !esAdmin);
-  document.getElementById("modalOpcionesAdmin").classList.remove("hidden"); cargarEstadoBloqueo();
+const anioSelect = document.getElementById('anioSelect');
+if (anioSelect) {
+  const thisYear = new Date().getFullYear();
+  anioSelect.innerHTML = '<option value="">Año</option>';
+  for (let y = thisYear - 2; y <= thisYear + 8; y++) {
+    anioSelect.innerHTML += `<option value="${y}">${y}</option>`;
+  }
 }
+function mostrarLoader(){const o=document.getElementById("loaderOverlay");o&&o.classList.remove("hidden");document.body.style.overflow="hidden";window.addEventListener("keydown",bloquearTeclas,true);window.addEventListener("mousedown",bloquearClicks,true);}
+function ocultarLoader(){const o=document.getElementById("loaderOverlay");o&&o.classList.add("hidden");document.body.style.overflow="";window.removeEventListener("keydown",bloquearTeclas,true);window.removeEventListener("mousedown",bloquearClicks,true);}
+function bloquearTeclas(e){if(!(e.key==="F5"||e.key==="Escape")){e.stopPropagation();e.preventDefault();}}
+function bloquearClicks(e){e.stopPropagation();e.preventDefault();}
+//88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
+
+
+let scannerActivo = false, qrScanner = null;
+
+// Permitir arrastrar la ventana del lector QR
+function hacerDraggable(idElemento) {
+  const el = document.getElementById(idElemento);
+  let offsetX = 0, offsetY = 0, mouseX = 0, mouseY = 0;
+
+  const handle = document.getElementById("handleQR") || el;
+
+  handle.onmousedown = function (e) {
+    e.preventDefault();
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    document.onmouseup = detenerArrastre;
+    document.onmousemove = moverElemento;
+  };
+
+  function moverElemento(e) {
+    e.preventDefault();
+    offsetX = mouseX - e.clientX;
+    offsetY = mouseY - e.clientY;
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
+    const rect = el.getBoundingClientRect();
+    el.style.top = (rect.top - offsetY) + "px";
+    el.style.left = (rect.left - offsetX) + "px";
+    el.style.bottom = "auto";
+    el.style.right = "auto";
+    el.style.position = "fixed";
+  }
+
+  function detenerArrastre() {
+    document.onmouseup = null;
+    document.onmousemove = null;
+  }
+}
+
+// Activar cuando se abra el lector
+function abrirModalQR() {
+  const modal = document.getElementById("modalQR");
+  const visor = document.getElementById("qr-reader");
+
+  if (!modal || !visor) return;
+
+  modal.classList.remove("hidden");
+  hacerDraggable("modalQR");  // 👈 activa drag al abrir
+  iniciarScannerQR();
+}
+
+
+
+function cerrarModalQR() {
+  console.log("🛑 cerrarModalQR() llamado");
+  const modal = document.getElementById("modalQR");
+
+  if (!modal) {
+    console.error("❌ No se encontró el elemento #modalQR para cerrar");
+    return;
+  }
+
+  modal.classList.add("hidden");
+  detenerScannerQR();
+  console.log("✅ Modal QR oculto");
+}
+
+function iniciarScannerQR() {
+  console.log("🔄 iniciarScannerQR() llamado");
+
+  if (scannerActivo) {
+    console.warn("⚠️ Escáner ya activo, evitando duplicación");
+    return;
+  }
+
+  const visor = document.getElementById("qr-reader");
+  if (!visor) {
+    console.error("❌ No se encontró el visor QR con id #qr-reader");
+    return;
+  }
+
+  try {
+    console.log("🚀 Iniciando Html5Qrcode...");
+    scannerActivo = true;
+    qrScanner = new Html5Qrcode("qr-reader");
+
+    let ultimaLectura = "";
+    let tiempoUltimaLectura = 0;
+
+    qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 220 },
+      qrCodeMessage => {
+        const ahora = Date.now();
+        if (qrCodeMessage === ultimaLectura && ahora - tiempoUltimaLectura < 2000) {
+          // Ignora duplicados muy recientes
+          return;
+        }
+
+        ultimaLectura = qrCodeMessage;
+        tiempoUltimaLectura = ahora;
+
+        console.log("✅ QR detectado:", qrCodeMessage);
+        document.getElementById("inputQR").value = qrCodeMessage;
+        procesarQR(qrCodeMessage); // sigue ejecutando sin cerrar modal
+      },
+      errorMsg => {
+        console.log("🔍 Esperando QR válido...", errorMsg);
+      }
+    ).catch(err => {
+      console.error("❌ Error al iniciar escáner:", err);
+      alert("Error al acceder a la cámara: " + err);
+      scannerActivo = false;
+      cerrarModalQR();
+    });
+
+  } catch (e) {
+    console.error("❌ Excepción en iniciarScannerQR():", e);
+    scannerActivo = false;
+    cerrarModalQR();
+  }
+}
+
+
+function detenerScannerQR() {
+  console.log("🔧 detenerScannerQR() llamado");
+
+  if (!qrScanner) {
+    console.warn("⚠️ qrScanner no definido aún");
+    return;
+  }
+
+  qrScanner.stop().then(() => {
+    console.log("🛑 Escáner detenido correctamente");
+    scannerActivo = false;
+    qrScanner.clear();
+  }).catch(err => {
+    console.error("❌ Error al detener escáner:", err);
+    scannerActivo = false;
+  });
+}
+
+
+//88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
+
+function inicializarSelectorMesAnio() {
+  const anioSelect = document.getElementById('inputMesAnio');
+  if (anioSelect) {
+    const thisYear = new Date().getFullYear();
+    anioSelect.innerHTML = '';
+    for (let y = thisYear - 2; y <= thisYear + 8; y++) {
+      anioSelect.innerHTML += `<option value="${y}">${y}</option>`;
+    }
+  }
+}
+  const INTERVALO_MINUTOS = 10; // Puedes cambiar a 5, 15, etc.
+  const listaAdmins = ["Silvia", "Luis", "Aida", "Ricardo", "Alex", "Adrian"];
+function enfocarInputQR() {
+  const contenedor = document.getElementById("contenedorQR");
+  const input = document.getElementById("inputQR");
+
+  if (contenedor) contenedor.classList.remove("hidden");
+
+  if (input) {
+    input.classList.remove("hidden");
+
+    // 🔁 Espera breve para asegurar render antes de enfocar
+    setTimeout(() => {
+      input.value = "";
+      input.focus();
+      input.select();
+      console.log("🎯 Enfocado inputQR (con delay)");
+    }, 100); // Ajustable si es necesario
+  } else {
+    console.warn("⚠️ No se encontró el inputQR");
+  }
+}
+
+
+async function validarPinYUnidad() {
+  const nip = document.getElementById("inputNIP").value.trim();
+  nipAdmin = nip;
+  const unidad = document.getElementById("inputUnidad").value.trim().toUpperCase();
+  const esSalida = modoSeleccionado === "salida";
+  let remision = null;
+
+  const remisionRaw = document.getElementById("inputRemision")?.value.trim().toLowerCase();
+  const unidadRaw = document.getElementById("inputUnidad")?.value.trim().toLowerCase();
+  const esBasurero = (modoSeleccionado === "salida" && unidadRaw === "eliminar" && remisionRaw === "etiqueta");
+
+  if (esBasurero) {
+  usuario = "Basurero";
+  unidadSeleccionada = "Eliminar";
+  modo = "salida";
+
+  document.getElementById("modalPinUnidad").classList.add("hidden");
+  document.getElementById("usuarioActivo").innerHTML = `
+    🕳️ <strong>MODO ELIMINACIÓN ACTIVADO</strong><br>
+     <strong>Eliminar</strong><br>
+     <strong>Etiqueta</strong>
+  `;
+
+  actualizarBotonModo("Salida", "bg-black", "🕳️");
+  document.body.classList.add("modo-basurero");
+
+  // 👇 Mostrar el contenedor QR e input explícitamente
+  const contenedorQR = document.getElementById("contenedorQR");
+  const btnEnviar = document.getElementById("btnEnviarSupabase");
+  const inputQR = document.getElementById("inputQR");
+
+  if (contenedorQR) contenedorQR.classList.remove("hidden");
+  if (btnEnviar) btnEnviar.classList.remove("hidden");
+  if (inputQR) {
+    inputQR.classList.remove("hidden");
+    inputQR.value = "";
+    inputQR.focus();
+  }
+
+  return;
+}
+
+  if (esSalida) {
+    remision = document.getElementById("inputRemision").value.trim();
+    const bloqueoActivo = await consultarEstadoBloqueo();
+
+    if (bloqueoActivo && !remision) {
+      document.getElementById("pinError").textContent = "❌ Debes cargar la remisión para continuar.";
+      document.getElementById("pinError").classList.remove("hidden");
+      return;
+    }
+  }
+
+  remisionActual = remision;
+
+  if (esSalida && remision) {
+    try {
+      const resPendiente = await fetch(
+        `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?select=*`,
+        {
+          headers: {
+            apikey: API_KEY,
+            Authorization: `Bearer ${API_KEY}`
+          }
+        }
+      );
+
+      const todasRemisiones = await resPendiente.json();
+      console.log("📋 Remisiones encontradas:", todasRemisiones.map(r => r.numero_remision));
+
+      const remisionNormalizada = remision.trim();
+      const datosPendientes = todasRemisiones.filter(r =>
+        (r.numero_remision || "").replaceAll('"', '').trim() === remisionNormalizada
+      );
+
+      console.log("🔍 Remisión buscada:", remisionNormalizada);
+      console.log("📋 Datos encontrados para esa remisión:", datosPendientes);
+
+      if (datosPendientes.length > 0) {
+        avanceRemision = {};
+
+        for (const item of datosPendientes) {
+          const clave = `${item.referencia}||${item.lote}`;
+          avanceRemision[clave] = {
+            ...item,
+            escaneados: 0,
+            nombre: item.descripcion || ""
+          };
+        }
+
+        console.log("✅ avanceRemision cargado:", avanceRemision);
+        actualizarTablaRemisionSAP();
+        mostrarModal("📤 Remisión previa cargada automáticamente", "#0ea5e9");
+      }
+
+    } catch (err) {
+      console.error("❌ Error al cargar remisión previa:", err);
+    }
+  }
+
+  try {
+    const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_nip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nip })
+    });
+
+    const data = await res.json();
+    const unidadesLista = typeof data.unidades === "string"
+      ? data.unidades.split(",").map(u => u.trim().toUpperCase())
+      : Array.isArray(data.unidades)
+        ? data.unidades
+        : [];
+
+    if (!data || !data.nombre || (esSalida && !unidadesLista.includes(unidad))) {
+      document.getElementById("pinError").textContent = "❌ Verifica NIP o unidad.";
+      document.getElementById("pinError").classList.remove("hidden");
+      return;
+    }
+
+    usuario = data.nombre;
+    esAdmin = data.es_admin;
+    usuarioAdmin = esAdmin === true;
+    window.usuarioEsAdmin = usuarioAdmin;
+
+    if (usuarioAdmin) {
+      window.nombreAdmin = usuario;
+      console.log("✅ Admin detectado:", window.nombreAdmin);
+    } else {
+      window.nombreAdmin = null;
+    }
+
+    unidadSeleccionada = esSalida ? unidad : null;
+    document.getElementById("modalPinUnidad").classList.add("hidden");
+
+    const nombreUnidad = unidadesDestino[unidad] || "Unidad desconocida";
+
+    if (modoSeleccionado === "entrada") {
+      document.getElementById("usuarioActivo").textContent = usuario;
+    } else if (modoSeleccionado === "salida") {
+      document.getElementById("usuarioActivo").innerHTML = `
+        ${usuario} → ${unidad} ${nombreUnidad}<br>
+        No. de Remisión: <strong>${remisionActual}</strong>
+      `;
+    } else {
+      document.getElementById("usuarioActivo").textContent = "Selecciona un modo para iniciar";
+    }
+
+    modo = modoSeleccionado;
+
+    const btnInventario = document.querySelector('button[onclick="confirmarModoInventario()"]');
+    if (modo === "entrada" && btnInventario) {
+      btnInventario.classList.remove("hidden");
+    } else if (btnInventario) {
+      btnInventario.classList.add("hidden");
+    }
+
+    const texto = modo;
+    const color = modo === "entrada" ? "bg-green-700"
+                : modo === "salida" ? "bg-red-700"
+                : "bg-gray-500";
+    const icono = modo === "entrada" ? "📥"
+                : modo === "salida" ? "📤"
+                : "🔒";
+
+    actualizarBotonModo(texto.charAt(0).toUpperCase() + texto.slice(1), color, icono);
+    notificar(`Modo ${modo.toUpperCase()} activado`, "#003f40");
+
+
+      } catch (e) {
+        document.getElementById("pinError").textContent = "❌ Error de conexión.";
+        document.getElementById("pinError").classList.remove("hidden");
+      }
+
+      const contenedorQR = document.getElementById("contenedorQR");
+      const btnEnviar = document.getElementById("btnEnviarSupabase");
+
+      if (!modo || modo === "inactivo") {
+        if (contenedorQR) contenedorQR.classList.add("hidden");
+        if (btnEnviar) btnEnviar.classList.add("hidden");
+      } else {
+        if (contenedorQR) contenedorQR.classList.remove("hidden");
+        if (btnEnviar) btnEnviar.classList.remove("hidden");
+             enfocarInputQR();  // ✅ Aquí forzamos el enfoque al lector de QR
+
+      }
+    }
+
+
+function abrirModalPinDinamico() {
+  document.getElementById("modalPinDinamico").classList.remove("hidden");
+  actualizarPinYContador(); // Primera carga
+  intervaloCuentaRegresiva = setInterval(actualizarPinYContador, 1000); // Actualiza cada segundo
+}
+
+function cerrarModalPinDinamico() {
+  document.getElementById("modalPinDinamico").classList.add("hidden");
+  clearInterval(intervaloCuentaRegresiva);
+}
+
+async function sha256(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function generarPinDinamico(nombreAdmin) {
+  if (!nombreAdmin || typeof nombreAdmin !== "string") {
+    console.error("❌ No se proporcionó un nombreAdmin válido a generarPinDinamico");
+    return "------";
+  }
+
+  const clave = "medinova-secreto-2025";
+  const ahora = new Date();
+  const yyyy = ahora.getUTCFullYear();
+  const mm = String(ahora.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(ahora.getUTCDate()).padStart(2, "0");
+  const hora = String(ahora.getUTCHours()).padStart(2, "0");
+  const bloque = Math.floor(ahora.getUTCMinutes() / 10);
+
+  const base = `${nombreAdmin.toLowerCase()}::${yyyy}-${mm}-${dd}-${hora}-${bloque}::${clave}`;
+  const hash = await sha256(base);
+  return hash.substring(0, 6).toUpperCase();
+}
+
+
+async function actualizarPinYContador() {
+  if (!window.nombreAdmin) {
+    console.warn("⚠️ No hay admin logueado, no se puede generar PIN");
+    return;
+  }
+
+  const pin = await generarPinDinamico(window.nombreAdmin);
+  const elValor = document.getElementById("valorPinDinamicoSolo");
+  if (elValor) elValor.textContent = pin;
+
+  const ahora = new Date();
+  const minutos = ahora.getUTCMinutes();
+  const segundos = ahora.getUTCSeconds();
+  const minutosRestantes = INTERVALO_MINUTOS - (minutos % INTERVALO_MINUTOS) - 1;
+  const segundosRestantes = 59 - segundos;
+
+  const mm = minutosRestantes.toString().padStart(2, "0");
+  const ss = segundosRestantes.toString().padStart(2, "0");
+
+  const elContador = document.getElementById("contadorPin");
+  if (elContador) elContador.textContent = `${mm}:${ss}`;
+}
+
+async function mostrarOpcionesAdmin() {
+  document.getElementById("modalOpcionesAdmin").classList.remove("hidden");
+
+  if (usuarioAdmin) {
+    document.getElementById("btnModificarUnidades")?.classList.remove("hidden");
+    document.getElementById("btnRestablecerNIP")?.classList.remove("hidden");
+    document.getElementById("btnBloqueoRemision")?.classList.remove("hidden");
+    document.getElementById("btnVerPinDinamico")?.classList.remove("hidden");
+
+    await mostrarPinDinamicoAdmin(); // Recomendado con await
+  }
+}
+
 function cerrarModalOpcionesAdmin() {
   document.getElementById("modalOpcionesAdmin").classList.add("hidden");
 }
 
 function eliminarFila(boton) {
   const fila = boton.closest("tr");
-  fila.remove();
+  const index = parseInt(fila.dataset.index);
 
-  const tabla = document.getElementById("tablaRegistros");
-  const contenedor = document.getElementById("tablaContenedora");
-
-  // Oculta el contenedor si ya no hay filas
-  if (tabla.querySelectorAll("tr").length === 0) {
-    contenedor.classList.add("opacity-0");
-    setTimeout(() => contenedor.classList.add("hidden"), 500);
+  if (!isNaN(index)) {
+    console.log(`🗑️ Eliminando fila ${index} de qrsPendientes`);
+    qrsPendientes.splice(index, 1); // Eliminar del arreglo
+    actualizarTablaRegistros();     // Volver a renderizar tabla
+  } else {
+    console.warn("⚠️ No se pudo determinar el índice de la fila a eliminar.");
   }
 }
 
+
 // Extraer datos de QR incluso si el lote está vacío
 function extraerDatosQR(qr) {
-  const limpio = qr.replace(/\s+/g, '');
-  const match = limpio.match(/R:(.*?)\|L:(.*?)\|T:(.*)/);
-  if (!match) return null;
-  return {
-    referencia: match[1],
-    lote: match[2] || null,
-    timestamp: match[3]
-  };
+    const limpio = qr.trim().replace(/\s+/g, '');
+
+    let partes = null;
+
+    // Formato tipo R:xxx|L:xxx|C:xxx|T:xxx
+    if (limpio.includes('|') && limpio.includes(':')) {
+      partes = Object.fromEntries(
+        limpio.split('|').map(p => p.split(':')).filter(p => p.length === 2)
+      );
+    }
+
+    // Formato móvil tipo R>xxx`L>xxx`C>xxx`T>xxx
+    else if (limpio.includes('`') && limpio.includes('>')) {
+      partes = Object.fromEntries(
+        limpio.split('`').map(p => p.split('>')).filter(p => p.length === 2)
+      );
+    }
+
+    if (!partes) return null;
+
+    return {
+      referencia: partes["R"]?.trim() || null,
+      lote: partes["L"]?.trim() || null,
+      caducidad: partes["C"]?.trim() || null,
+      timestamp: partes["T"]?.trim() || null
+    };
+  }
+
+function verificarCaducidadYMostrarModal(caducidadStr) {
+  console.log("🧪 Verificando caducidad:", caducidadStr);
+
+  if (!caducidadStr || 
+      caducidadStr.toString().trim() === "0" || 
+      caducidadStr.toString().trim().toLowerCase() === "s/c") {
+    console.warn("⏩ Caducidad vacía o sin control (S/C)");
+    return;
+  }
+
+  const hoy = new Date();
+  const fecha = new Date(caducidadStr);
+
+  if (isNaN(fecha)) {
+    console.error("❌ Fecha inválida:", caducidadStr);
+    return;
+  }
+
+  const diff = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
+  console.log(`📆 Días hasta caducidad: ${diff}`);
+
+  if (diff < 8) {
+    console.warn("⚠️ Producto caduco o próximo a caducar");
+
+    if (modo === "entrada") {
+      // Mostrar modal sin bloquear, con calaverita
+      setTimeout(() => {
+        mostrarModal("💀 Producto caduco o próximo a caducar", "#304000");
+      }, 600);
+    } else if (modo === "salida") {
+      // Modal persistente personalizado
+      const modal = document.createElement("div");
+      modal.style.position = "fixed";
+      modal.style.top = "0";
+      modal.style.left = "0";
+      modal.style.width = "100vw";
+      modal.style.height = "100vh";
+      modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+      modal.style.display = "flex";
+      modal.style.justifyContent = "center";
+      modal.style.alignItems = "center";
+      modal.style.zIndex = "9999";
+
+      const contenido = document.createElement("div");
+      contenido.style.backgroundColor = "#304000";
+      contenido.style.padding = "2rem";
+      contenido.style.borderRadius = "13rem";
+      contenido.style.boxShadow = "0 0 20px #00000080";
+      contenido.style.textAlign = "center";
+      contenido.innerHTML = `
+        <div style="font-size: 3rem; margin-bottom: 1rem;">💀</div>
+        <div style="font-size: 1.5rem; font-weight: bold;">Producto caduco o próximo a caducar</div>
+        <div style="margin-top: 1rem;">
+          <button style="margin-top: 1.5rem; padding: 0.5rem 1.5rem; font-size: 1rem; border: none; background-color: #333; color: white; border-radius: 2rem; cursor: pointer;">
+            Entendido
+          </button>
+        </div>
+      `;
+
+      modal.appendChild(contenido);
+      document.body.appendChild(modal);
+
+      const botonCerrar = contenido.querySelector("button");
+      botonCerrar.addEventListener("click", () => {
+        modal.remove();
+      });
+    }
+  }
 }
+
 
 // Mostrar mensajes temporales
 let timeoutAviso = null;
@@ -673,21 +1350,21 @@ function mostrarModal(mensaje, color) {
 
   modal.textContent = mensaje;
   modal.style.backgroundColor = color;
-  modal.style.zIndex = "99999";
+  modal.style.zIndex = "9999";
   modal.style.display = "block";
 
   if (overlay) {
     overlay.style.backgroundColor = color;
     overlay.style.display = "block";
     overlay.style.opacity = "0.6";
-    overlay.style.zIndex = "99998";
+    overlay.style.zIndex = "9998";
   }
 
   timeoutAviso = setTimeout(() => {
     modal.style.display = "none";
     if (overlay) overlay.style.display = "none";
     timeoutAviso = null;
-  }, 2500);
+  }, 1500);
 }
 
 async function mostrarPrevisualizacionDesdeQR(contenido) {
@@ -721,20 +1398,239 @@ async function mostrarPrevisualizacionDesdeQR(contenido) {
   }
 }
 
-// Procesamiento principal
+
+
+//======================================================================================
+
+
+function intentoMuestreoDeCalidad(producto) {
+  console.log("🧪 Ejecutando intentoMuestreoDeCalidad");
+  console.log("🧪 Producto recibido:", producto);
+
+  const probabilidad = 1 / 30; // Cambia a 1/30 en producción
+  const aleatorio = Math.random();
+  console.log("🧪 Número aleatorio generado:", aleatorio);
+
+  if (aleatorio > probabilidad) {
+    console.log("🧪 Muestreo NO activado por probabilidad");
+    return;
+  }
+
+  console.log("🧪 Muestreo ACTIVADO - generando modal");
+
+  // Modal centrado y responsive
+  const modal = document.createElement("div");
+  modal.className = "muestreo-calidad";
+  modal.style.position = "fixed";
+  modal.style.top = "0";
+  modal.style.left = "0";
+  modal.style.width = "100vw";
+  modal.style.height = "100vh";
+  modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+  modal.style.backdropFilter = "blur(8px)";
+  modal.style.webkitBackdropFilter = "blur(8px)"; // Safari/iOS
+  modal.style.display = "flex";
+  modal.style.justifyContent = "center";
+  modal.style.alignItems = "center";
+  modal.style.zIndex = "9000";
+  modal.style.padding = "1rem";
+  modal.style.boxSizing = "border-box";
+
+  const contenido = document.createElement("div");
+  contenido.style.backgroundColor = "white";
+  contenido.style.padding = "1.5rem";
+  contenido.style.borderRadius = "1rem";
+  contenido.style.boxShadow = "0 0 20px rgba(0,0,0,0.3)";
+  contenido.style.width = "100%";
+  contenido.style.maxWidth = "500px";
+  contenido.style.boxSizing = "border-box";
+  contenido.innerHTML = `
+    <h2 style="font-size: 1.25rem; font-weight: bold; color: #b91c1c; margin-bottom: 1rem;">🧪 Muestreo de Calidad</h2>
+    <p style="margin-bottom: 1rem; color: black;">Verifique físicamente el producto y escriba los datos reales:</p>
+    <label style="color: black;">Referencia:</label>
+    <input id="input_ref_validar" type="text" placeholder="Ej: 547321" style="width: 100%; color: black; padding: 0.5rem; margin-bottom: 0.5rem;">
+    <label style="color: black;">Lote:</label>
+    <input id="input_lote_validar" type="text" placeholder="Ej: A23B56" style="width: 100%; color: black; padding: 0.5rem; margin-bottom: 0.5rem;">
+    <label style="color: black;">Caducidad:</label>
+    <input id="input_cad_validar" type="date" style="width: 100%; color: black; padding: 0.5rem; margin-bottom: 0.5rem;">
+    <div style="display:flex; align-items:center; margin-bottom: 1rem;">
+      <input id="cad_no_aplica" type="checkbox" style="margin-right: 0.5rem;" onchange="toggleCaducidadInput(this)">
+      <label for="cad_no_aplica" style="color:black; margin:0;">Sin caducidad / No aplica</label>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+      <button onclick="validarMuestreo('${producto.referencia}','${producto.lote}','${producto.caducidad}')" style="padding: 0.5rem; background-color: #15803d; color: white; font-weight: bold; border: none; border-radius: 0.375rem;">Validar</button>
+      <button onclick="cancelarMuestreo()" style="padding: 0.5rem; background-color: #b91c1c; color: white; font-weight: bold; border: none; border-radius: 0.375rem;">Omitir</button>
+    </div>
+  `;
+
+  modal.appendChild(contenido);
+  document.body.appendChild(modal);
+  console.log("🧪 Modal de muestreo insertado en el DOM");
+}
+
+// Permitir desactivar el input de caducidad si es "no aplica"
+function toggleCaducidadInput(checkbox) {
+  const inputCad = document.getElementById('input_cad_validar');
+  if (checkbox.checked) {
+    inputCad.disabled = true;
+    inputCad.value = "";
+  } else {
+    inputCad.disabled = false;
+  }
+}
+function sonCaducidadesEquivalentes(a, b) {
+  const equivalentes = ["0", "S/C", "SC", "SIN CADUCIDAD", "N/A", "NA", ""];
+  const upperA = String(a).trim().toUpperCase();
+  const upperB = String(b).trim().toUpperCase();
+  if (equivalentes.includes(upperA) && equivalentes.includes(upperB)) return true;
+  return upperA === upperB;
+}
+
+function validarMuestreo(refEsperada, loteEsperado, cadEsperada) {
+  console.log("🧪 Validando muestreo:", { refEsperada, loteEsperado, cadEsperada });
+  const ref = document.getElementById("input_ref_validar").value.trim();
+  const lote = document.getElementById("input_lote_validar").value.trim();
+  let cad = document.getElementById("input_cad_validar").value;
+
+  // Si el checkbox está marcado, la caducidad es "S/C"
+  if (document.getElementById("cad_no_aplica")?.checked) {
+    cad = "S/C";
+  }
+
+  console.log("🧪 Valores ingresados:", { ref, lote, cad });
+
+  if (!ref || !lote || !cad) {
+    mostrarModal("Completa todos los campos correctamente", "red");
+    return;
+  }
+
+  const nip = typeof usuario !== "undefined" ? usuario : "SIN_NIP";
+  const nombre = localStorage.getItem("usuario") || "Anonimo";
+
+  // Validación exitosa
+  if (ref === refEsperada && lote === loteEsperado && sonCaducidadesEquivalentes(cad, cadEsperada)) {
+    fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/registro_errores", {
+      method: "POST",
+      headers: {
+        "apikey": API_KEY,
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        usuario: nombre,
+        referencia: refEsperada,
+        lote: loteEsperado,
+        fecha: new Date().toISOString(),
+        motivo: "muestreo validado",
+        modo: "muestreo",
+        pin_ingresado: nip,
+        valido: true
+      })
+    });
+    mostrarModal("Validación exitosa ✅", "green");
+    cerrarModalMuestreo();
+  } else {
+    // Error en validación
+    fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/registro_errores", {
+      method: "POST",
+      headers: {
+        "apikey": API_KEY,
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        usuario: nombre,
+        referencia: refEsperada,
+        lote: loteEsperado,
+        fecha: new Date().toISOString(),
+        motivo: "muestreo error",
+        modo: "muestreo",
+        pin_ingresado: nip,
+        valido: false
+      })
+    });
+    mostrarModal("❌ Error de validación. Notificado a administradores.", "red");
+    cerrarModalMuestreo();
+  }
+}
+
+function cancelarMuestreo() {
+  console.warn("🚨 Muestreo omitido por el usuario");
+  const nombre = localStorage.getItem("nombreUsuario") || "Anonimo";
+  const nip = typeof usuario !== "undefined" ? usuario : "-";
+  fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/registro_errores", {
+    method: "POST",
+    headers: {
+      "apikey": API_KEY,
+      "Authorization": `Bearer ${API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      usuario: nombre,
+      referencia: "-",
+      lote: "-",
+      fecha: new Date().toISOString(),
+      motivo: "muestreo omitido",
+      modo: "muestreo",
+      pin_ingresado: nip,
+      valido: false
+    })
+  });
+  mostrarModal("🚨 Muestreo omitido. Notificado a administradores.", "red");
+  cerrarModalMuestreo();
+}
+
+function cerrarModalMuestreo() {
+  const modal = document.querySelector(".muestreo-calidad");
+  if (modal) modal.remove();
+  inputQR?.focus();
+}
+
+
+
+
+//888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
+
+
+
+
+
 async function procesarQR(contenido) {
   try {
+    console.log("📥 QR recibido:", contenido);
     const datos = extraerDatosQR(contenido);
-    console.log("✅ Se llamó a procesarQR con contenido:", contenido);
-    console.log("✅ Datos extraídos:", datos);
+    console.log("🔍 Datos extraídos del QR:", datos);
 
     if (!datos || !datos.referencia || !datos.timestamp) {
       mostrarModal("❌ QR incompleto o ilegible", "#6b7280");
       return;
     }
 
+    if (!datos.lote) {
+      mostrarModal("❌ QR sin lote", "#6b7280");
+      return;
+    }
+
+    const remision = document.getElementById("inputRemision")?.value.trim().toLowerCase();
+    const unidad = unidadSeleccionada?.toLowerCase();
+    const esBasurero = modo === "salida" && unidad === "eliminar" && remision === "etiqueta";
+
+    if (esBasurero) {
+      await procesarBasurero(datos);
+      return;
+    }
+
+    if (datos.lote.includes('|')) {
+      datos.lote = datos.lote.split('|')[0];
+    }
+
     if (!usuario || !modo || modo === "inactivo") {
       mostrarModal("⚠️ Selecciona un modo y un usuario", "#f59e0b");
+      return;
+    }
+
+    if (modo === "salida" && !unidadSeleccionada) {
+      mostrarModal("⚠️ Selecciona una unidad médica", "#f59e0b");
       return;
     }
 
@@ -743,11 +1639,27 @@ async function procesarQR(contenido) {
       return;
     }
 
-    // 🔒 Validación de remisión SAP solo en modo salida
+    // ✅ Verificar si el timestamp ya existe o fue eliminado
+    const tsCheckRes = await fetch(
+      `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/TimeStamps?timestamp=eq.${datos.timestamp}&select=timestamp,ts_eliminado,usuario,unidad_destino,fecha_salida_str`,
+      { headers: { "apikey": API_KEY, "Authorization": `Bearer ${API_KEY}` } }
+    );
+    const tsData = await tsCheckRes.json();
+    const registro = tsData[0];
+
+    if (modo === "entrada" && registro?.timestamp) {
+      mostrarModal("📦 Ya escaneado anteriormente", "#0284c7");
+      return;
+    }
+    if (modo === "salida" && registro?.ts_eliminado) {
+      const msg = `🟡 Producto ya fue retirado\n👤 ${registro.usuario || "-"}\n🏥 ${registro.unidad_destino || "-"}\n📅 ${registro.fecha_salida_str || "-"}`;
+      mostrarModal(msg, "#facc15");
+      return;
+    }
+
     if (modo === "salida") {
       const inputRemision = document.getElementById("inputNumeroRemision");
       const numeroRemision = inputRemision ? inputRemision.value.trim() : "";
-
       if (numeroRemision) {
         const remisionValida = await validarContraRemision(datos.referencia, datos.lote, numeroRemision);
         if (!remisionValida) return;
@@ -756,110 +1668,106 @@ async function procesarQR(contenido) {
 
     mostrarModal("📤 Procesando QR...", "#0ea5e9");
 
-    // 🔍 Verificar si es fraccionable o unidad de fraccionable
-    const fraccionableRes = await fetch(
-      `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/multiplicadores?select=fraccionable,referencia,referencia_unidad,multiplicador&or=(referencia.eq.${datos.referencia},referencia_unidad.eq.${datos.referencia})`,
-      {
-        headers: { "apikey": API_KEY, "Authorization": `Bearer ${API_KEY}` }
-      }
-    );
-
+    const urlMultip = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/multiplicadores?select=fraccionable,referencia,referencia_unidad,multiplicador&or=(referencia.eq.${datos.referencia},referencia_unidad.eq.${datos.referencia})`;
+    const fraccionableRes = await fetch(urlMultip, {
+      headers: { "apikey": API_KEY, "Authorization": `Bearer ${API_KEY}` }
+    });
     const fraccionableData = await fraccionableRes.json();
     const entry = fraccionableData[0];
+    const esFraccionable = entry?.fraccionable === true;
 
-    // 🔧 Si es una unidad individual de un fraccionable
+    // ✅ UNIDAD FRACCIONABLE
     if (entry?.referencia_unidad === datos.referencia) {
-      const payload = {
-        registros: [{
-          ...datos,
-          modo,
-          usuario,
-          unidad: unidadSeleccionada || null,
-          referenciaCaja: entry.referencia,
-          tipo: "unidad"
-        }]
+      const qrUnidad = {
+        ...datos,
+        modo,
+        usuario,
+        unidad: unidadSeleccionada,
+        tipo: "unidad"
       };
-
-      const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/registrar_qr_fraccionable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await res.json();
-      const r = result.resultados?.[0];
-
-      if (r?.status === "ok") {
-        qrsPendientes.push({ ...datos, modo, usuario, unidad: unidadSeleccionada || null });
-        actualizarTablaRegistros();
-        mostrarModal("✅ Unidad procesada", "#22c55e");
-      } else if (r?.status === "repetido") {
-        mostrarModal("📦 El producto ya fue ingresado anteriormente", "#0d9488");
-      } else if (r?.status === "extraido_previo") {
-        mostrarModal(`⚠️ Ya extraído por ${r.usuario}`, "#facc15");
-      } else if (r?.mensaje) {
-        mostrarModal(`⚠️ ${r.mensaje}`, "#6b7280");
-      } else {
-        mostrarModal("❌ Error al registrar unidad", "#6b7280");
-      }
+      qrsPendientes.push(qrUnidad);
+      intentoMuestreoDeCalidad(qrUnidad);
+      actualizarTablaRegistros();
+      mostrarModal("✅ Unidad escaneada", "#22c55e");
       return;
     }
 
-    const esFraccionable = entry?.fraccionable === true;
+    // ✅ CAJA FRACCIONABLE
+    if (esFraccionable && modo === "entrada") {
+      const qrCaja = {
+        ...datos,
+        modo,
+        usuario,
+        unidad: unidadSeleccionada,
+        tipo: "fraccion"
+      };
+      qrsPendientes.push(qrCaja);
+      intentoMuestreoDeCalidad(qrCaja);
+      actualizarTablaRegistros();
+      mostrarModal("✅ Caja escaneada", "#22c55e");
+      return;
+    }
 
-    // 🔧 Fraccionable en modo salida
+    // 🔄 SALIDA FRACCIONABLE
     if (esFraccionable && modo === "salida") {
       abrirModalCantidadFraccionable(datos.referencia, datos.lote, contenido);
       return;
     }
 
-    // 🔧 Fraccionable en modo entrada
-    if (esFraccionable && modo === "entrada") {
-      const payload = {
-        registros: [{
-          ...datos,
-          modo,
-          usuario,
-          unidad: unidadSeleccionada || null,
-          tipo: "fraccion"
-        }]
-      };
-
-      const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/registrar_qr_fraccionable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await res.json();
-      const r = result.resultados?.[0];
-
-      if (r?.status === "ok") {
-        qrsPendientes.push({ ...datos, modo, usuario, unidad: unidadSeleccionada || null });
-        actualizarTablaRegistros();
-        mostrarModal("✅ Caja registrada", "#22c55e");
-      } else if (r?.status === "repetido") {
-        mostrarModal("📦 El producto ya fue ingresado anteriormente", "#0d9488");
-      } else if (r?.status === "extraido_previo") {
-        mostrarModal(`⚠️ Ya extraído por ${r.usuario}`, "#facc15");
-      } else if (r?.mensaje) {
-        mostrarModal(`⚠️ ${r.mensaje}`, "#6b7280");
-      } else {
-        mostrarModal("❌ Error en el QR", "#6b7280");
-      }
-      return;
+    // ✅ Producto normal
+    if (modo === "salida") {
+      const permitido = await procesarExtraccionConValidacion(datos.referencia, unidadSeleccionada, 1, usuario);
+      if (!permitido) return;
     }
 
-    // 🔧 Producto normal (no fraccionable)
-    qrsPendientes.push({ ...datos, modo, usuario, unidad: unidadSeleccionada || null });
+    const historicoRes = await fetch(
+      `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/historicos?select=referencia,nombre,fabricante`,
+      { headers: { "apikey": API_KEY, "Authorization": `Bearer ${API_KEY}` } }
+    );
+    const historico = await historicoRes.json();
+    const normalizar = str => str.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const refLimpiada = normalizar(datos.referencia);
+    const match = historico.find(h => normalizar(h.referencia) === refLimpiada);
+    const nombre = match?.nombre || "SIN NOMBRE";
+    const fabricante = match?.fabricante || "SIN FABRICANTE";
+
+    let caducidadFinal = "S/C";
+    if (datos.caducidad && !isNaN(datos.caducidad)) {
+      inputQR?.focus();
+      try {
+        const fechaExcel = new Date((Number(datos.caducidad) - 25569) * 86400 * 1000);
+        caducidadFinal = fechaExcel.toISOString().split("T")[0];
+      } catch {
+        caducidadFinal = "S/C";
+      }
+    } else if (typeof datos.caducidad === "string") {
+      caducidadFinal = datos.caducidad;
+    }
+
+    verificarCaducidadYMostrarModal(caducidadFinal);
+
+    const qrPendiente = {
+      ...datos,
+      modo,
+      usuario,
+      unidad: unidadSeleccionada,
+      nombre,
+      fabricante,
+      caducidad: caducidadFinal
+    };
+
+    qrsPendientes.push(qrPendiente);
+    intentoMuestreoDeCalidad(qrPendiente);
     actualizarTablaRegistros();
-    mostrarModal("✅ Producto agregado", "#22c55e");
+    mostrarModal("✅ Producto escaneado", "#22c55e");
 
   } catch (error) {
-    console.error("❌ Error global en procesarQR:", error);
+    console.error("❌ Error en procesarQR:", error);
     mostrarModal("❌ Error inesperado", "#dc2626");
   }
 }
+
+
 
 
 // === Funciones auxiliares ===
@@ -955,35 +1863,47 @@ async function registrarExtraccionConjunta(fracciones, referencia, usuario, unid
 
   for (const [i, f] of fracciones.entries()) {
     try {
+      const registro = {
+        referencia,
+        lote: f.lote,
+        timestamp: f.timestamp,
+        cantidad: f.usado,
+        usuario,
+        modo: "salida",
+        unidad
+      };
+
+      // 👉 Solo añadir si hay un PIN autorizado por alguien distinto al usuario
+      if (window.pinAutorizadoPor && window.pinAutorizadoPor !== usuario) {
+        registro.pin_autorizado_por = window.pinAutorizadoPor;
+      }
+
       const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/registrar_qr_fraccionable", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          registros: [{
-            referencia,
-            lote: f.lote,
-            timestamp: f.timestamp,
-            cantidad: f.usado,
-            usuario,
-            modo: "salida",
-            unidad
-          }]
-        })
+        body: JSON.stringify({ registros: [registro] })
       });
 
       const result = await res.json();
       const r = result.resultados?.[0];
 
       if (r?.status === "ok") {
-        qrsPendientes.push({
+        const registroQR = {
           referencia,
           lote: f.lote,
           cantidad: f.usado,
           modo: "salida",
           usuario,
           unidad
-        });
+        };
+
+        if (registro.pin_autorizado_por) {
+          registroQR.pin_autorizado_por = registro.pin_autorizado_por;
+        }
+
+        qrsPendientes.push(registroQR);
         mostrarModal(`✅ Caja ${i + 1} procesada (${f.usado} piezas)`, "#22c55e");
+
       } else {
         errores++;
         mostrarModal(`⚠️ Caja ${i + 1} falló: ${r?.mensaje || "desconocido"}`, "#facc15");
@@ -995,7 +1915,7 @@ async function registrarExtraccionConjunta(fracciones, referencia, usuario, unid
       mostrarModal(`❌ Error de red al registrar caja ${i + 1}`, "#dc2626");
     }
 
-    await new Promise(resolve => setTimeout(resolve, 200)); // Pausa leve para claridad visual
+    await new Promise(resolve => setTimeout(resolve, 200));
   }
 
   if (errores === 0) {
@@ -1004,6 +1924,10 @@ async function registrarExtraccionConjunta(fracciones, referencia, usuario, unid
     mostrarModal(`⚠️ ${errores} de ${fracciones.length} cajas fallaron`, "#f59e0b");
   }
 }
+
+
+//88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
+
 
 async function validarContraRemision(referencia, lote, numeroRemision) {
   const res = await fetch(`https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?referencia=eq.${referencia}&lote=eq.${lote}&numero_remision=eq.${numeroRemision}`, {
@@ -1071,7 +1995,24 @@ function abrirModalCantidadFraccionable(referencia, lote, contenidoQR) {
 
       <div class="flex justify-between mt-4">
         <button onclick="cerrarModalFraccionable()" class="bg-gray-300 hover:bg-gray-400 text-sm px-4 py-2 rounded-md">Cancelar</button>
-        <button onclick="confirmarCantidadFraccionable()" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-md">Aceptar</button>
+        <button onclick="(async () => {
+          const cantidad = parseInt(document.getElementById('inputCantidadFraccionable').value.trim());
+          if (!cantidad || cantidad <= 0) {
+            mostrarModal('⚠️ Ingresa una cantidad válida', '#f59e0b');
+            return;
+          }
+
+          const permitido = await procesarExtraccionConValidacion('${referencia}', '${unidadSeleccionada}', cantidad);
+          if (!permitido) {
+            mostrarModal('❌ Operación cancelada por exceso de dotación', '#b91c1c');
+            cerrarModalFraccionable();
+            return;
+          }
+
+          confirmarCantidadFraccionable();  // ← si pasa validación
+        })()"
+        class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-md">Aceptar</button>
+
       </div>
 
       <div id="seccionFracciones" class="hidden mt-4 space-y-3">
@@ -1095,15 +2036,29 @@ function abrirModalCantidadFraccionable(referencia, lote, contenidoQR) {
 
   setTimeout(() => {
     const input = document.getElementById("inputCantidadFraccionable");
-    if (input) {
+    const btnAceptar = document.getElementById("btnConfirmarCantidadFraccionable");
+
+    if (input && btnAceptar) {
       input.focus();
       input.value = "";
       input.addEventListener("keyup", function (e) {
-        if (e.key === "Enter") confirmarCantidadFraccionable();
+        if (e.key === "Enter") btnAceptar.click();
       }, { once: true });
+
+      btnAceptar.onclick = async () => {
+        const cantidadSolicitada = parseInt(input.value);
+        if (!cantidadSolicitada || cantidadSolicitada < 1) return;
+
+        const permitido = await procesarExtraccionConValidacion(referencia, unidadSeleccionada, cantidadSolicitada);
+        if (!permitido) return;
+
+        cerrarModalFraccionable();
+        iniciarModoExtraccionFraccionable(referencia, lote, contenidoQR, cantidadSolicitada);
+      };
     }
   }, 100);
 }
+
 
 function actualizarModalFraccionable() {
   const modal = document.getElementById("modalFraccionable");
@@ -1180,7 +2135,7 @@ async function procesarQRFraccionableSalida(referencia, lote, cantidad) {
       actualizarTablaRegistros();
       mostrarModal("✅ Retiro fraccionado exitoso", "#22c55e");
     } else if (r?.status === "extraido_previo") {
-      mostrarModal(`⚠️ Ya extraído por ${r.usuario}`, "#facc15");
+      mostrarModal(`⚠️ Producto ya fue retirado\n👤 ${res.usuario}\n🏥 ${res.unidad_destino}\n📅 ${res.fecha_str}`, "#facc15");
     } else if (r?.mensaje) {
       mostrarModal(`⚠️ ${r.mensaje}`, "#6b7280");
     } else {
@@ -1237,6 +2192,387 @@ function confirmarCantidadFraccionable() {
 } 
 
 
+
+//========================================================================================================
+
+
+async function procesarExtraccionConValidacion(ref, unidadDestino, cantidadSolicitada, usuario) {
+  console.log("🔍 Iniciando validación de dotación para:", { ref, unidadDestino, cantidadSolicitada });
+
+  const fecha = new Date();
+  const mes = fecha.getMonth() + 1;
+  const anio = fecha.getFullYear();
+  const mesAnterior = mes === 1 ? 12 : mes - 1;
+  const anioAnterior = mes === 1 ? anio - 1 : anio;
+
+  const colA = `25_${mesAnterior}_${anioAnterior}`;
+  const colB = `10_${mes}_${anio}`;
+
+  console.log("📅 Columnas a consultar:", colA, colB);
+
+  const claveRemision = `${ref}||${unidadDestino}||${remisionActual || "sin_remision"}`;
+
+  // Validar si ya está autorizada en memoria
+  if (window.autorizacionesExceso?.[claveRemision]) {
+    console.log("🔓 PIN ya validado anteriormente para esta remisión. Se permite continuar.");
+    return true;
+  }
+
+  // Validar si ya estaba autorizada en Supabase
+  if (remisionActual) {
+    const resCheck = await fetch(`https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?select=nip_verificado&numero_remision=eq.${remisionActual}`, {
+      headers: {
+        apikey: API_KEY,
+        Authorization: `Bearer ${API_KEY}`
+      }
+    });
+
+    const remisionInfo = await resCheck.json();
+    const algunaVerificada = remisionInfo?.some(r => r.nip_verificado === true);
+
+    if (algunaVerificada) {
+      console.log("🔓 PIN ya estaba verificado en Supabase para esta remisión:", remisionActual);
+      window.autorizacionesExceso = window.autorizacionesExceso || {};
+      window.autorizacionesExceso[claveRemision] = true;
+      return true;
+    }
+  }
+
+  const urlConsumos = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/consumos_mensuales?select=*&referencia=eq.${ref}&unidad_medica=eq.${unidadDestino}`;
+  const resConsumos = await fetch(urlConsumos, {
+    headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` }
+  });
+  const registros = await resConsumos.json();
+  const consumos = registros?.[0] || {};
+
+  console.log("📦 Registro de consumos encontrado:", consumos);
+
+  const consumoActual = (parseInt(consumos[colA]) || 0) + (parseInt(consumos[colB]) || 0);
+  console.log("📈 Consumo actual calculado:", consumoActual);
+
+  const urlDotacion = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/dotaciones?select=*&referencia=eq.${ref}&unidad=eq.${unidadDestino}`;
+  const resDot = await fetch(urlDotacion, {
+    headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` }
+  });
+  const dotacionData = await resDot.json();
+
+  console.log("📋 Datos de dotación encontrados:", dotacionData);
+
+  const cantidadPermitida = parseInt(dotacionData?.[0]?.cantidad) || 0;
+
+  const escaneadosLocalmente = qrsPendientes.filter(q =>
+    q.referencia === ref && q.unidad === unidadDestino
+  ).length;
+
+  console.log("📊 Escaneados localmente:", escaneadosLocalmente);
+
+  const consumoProyectado = consumoActual + escaneadosLocalmente + cantidadSolicitada;
+
+  console.log("📊 Comparación:", {
+    cantidadPermitida,
+    consumoActual,
+    cantidadSolicitada,
+    consumoProyectado
+  });
+
+  if (consumoProyectado > cantidadPermitida) {
+    const modal = document.getElementById("modalPINExceso");
+    const contenido = document.getElementById("contenidoPINExceso");
+
+    console.log("🧪 usuario en generar PIN:", usuario);
+    const pinGenerado = await generarPinDinamico();
+    console.log("🔐 PIN dinámico actual:", pinGenerado);
+
+    contenido.innerHTML = `
+      <p class="text-red-800 font-semibold">⚠️ La cantidad solicitada excede la dotación autorizada:</p>
+      <ul class="list-disc ml-6 text-sm mt-2">
+        <li><strong>Referencia:</strong> ${ref}</li>
+        <li><strong>Unidad destino:</strong> ${unidadDestino}</li>
+        <li><strong>Dotación mensual:</strong> ${cantidadPermitida}</li>
+        <li><strong>Consumido actual:</strong> ${consumoActual}</li>
+        <li><strong>Solicitado ahora:</strong> ${cantidadSolicitada}</li>
+        <li class="text-red-700"><strong>Total proyectado:</strong> ${consumoProyectado} (excede)</li>
+      </ul>
+      <p class="mt-3 text-sm">🔐 Se ha generado un PIN dinámico. Solicítalo a Silvia para continuar.</p>
+    `;
+
+    console.log("🚪 Mostrando modalPINExceso");
+    modal.classList.remove("hidden");
+    document.getElementById("nipdinamico").value = "";
+    document.getElementById("pinError").classList.add("hidden");
+    document.getElementById("nipdinamico").focus();
+
+    return new Promise((resolve) => {
+      const btnConfirmar = document.getElementById("btnConfirmarPin");
+      const btnCancelar = document.getElementById("btnCancelarPIN");
+      const input = document.getElementById("nipdinamico");
+
+      if (!btnConfirmar || !btnCancelar || !input) {
+        console.error("❌ Elementos del modal no encontrados.");
+        return resolve(false);
+      }
+
+      input.focus();
+      input.select();
+
+      const confirmarListener = async () => {
+        try {
+          const pinIngresado = input.value.trim().toUpperCase();
+          console.log("👤 Usuario actual:", usuario);
+          console.log("🔐 PIN ingresado:", pinIngresado);
+
+          if (pinIngresado.length !== 6 || !/^[0-9A-F]{6}$/.test(pinIngresado)) {
+            const msg = "⚠️ El PIN debe tener 6 caracteres hexadecimales.";
+            console.warn(msg);
+            document.getElementById("pinError").textContent = msg;
+            document.getElementById("pinError").classList.remove("hidden");
+            return;
+          }
+
+          if (!usuario) {
+            console.error("❌ 'usuario' no está definido al verificar PIN.");
+            document.getElementById("pinError").textContent = "❌ No se pudo validar el PIN. Usuario no definido.";
+            document.getElementById("pinError").classList.remove("hidden");
+            return;
+          }
+
+          console.log("🔍 Verificando PIN para usuario:", usuario);
+          const generadoPor = await detectarAdminDesdePIN(pinIngresado);
+          console.log("🕵️‍♀️ PIN generado por:", generadoPor);
+
+          const valido = !!generadoPor;
+          console.log("✅ Resultado de verificarPin:", valido);
+
+          if (valido) {
+            mostrarModal("✔️ PIN correcto. Puedes continuar.", "#16a34a");
+            limpiarListeners();
+            modal.classList.add("hidden");
+
+            // Marcar como autorizado en memoria
+            window.autorizacionesExceso = window.autorizacionesExceso || {};
+            window.autorizacionesExceso[claveRemision] = true;
+            console.log("✅ Autorización por PIN guardada para:", claveRemision);
+
+            // Actualizar Supabase si es una remisión válida
+            if (remisionActual) {
+              await fetch(`https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?numero_remision=eq.${remisionActual}`, {
+                method: "PATCH",
+                headers: {
+                  apikey: API_KEY,
+                  Authorization: `Bearer ${API_KEY}`,
+                  "Content-Type": "application/json",
+                  Prefer: "return=minimal"
+                },
+                body: JSON.stringify({ nip_verificado: true })
+              });
+              console.log("📥 Supabase actualizado: remisión marcada como verificada");
+            }
+
+            window.pinAutorizadoPor = generadoPor;
+            resolve(true);
+          } else {
+            console.warn("❌ PIN incorrecto.");
+            document.getElementById("pinError").textContent = "❌ PIN incorrecto. Solicita uno nuevo a Silvia.";
+            document.getElementById("pinError").classList.remove("hidden");
+            input.value = "";
+            input.focus();
+          }
+
+        } catch (err) {
+          console.error("❌ Error en confirmarListener:", err);
+          document.getElementById("pinError").textContent = "❌ Ocurrió un error inesperado.";
+          document.getElementById("pinError").classList.remove("hidden");
+        }
+      };
+
+      const cancelarListener = () => {
+        limpiarListeners();
+        modal.classList.add("hidden");
+        resolve(false);
+      };
+
+      const keyListener = (e) => {
+        if (e.key === "Enter") confirmarListener();
+        if (e.key === "Escape") cancelarListener();
+      };
+
+      function limpiarListeners() {
+        btnConfirmar.removeEventListener("click", confirmarListener);
+        btnCancelar.removeEventListener("click", cancelarListener);
+        document.removeEventListener("keydown", keyListener);
+      }
+
+      btnConfirmar.addEventListener("click", confirmarListener);
+      btnCancelar.addEventListener("click", cancelarListener);
+      document.addEventListener("keydown", keyListener);
+    });
+  }
+
+  console.log("✅ Validación superada. Se permite continuar.");
+  return true;
+}
+
+
+async function validarDotacionAntesDeExtraer(ref, unidadDestino, cantidadSolicitada, usuario) {
+  console.log("🔎 Validando dotación previa para:", { ref, unidadDestino, cantidadSolicitada });
+
+  const fecha = new Date();
+  const mes = fecha.getMonth() + 1;
+  const anio = fecha.getFullYear();
+  const mesAnterior = mes === 1 ? 12 : mes - 1;
+  const anioAnterior = mes === 1 ? anio - 1 : anio;
+
+  const colA = `25_${mesAnterior}_${anioAnterior}`;
+  const colB = `10_${mes}_${anio}`;
+
+  const urlConsumos = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/consumos_mensuales?select=*&referencia=eq.${ref}&unidad_medica=eq.${unidadDestino}`;
+  const resConsumos = await fetch(urlConsumos, {
+    headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` }
+  });
+  const registros = await resConsumos.json();
+  const consumos = registros?.[0] || {};
+
+  console.log("📦 Registro de consumos encontrado:", consumos);
+
+  const sumaConsumos = (parseInt(consumos[colA]) || 0) + (parseInt(consumos[colB]) || 0);
+
+  const urlDotacion = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/dotaciones?select=*&referencia=eq.${ref}&unidad=eq.${unidadDestino}`;
+  const resDot = await fetch(urlDotacion, {
+    headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` }
+  });
+  const dotacionData = await resDot.json();
+
+  console.log("📋 Datos de dotación encontrados:", dotacionData);
+
+  const cantidadPermitida = parseInt(dotacionData?.[0]?.cantidad) || 0;
+
+  console.log("📊 Comparación:", {
+    cantidadPermitida,
+    sumaConsumos,
+    cantidadSolicitada,
+    total: sumaConsumos + cantidadSolicitada
+  });
+
+  if (sumaConsumos + cantidadSolicitada > cantidadPermitida) {
+    const pin = await obtenerPin(usuario);
+    mostrarModal("🔐 Se requiere PIN especial de Silvia para continuar", "#f87171");
+    return false;
+  }
+
+  console.log("✅ Dotación dentro del límite permitido.");
+  return true;
+}
+
+
+async function solicitarPinSilviaSiNecesario(ref, unidadDestino, cantidadSolicitada) {
+  const pin = await obtenerPin(usuario, ref, unidadDestino);
+  if (!autorizado) return;
+// continuar extracción normal
+
+  // Mostrar modal e instrucción
+  mostrarModal("🔐 Se requiere autorización especial. un administrador debe proporcionarte un CODIGO para continuar.", "#f87171");
+  document.getElementById("nipdinamico").value = "";
+  document.getElementById("nipdinamico").focus();
+
+  return new Promise((resolve) => {
+    // Asumimos que el modal tiene un botón "Confirmar PIN" con id="btnConfirmarPin"
+    const btn = document.getElementById("btnConfirmarPin");
+
+    const listener = async () => {
+      const pinIngresado = document.getElementById("nipdinamico").value.trim();
+      const valido = await verificarPin(usuario, pinIngresado);
+
+      if (valido) {
+        notificar("✔️ PIN correcto. Autorización concedida.", "#16a34a");
+        btn.removeEventListener("click", listener);
+        document.getElementById("modalPinUnidad").classList.add("hidden");
+        resolve(true);
+      } else {
+        document.getElementById("pinError").textContent = "❌ PIN incorrecto. Solicita uno nuevo a Silvia.";
+        document.getElementById("pinError").classList.remove("hidden");
+        document.getElementById("nipdinamico").value = "";
+        document.getElementById("nipdinamico").focus();
+      }
+    };
+
+    btn.addEventListener("click", listener);
+  });
+}
+
+
+async function verificarPin(pinIngresado) {
+  const admins = ["Silvia", "Luis", "Aida", "Ricardo", "Alex", "Adrian"];
+  const ahora = new Date();
+  const clave = "medinova-secreto-2025";
+
+  for (const admin of admins) {
+    const yyyy = ahora.getUTCFullYear();
+    const mm = String(ahora.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(ahora.getUTCDate()).padStart(2, "0");
+    const hh = String(ahora.getUTCHours()).padStart(2, "0");
+    const bloque = Math.floor(ahora.getUTCMinutes() / 10);
+    const base = `${admin.toLowerCase()}::${yyyy}-${mm}-${dd}-${hh}-${bloque}::${clave}`;
+    const hash = await sha256(base);
+    const generado = hash.substring(0, 6).toUpperCase();
+
+    if (generado === pinIngresado) {
+      console.log("✅ PIN verificado. Generado por:", admin);
+      return { valido: true, generadoPor: admin };
+    }
+  }
+
+  console.warn("❌ PIN no coincide con ningún admin");
+  return { valido: false, generadoPor: null };
+}
+
+function iniciarActualizacionAutomaticaPIN() {
+  if (intervaloPin) clearInterval(intervaloPin);
+
+  // Ejecutar inmediatamente
+  actualizarPinYContador();
+
+  // Calcular cuánto falta para el siguiente múltiplo exacto del intervalo
+  const ahora = new Date();
+  const minutos = ahora.getUTCMinutes();
+  const segundos = ahora.getUTCSeconds();
+
+  const minutosHastaProximo = INTERVALO_MINUTOS - (minutos % INTERVALO_MINUTOS);
+  const msHastaProximo = (minutosHastaProximo * 60 - segundos) * 1000;
+
+  // ⏳ Primera actualización al siguiente punto exacto (ej. HH:10:00, HH:20:00...)
+  setTimeout(() => {
+    actualizarPinYContador();
+    intervaloPin = setInterval(actualizarPinYContador, INTERVALO_MINUTOS * 60000);
+  }, msHastaProximo);
+}
+
+async function detectarAdminDesdePIN(pinIngresado) {
+  const ahora = new Date();
+  const yyyy = ahora.getUTCFullYear();
+  const mm = String(ahora.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(ahora.getUTCDate()).padStart(2, "0");
+  const hh = String(ahora.getUTCHours()).padStart(2, "0");
+  const bloque = Math.floor(ahora.getUTCMinutes() / 10);
+  const clave = "medinova-secreto-2025";
+
+  for (const admin of listaAdmins) {
+    const base = `${admin.toLowerCase()}::${yyyy}-${mm}-${dd}-${hh}-${bloque}::${clave}`;
+    const hash = await sha256(base);
+    const pinGenerado = hash.substring(0, 6).toUpperCase();
+
+    if (pinIngresado === pinGenerado) {
+      return admin;
+    }
+  }
+
+  return null;
+}
+
+
+//==========================================================================================================
+
+
+
 // Nueva función independiente
 async function cargarReferencias() {
   const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/productos?select=referencia,nombre,fabricante,lote,caducidad,cantidad", {
@@ -1259,6 +2595,28 @@ function buscarReferencia(valor) {
 
   mostrarResultadosCoincidencias(valor.toLowerCase(), referenciasCache, cont);
 }
+function normalizarFechaExcel(fechaOriginal) {
+  if (!fechaOriginal) return "S/C";
+
+  // Si es un número (fecha Excel)
+  if (typeof fechaOriginal === "number" || !isNaN(Number(fechaOriginal))) {
+    const valor = Number(fechaOriginal);
+    if (valor > 10000 && valor < 60000) { // valores válidos de Excel
+      const baseDate = new Date(Date.UTC(1899, 11, 30));
+      baseDate.setDate(baseDate.getDate() + valor);
+      return baseDate.toISOString().split("T")[0];
+    }
+  }
+
+  // Si ya es string tipo fecha
+  const fecha = new Date(fechaOriginal);
+  if (!isNaN(fecha.getTime())) {
+    return fecha.toISOString().split("T")[0];
+  }
+
+  return "S/C";
+}
+
 
 // ✅ Esta ya la tenías completa
 async function mostrarResultadosCoincidencias(ref, referenciasCache, cont) { 
@@ -1316,7 +2674,7 @@ async function mostrarResultadosCoincidencias(ref, referenciasCache, cont) {
             <tr>
               <td class="p-2">${l.lote}</td>
               <td class="p-2">${l.cantidad}</td>
-              <td class="p-2">${l.caducidad}</td>
+              <td class="p-2">${normalizarFechaExcel(l.caducidad)}</td>
               <td class="p-2" title="Días restantes">${icono}</td>
             </tr>`;
     });
@@ -1427,87 +2785,26 @@ function cerrarModalPin() {
   document.getElementById("modalPinUnidad").classList.add("hidden");
 }
 
-async function validarPinYUnidad() {
-  const nip = document.getElementById("inputNIP").value.trim();
-  nipAdmin = nip;
-  const unidad = document.getElementById("inputUnidad").value.trim().toUpperCase();
-  const esSalida = modoSeleccionado === "salida";
 
-  // Validar remisión obligatoria si el bloqueo está activo:
-  let remision = null;
-  if (esSalida) {
-    remision = document.getElementById("inputRemision").value.trim();
 
-    const bloqueoActivo = await consultarEstadoBloqueo();
-
-    if (bloqueoActivo && !remision) {
-      document.getElementById("pinError").textContent = "❌ Debes cargar la remisión para continuar.";
-      document.getElementById("pinError").classList.remove("hidden");
-      return;
-    }
-  }
-
-  remisionActual = remision;
-
+async function enviarModoInventario() {
   try {
-    const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_nip", {
+    const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/modo_inventario", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nip })
+      body: JSON.stringify({ usuario })  // envías solo el usuario
     });
 
     const data = await res.json();
-    const unidadesLista = typeof data.unidades === "string"
-      ? data.unidades.split(",").map(u => u.trim().toUpperCase())
-      : Array.isArray(data.unidades)
-        ? data.unidades
-        : [];
+    if (!res.ok) throw new Error(data.error || "Error en modo inventario");
 
-    if (!data || !data.nombre || (esSalida && !unidadesLista.includes(unidad))) {
-      document.getElementById("pinError").textContent = "❌ Verifica NIP o unidad.";
-      document.getElementById("pinError").classList.remove("hidden");
-      return;
-    }
-
-    usuario = data.nombre;
-    esAdmin = data.es_admin;
-    window.usuarioEsAdmin = esAdmin;
-    usuarioAdmin = esAdmin === true;  // Esta es la bandera global
-
-    unidadSeleccionada = esSalida ? unidad : null;
-    document.getElementById("modalPinUnidad").classList.add("hidden");
-
-    const nombreUnidad = unidadesDestino[unidad] || "Unidad desconocida";
-
-    if (modoSeleccionado === "entrada") {
-      document.getElementById("usuarioActivo").textContent = usuario;
-    } else if (modoSeleccionado === "salida") {
-      document.getElementById("usuarioActivo").innerHTML = `
-        ${usuario} → ${unidad} ${nombreUnidad}<br>
-        No. de Remisión: <strong>${remisionActual}</strong>
-      `;
-    } else {
-      document.getElementById("usuarioActivo").textContent = "Selecciona un modo para iniciar";
-    }
-
-    modo = modoSeleccionado;
-
-    const texto = modo;
-    const color = modo === "entrada" ? "bg-green-700"
-                : modo === "salida" ? "bg-red-700"
-                : "bg-gray-500";
-    const icono = modo === "entrada" ? "📥"
-                : modo === "salida" ? "📤"
-                : "🔒";
-
-    actualizarBotonModo(texto.charAt(0).toUpperCase() + texto.slice(1), color, icono);
-    notificar(`Modo ${modo.toUpperCase()} activado`, "#003f40");
-    document.getElementById("inputQR").focus();
-
+    mostrarModal("📦 Modo INVENTARIO completado correctamente", "#22c55e");
   } catch (e) {
-    document.getElementById("pinError").textContent = "❌ Error de conexión.";
-    document.getElementById("pinError").classList.remove("hidden");
+    console.error("❌ Error en modo inventario:", e);
+    mostrarModal("❌ Error al ejecutar modo INVENTARIO", "#dc2626");
   }
+
+  document.getElementById("modalInventario").classList.add("hidden");
 }
 
 function mostrarCambioNIP() {
@@ -1696,15 +2993,20 @@ function calcularRegresionLineal(x, y) {
 
   return { pendiente, intercepto };
 }
+
+
+
+
 function verForecast(referencia, nombre = "", fabricante = "") {
   const anterior = document.getElementById("modalForecast");
   if (anterior) anterior.remove();
 
- const modal = document.createElement("div");
+  const modal = document.createElement("div");
   modal.id = "modalForecast";
-  modal.className = "fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 overflow-y-auto";
+  modal.className = "fixed inset-0 bg-black bg-opacity-60 z-50 overflow-auto flex items-center justify-center";
+
   modal.innerHTML = `
-    <div class="bg-white rounded-xl p-4 w-[95%] max-w-5xl text-gray-800 relative mt-6 mb-6">
+    <div class="bg-white rounded-xl p-4 w-[95%] max-w-5xl text-gray-800 relative mt-6 mb-6 max-h-[95vh] overflow-y-auto">
       <button onclick="document.getElementById('modalForecast').remove()" class="absolute top-2 right-2 text-red-800 hover:text-red-600 text-xl font-bold">×</button>
       <div id="anclaForecast" class="h-12 -mt-12"></div>
       <h2 class="text-lg font-bold mb-3 text-center">📊 Estadísticas del producto</h2>
@@ -1716,10 +3018,10 @@ function verForecast(referencia, nombre = "", fabricante = "") {
             <option value="TOTAL">Total (Almacén CUU)</option>
           </select>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap justify-center">
           <button onclick="exportarRegresionExcel()" class="bg-emerald-900 text-white px-3 py-1 rounded hover:bg-emerald-800 text-sm">📤 Excel</button>
           <button onclick="exportarRegresionPDF()" class="bg-rose-900 text-white px-3 py-1 rounded hover:bg-rose-800 text-sm">🖨️ PDF</button>
-          <button onclick="descargarReporteForecast()" class="bg-purple-900 text-white px-4 py-2 rounded-xl hover:bg-purple-800">📤 Reporte Global</button>
+          <button onclick="descargarReporteForecast()" class="bg-purple-900 text-white px-4 py-2 rounded-xl hover:bg-purple-800 text-sm">📤 Reporte Global</button>
         </div>
       </div>
 
@@ -1728,19 +3030,21 @@ function verForecast(referencia, nombre = "", fabricante = "") {
         <canvas id="graficaForecast" class="w-full h-[260px] sm:h-[320px] max-w-full"></canvas>
       </div>
 
-<div id="alertaForecast" class="text-sm mt-4 p-2 items-center text-center w-full mx-auto md:w-1/2 bg-gray-100 text-gray-700 rounded-xl border border-gray-300 hidden"></div>
+      <div id="alertaForecast" class="text-sm mt-4 p-2 items-center text-center w-full mx-auto md:w-1/2 bg-gray-100 text-gray-700 rounded-xl border border-gray-300 hidden"></div>
 
       <!-- Gráfica de pronóstico + tabla -->
       <div class="flex flex-col md:flex-row gap-4 w-full">
         <div class="md:w-2/3">
-      <canvas id="graficaForecastLinea" class="w-full h-[180px] sm:h-[220px] max-w-full"></canvas>
+          <canvas id="graficaForecastLinea" class="w-full max-w-full"></canvas>
         </div>
         <div id="tablaForecast" class="text-sm md:w-1/3 max-h-[300px] overflow-y-auto"></div>
       </div>
-    </div>`;
+    </div>
+  `;
+
   document.body.appendChild(modal);
 
-  // Cerrar modal con tecla Esc
+  // Esc -> cerrar
   document.addEventListener("keydown", function handleEsc(e) {
     if (e.key === "Escape") {
       modal.remove();
@@ -1748,17 +3052,98 @@ function verForecast(referencia, nombre = "", fabricante = "") {
     }
   });
 
-  // Cerrar modal al hacer clic fuera
+  // Clic fuera del modal
   modal.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      modal.remove();
-    }
+    if (e.target === modal) modal.remove();
   });
 
+
   cargarDatosForecastEdge(referencia).then(() => alCambiarUnidadForecast(referencia));
-} window.verForecast = verForecast;
+}window.verForecast = verForecast;
 let graficaForecastInstance = null;
 let graficaRegresionInstance = null;
+
+
+function crearGraficaForecastLinea(labels, datosHistoricos, datosPronostico) {
+  const canvas = document.getElementById("graficaForecastLinea");
+
+  // Ajustar alto del canvas según tamaño de pantalla
+  const isMobile = window.innerWidth < 768;
+  const alturaDeseada = isMobile ? 320 : 240;
+  canvas.height = alturaDeseada;
+
+  // Destruir gráfica anterior si existe
+  if (window.graficaForecastLineaObj) {
+    window.graficaForecastLineaObj.destroy();
+  }
+
+  // Crear nueva gráfica
+  const ctx = canvas.getContext("2d");
+  window.graficaForecastLineaObj = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Histórico",
+          data: datosHistoricos,
+          borderColor: "#2563eb", // azul
+          backgroundColor: "rgba(37, 99, 235, 0.2)",
+          tension: 0.3,
+          pointRadius: 2,
+          fill: false
+        },
+        {
+          label: "Pronóstico",
+          data: datosPronostico,
+          borderColor: "#16a34a", // verde
+          backgroundColor: "rgba(22, 163, 74, 0.2)",
+          tension: 0.3,
+          pointRadius: 2,
+          borderDash: [5, 5],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            font: { size: isMobile ? 10 : 12 }
+          }
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false
+        }
+      },
+      interaction: {
+        mode: "nearest",
+        axis: "x",
+        intersect: false
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxRotation: 45,
+            minRotation: 30
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+}
+
+
 async function cargarDatosForecastEdge(ref) {
   const select = document.getElementById("unidadForecast");
   const ctx = document.getElementById("graficaForecast").getContext("2d");
@@ -1770,6 +3155,8 @@ async function cargarDatosForecastEdge(ref) {
 
     if (consumoData.error) throw new Error(consumoData.error);
 
+    console.log("❓ DEBUG consumoData.consumo:", consumoData.consumo);
+
     const todasUnidades = Object.keys(consumoData.consumo).sort();
 
     if (!todasUnidades.length) {
@@ -1778,7 +3165,6 @@ async function cargarDatosForecastEdge(ref) {
       document.getElementById("alertaForecast").classList.remove("hidden");
       tabla.innerHTML = "";
 
-      
       document.getElementById("btnExportarExcel")?.classList.add("opacity-50", "pointer-events-none");
       document.getElementById("btnExportarPDF")?.classList.add("opacity-50", "pointer-events-none");
       document.getElementById("btnReporteGlobal")?.classList.add("opacity-50", "pointer-events-none");
@@ -1792,15 +3178,21 @@ async function cargarDatosForecastEdge(ref) {
     document.getElementById("btnExportarExcel")?.classList.remove("opacity-50", "pointer-events-none");
     document.getElementById("btnExportarPDF")?.classList.remove("opacity-50", "pointer-events-none");
     document.getElementById("btnReporteGlobal")?.classList.remove("opacity-50", "pointer-events-none");
+
     const optTotal = document.createElement("option");
     optTotal.value = "TOTAL";
     optTotal.textContent = "Total (Almacén CUU)";
     select.appendChild(optTotal);
+
     todasUnidades.forEach(u => {
-      const opt = document.createElement("option");
-      opt.value = u;
-      opt.textContent = u;
-      select.appendChild(opt);
+      const datosUnidad = consumoData.consumo[u];
+      const tieneDatos = Object.values(datosUnidad).some(v => v !== 0 && v !== null);
+      if (tieneDatos) {
+        const opt = document.createElement("option");
+        opt.value = u;
+        opt.textContent = u;
+        select.appendChild(opt);
+      }
     });
 
     select.onchange = () => {
@@ -1808,6 +3200,8 @@ async function cargarDatosForecastEdge(ref) {
       const datosUnidad = unidad === "TOTAL"
         ? combinarUnidades(consumoData.consumo)
         : consumoData.consumo[unidad] || {};
+
+      console.log("📊 DEBUG datosUnidad para gráfica:", unidad, datosUnidad);
 
       const confiabilidadUnidad = unidad === "TOTAL"
         ? combinarUnidades(confiabilidadConvertida(consumoData.confiabilidad))
@@ -1829,10 +3223,8 @@ async function cargarDatosForecastEdge(ref) {
       if (labels.length === 0) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         tabla.innerHTML = "";
-
         alerta.textContent = "📂 Sin datos registrados para esta unidad.";
         alerta.classList.remove("hidden");
-
         return;
       }
 
@@ -1871,25 +3263,24 @@ async function cargarDatosForecastEdge(ref) {
         }
       });
 
-  // Rellenar tabla
-  tabla.innerHTML = `
-    <table class="w-full mt-2 border border-gray-300 text-xs text-center">
-      <thead class="bg-teal-900 text-white">
-        <tr><th>Mes</th><th>Unidades</th></tr>
-      </thead>
-      <tbody>
-        ${labels.map(m => `
-          <tr>
-            <td>${m}</td>
-            <td>${datosUnidad[m]}</td>
-          </tr>`).join("")}
-      </tbody>
-    </table>`;
+      // Rellenar tabla
+      tabla.innerHTML = `
+        <table class="w-full mt-2 border border-gray-300 text-xs text-center">
+          <thead class="bg-teal-900 text-white">
+            <tr><th>Mes</th><th>Unidades</th></tr>
+          </thead>
+          <tbody>
+            ${labels.map(m => `
+              <tr>
+                <td>${m}</td>
+                <td>${datosUnidad[m]}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
 
-  graficarRegresionLineal(labels, valores);
-  document.getElementById("anclaForecast")?.scrollIntoView({ behavior: "smooth", block: "start" });
-
-};
+      graficarRegresionLineal(labels, valores);
+      document.getElementById("anclaForecast")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
 
     select.dispatchEvent(new Event("change"));
     document.getElementById("modalEstadisticas")?.classList.remove("hidden");
@@ -1900,7 +3291,6 @@ async function cargarDatosForecastEdge(ref) {
     document.getElementById("alertaForecast").textContent = "❌ Error al cargar forecast";
     document.getElementById("alertaForecast").classList.remove("hidden");
 
-
     document.getElementById("btnExportarExcel")?.classList.add("opacity-50", "pointer-events-none");
     document.getElementById("btnExportarPDF")?.classList.add("opacity-50", "pointer-events-none");
     document.getElementById("btnReporteGlobal")?.classList.add("opacity-50", "pointer-events-none");
@@ -1908,6 +3298,7 @@ async function cargarDatosForecastEdge(ref) {
     document.getElementById("modalEstadisticas")?.classList.remove("hidden");
   }
 }
+
 
 function calcularR2(x, y, pendiente, intercepto) {
   const yMedia = y.reduce((a, b) => a + b, 0) / y.length;
@@ -2164,7 +3555,10 @@ async function mostrarModalAsignarUnidades() {
     });
 
     const usuarios = await res.json();
-    usuarios.forEach(u => {
+    const usuariosFiltrados = usuarios.filter(u => 
+      u.nombre !== "CONTROL_GLOBAL" && u.nombre !== "PIN_AUTO"
+    );
+    usuariosFiltrados.forEach(u => {
       const opt = document.createElement("option");
       opt.value = u.nombre;
       opt.textContent = u.nombre;
@@ -2177,8 +3571,8 @@ async function mostrarModalAsignarUnidades() {
     };
 
     // Dispara por default para el primero
-    if (usuarios.length) {
-      generarCheckboxesPara(usuarios[0].nombre, usuarios[0].unidades);
+    if (usuariosFiltrados.length) {
+      generarCheckboxesPara(usuariosFiltrados[0].nombre, usuariosFiltrados[0].unidades);
     }
 
     modal.classList.remove("hidden");
@@ -2186,6 +3580,7 @@ async function mostrarModalAsignarUnidades() {
     console.error("Error al cargar usuarios:", err);
   }
 }
+
 function generarCheckboxesPara(nombre, unidadesStr) {
   const cont = document.getElementById("listaUnidades");
   cont.innerHTML = "";
@@ -2208,6 +3603,7 @@ function generarCheckboxesPara(nombre, unidadesStr) {
     cont.appendChild(label);
   }
 }
+
 // 1. Obtener mes lógico como YYYY-MM
 function obtenerMesLogico(timestamp) {
   const fecha = new Date(Number(timestamp));
@@ -2348,14 +3744,12 @@ async function guardarUnidadesAsignadas() {
   const errorDiv = document.getElementById("unidadAsignarError");
 
   if (seleccionadas.length === 0) {
-    errorDiv.textContent = "❌ Debes seleccionar al menos una unidad.";
-    errorDiv.classList.remove("hidden");
+    mostrarModal("❌ Debes seleccionar al menos una unidad.", "#b91c1c");
     return;
   }
 
   if (!nipAdmin) {
-    errorDiv.textContent = "❌ No se detectó NIP de administrador.";
-    errorDiv.classList.remove("hidden");
+    mostrarModal("❌ No se detectó NIP de administrador.", "#b91c1c");
     return;
   }
 
@@ -2377,19 +3771,18 @@ async function guardarUnidadesAsignadas() {
 
     if (res.ok) {
       cerrarModalAsignarUnidades();
-      notificar("✅ Unidades actualizadas correctamente", "#16a34a");
+      mostrarModal("✅ Unidades actualizadas correctamente", "#16a34a");
     } else {
       console.warn("Error desde Supabase:", data);
-      errorDiv.textContent = "❌ " + (data.error || "Error al guardar unidades.");
-      errorDiv.classList.remove("hidden");
+      mostrarModal("❌ " + (data.error || "Error al guardar unidades."), "#b91c1c");
     }
 
   } catch (err) {
     console.error("Error de red al guardar unidades:", err);
-    errorDiv.textContent = "❌ Error de red al guardar unidades.";
-    errorDiv.classList.remove("hidden");
+    mostrarModal("❌ Error de red al guardar unidades.", "#b91c1c");
   }
 }
+
 
 function confiabilidadConvertida(original) {
   const resultado = {};
@@ -2486,23 +3879,27 @@ function actualizarTablaRegistros() {
     </thead>
   `;
 
-  // Agregar filas
-  qrsPendientes.forEach((qr, index) => {
-    const fila = document.createElement("tr");
-    fila.innerHTML = `
-      <td class="p-1">${qr.referencia}</td>
-      <td class="p-1">${qr.lote}</td>
-      <td class="p-1">${qr.modo}</td>
-      <td class="p-1 text-center">
-        <button onclick="eliminarFila(this)" class="bg-red-500 hover:bg-red-700 text-white px-2 rounded-xl">X</button>
-      </td>
-    `;
-    tabla.appendChild(fila);
-  });
-}
+qrsPendientes.forEach((qr, index) => {
+  const fila = document.createElement("tr");
+  fila.dataset.index = index; // 💡 Aquí se guarda el índice
+  fila.innerHTML = `
+    <td class="p-1">${qr.referencia}</td>
+    <td class="p-1">${qr.lote}</td>
+    <td class="p-1">${qr.modo}</td>
+    <td class="p-1 text-center">
+      <button onclick="eliminarFila(this)" class="bg-red-500 hover:bg-red-700 text-white px-2 rounded-xl">X</button>
+    </td>
+  `;
+  tabla.appendChild(fila);
+});
 
 
-function enviarSupabase() {
+
+//8888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
+
+
+,
+async function enviarSupabase() {
   if (!modo || modo === "inactivo") {
     mostrarModal("⚠️ Selecciona primero el modo", "#f59e0b");
     return;
@@ -2513,32 +3910,143 @@ function enviarSupabase() {
     return;
   }
 
-  // Agregar remisionActual a cada registro antes de enviar
-  const registros = qrsPendientes.map(r => ({
-    ...r,
-    remision: remisionActual || null
-  }));
+  mostrarModal("📤 Enviando datos...", "#0ea5e9");
+  mostrarLoader();
+  const registros = [];
 
-  // 🚩 Debug para verificar que lleva bien la remisión
-  console.log("✅ Registros a enviar (con remisión):", registros);
+  for (const r of qrsPendientes) {
+    const { referencia, lote, caducidad } = r;
 
-  fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/registrar_qr", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ registros })
-  })
-    .then(res => res.json())
-    .then(data => {
-      console.log("Respuesta Supabase:", data);
-      mostrarModal("📦 Productos enviados correctamente", "#22c55e");
-      qrsPendientes = [];
-      actualizarTablaRegistros();
-    })
-    .catch(err => {
-      console.error("Error al enviar a Supabase:", err);
-      mostrarModal("❌ Fallo en el envío", "#b91c1c");
-    });
+    // Omitir búsqueda si es unidad fraccionable, se hará con referencia base en la función Edge
+    if (r.tipo !== "unidad") {
+      const consultaProducto = await fetch(
+        `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/productos?referencia=eq.${referencia}&lote=eq.${lote}`,
+        {
+          headers: {
+            "apikey": API_KEY,
+            "Authorization": `Bearer ${API_KEY}`
+          }
+        }
+      );
+
+      const productos = await consultaProducto.json();
+
+      if (productos.length === 0) {
+        const historicoRes = await fetch(
+          `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/historicos?select=referencia,nombre,fabricante`,
+          {
+            headers: {
+              "apikey": API_KEY,
+              "Authorization": `Bearer ${API_KEY}`
+            }
+          }
+        );
+
+        const historico = await historicoRes.json();
+        const normalizar = s => s.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+        const refClean = normalizar(referencia);
+        const match = historico.find(h => normalizar(h.referencia) === refClean);
+
+        const nombre = match?.nombre || "SIN NOMBRE";
+        const fabricante = match?.fabricante || "SIN FABRICANTE";
+
+        let caducidadFinal = null;
+        if (caducidad && !isNaN(caducidad)) {
+          try {
+            const fechaExcel = new Date((Number(caducidad) - 25569) * 86400 * 1000);
+            caducidadFinal = fechaExcel.toISOString().split("T")[0];
+          } catch (e) {
+            console.warn("⚠️ Error al convertir caducidad:", caducidad);
+          }
+        } else {
+          caducidadFinal = caducidad || null;
+        }
+
+        const nuevo = {
+          referencia,
+          lote,
+          nombre,
+          fabricante,
+          cantidad: 0,
+          caducidad: caducidadFinal
+        };
+
+        await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/productos", {
+          method: "POST",
+          headers: {
+            "apikey": API_KEY,
+            "Authorization": `Bearer ${API_KEY}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify(nuevo)
+        });
+      }
+    }
+
+    const base = {
+      ...r,
+      remision: remisionActual || null
+    };
+
+    if (window.pinAutorizadoPor && window.pinAutorizadoPor !== r.usuario) {
+      base.pin_autorizado_por = window.pinAutorizadoPor;
+    }
+
+    registros.push(base);
+  }
+
+  console.log("✅ Registros a enviar:", registros);
+
+  const normales = registros.filter(r => !r.tipo || r.tipo === "normal");
+  const fracciones = registros.filter(r => r.tipo === "fraccion");
+  const unidades = registros.filter(r => r.tipo === "unidad");
+
+  try {
+    if (normales.length > 0) {
+      console.log("📤 Enviando productos normales:", normales);
+      await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/registrar_qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registros: normales })
+      });
+    }
+
+    if (fracciones.length > 0) {
+      console.log("📦 Enviando productos fraccionables:", fracciones);
+      await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/registrar_qr_fraccionable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registros: fracciones })
+      });
+    }
+
+    if (unidades.length > 0) {
+      console.log("🔹 Enviando unidades fraccionables:", unidades);
+      await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/registrar_qr_unidad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registros: unidades })
+      });
+    }
+
+    mostrarModal("📦 Productos enviados correctamente", "#22c55e");
+    qrsPendientes = [];
+    actualizarTablaRegistros();
+    window.pinAutorizadoPor = null;
+
+  } catch (err) {
+    console.error("❌ Error al enviar a Supabase:", err);
+    mostrarModal("❌ Fallo en el envío", "#b91c1c");
+  } finally {
+    ocultarLoader();
+  }
 }
+
+
+
+//8888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
+
 
 
 function agregarFila(ref, lote, estado) {
@@ -3040,40 +4548,44 @@ function agregarFila(ref, lote, estado) {
       }
     }
 
-
-</script>
-<div id="versionInfo" class="version-info">v2.4.0</div>
-  <script>
     function cerrarModalCaducidad() {
       document.getElementById("modalCaducidad").classList.add("hidden");
     }
 
-    function calcularDiasRestantes(fecha) {
-      if (!fecha) return Infinity;
-      let fechaCad = null;
+function calcularDiasRestantes(fecha) {
+  if (!fecha || fecha === "S/C" || fecha === "0" || fecha === 0 || fecha === "000") return Infinity;
 
-      if (!isNaN(fecha)) {
-        const serial = parseInt(fecha, 10);
-        if (serial > 1000) fechaCad = new Date(1900, 0, serial - 2);
-      }
+  let fechaCad = null;
 
-      if (!fechaCad && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-        const [anio, mes, dia] = fecha.split("-").map(Number);
-        fechaCad = new Date(anio, mes - 1, dia);
-      }
-
-      if (!fechaCad && /^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
-        const [dia, mes, anio] = fecha.split("/").map(Number);
-        fechaCad = new Date(anio, mes - 1, dia);
-      }
-
-      if (!fechaCad) return Infinity;
-
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      const diff = fechaCad - hoy;
-      return Math.floor(diff / (1000 * 60 * 60 * 24));
+  // Serial de Excel válido
+  if (!isNaN(fecha)) {
+    const serial = parseInt(fecha, 10);
+    if (serial > 1000) {
+      fechaCad = new Date(1900, 0, serial - 2);
     }
+  }
+
+  // Formato YYYY-MM-DD
+  if (!fechaCad && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    const [anio, mes, dia] = fecha.split("-").map(Number);
+    fechaCad = new Date(anio, mes - 1, dia);
+  }
+
+  // Formato DD/MM/YYYY
+  if (!fechaCad && /^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
+    const [dia, mes, anio] = fecha.split("/").map(Number);
+    fechaCad = new Date(anio, mes - 1, dia);
+  }
+
+  // Si sigue sin poderse interpretar, retorna infinito
+  if (!fechaCad || isNaN(fechaCad.getTime())) return Infinity;
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const diff = fechaCad - hoy;
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
 
     function formatearCaducidad(fecha) {
       let fechaCad = null;
@@ -3169,12 +4681,13 @@ document.addEventListener("keydown", function(e) {
     }
   }
 });
-// abrirModalReporteMensual();
-// --- Registro global de funciones con debug ---
+
+// Abre el modal y prepara el selector:
 window.abrirModalReporteMensual = function() {
   console.log("🟢 abrirModalReporteMensual ejecutado");
   const modal = document.getElementById("modalReporteMensual");
   if (modal) {
+    inicializarSelectorMesAnio();
     modal.classList.remove("hidden");
     console.log("✅ Modal de reporte mensual abierto correctamente");
   } else {
@@ -3187,21 +4700,22 @@ window.cerrarModalReporteMensual = function() {
   document.getElementById("modalReporteMensual")?.classList.add("hidden");
 };
 
-// --- Función principal de generación real ---
 window.generarReporteMensual = async function() {
   console.log("🚀 Iniciando generación de reporte");
 
-  const mesSeleccionado = document.getElementById("inputMes")?.value;
-  if (!mesSeleccionado) {
-    mostrarModal("⚠️ Selecciona un mes válido", "#f59e0b");
+  // Usamos los nuevos selects:
+  const mes = document.getElementById('inputMesMes')?.value;
+  const anio = document.getElementById('inputMesAnio')?.value;
+  if (!mes || !anio) {
+    mostrarModal("⚠️ Selecciona mes y año", "#f59e0b");
     return;
   }
   cerrarModalReporteMensual();
   mostrarModal("⏳ Generando reporte...", "#0ea5e9");
 
-  const [anio, mes] = mesSeleccionado.split("-");
-  const mesNum = parseInt(mes);
-  const anioNum = parseInt(anio);
+  const mesSeleccionado = `${anio}-${mes}`; // Formato "2024-08"
+  const mesNum = parseInt(mes, 10);
+  const anioNum = parseInt(anio, 10);
   const mesAnterior = mesNum === 1 ? 12 : mesNum - 1;
   const anioAnterior = mesNum === 1 ? anioNum - 1 : anioNum;
 
@@ -3313,19 +4827,17 @@ document.getElementById("btnSubirRemision").addEventListener("click", async () =
   const numeroRemision = document.getElementById("inputRemision")?.value.trim();
   const unidadDestino = document.getElementById("inputUnidad")?.value.trim();
   const nip = document.getElementById("inputNIP")?.value.trim();
+  const resultado = document.getElementById("resultadoCargaArchivo");
 
-  console.log("DEBUG ⬇️");
-  console.log("archivo:", archivo);
-  console.log("numeroRemision:", numeroRemision);
-  console.log("unidadDestino:", unidadDestino);
-  console.log("nip:", nip);
+  // Limpia estado anterior
+  resultado.textContent = "";
+  resultado.classList.remove("text-green-600", "text-red-600");
 
   if (!archivo) return alert("Selecciona un archivo .xlsx");
   if (!numeroRemision) return alert("Escribe el número de remisión");
   if (!unidadDestino) return alert("Especifica la unidad destino");
   if (!nip) return alert("Ingresa tu NIP");
 
-  // ✅ Aquí continúa la lógica normal
   const formData = new FormData();
   formData.append("file", archivo);
   formData.append("numero_remision", numeroRemision);
@@ -3333,26 +4845,30 @@ document.getElementById("btnSubirRemision").addEventListener("click", async () =
   formData.append("usuario_carga", nip);
 
   try {
-    const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/cargar_remision", {
+    const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/cargar_remision_sap", {
       method: "POST",
       body: formData
     });
 
-    if (res.ok) {
-      document.getElementById("contenedorModal").classList.add("bg-teal-100");
-      document.getElementById("resultadoCargaArchivo").textContent = `Remisión #${numeroRemision} cargada correctamente.`;
+    const texto = await res.text();
 
-      // ✅ Mostrar tabla
-      await cargarTablaRemisionSAP(numeroRemision);
+    if (res.ok) {
+      resultado.classList.add("text-green-600");
+      resultado.textContent = `✅ ${texto}`;
+      await cargarTablaRemisionSAP(numeroRemision); // muestra y sincroniza la tabla
     } else {
-      document.getElementById("contenedorModal").classList.add("bg-rose-100");
-      document.getElementById("resultadoCarga").textContent = "Error al cargar el archivo.";
+      resultado.classList.add("text-red-600");
+      resultado.textContent = `❌ Error: ${texto}`;
     }
+
   } catch (e) {
-    document.getElementById("contenedorModal").classList.add("bg-rose-100");
-    document.getElementById("resultadoCarga").textContent = "Error en la comunicación.";
+    resultado.classList.add("text-red-600");
+    resultado.textContent = "❌ Error en la comunicación con el servidor.";
+    console.error("❌ Error:", e);
   }
 });
+
+
 
 
 async function consultarEstadoBloqueo() {
@@ -3377,12 +4893,17 @@ async function cargarEstadoBloqueo() {
   const contenedor = document.getElementById("seccionBloqueoRemision");
   const btn = document.getElementById("btnBloqueoRemision");
 
-  if (!usuarioAdmin) {
-    contenedor.style.display = "none";
+  if (!contenedor || !btn) {
+    console.warn("⚠️ Elementos de bloqueo no encontrados en el DOM");
     return;
   }
 
-  contenedor.style.display = "block";
+  if (!usuarioAdmin) {
+    contenedor.classList.add("hidden");
+    return;
+  }
+
+  contenedor.classList.remove("hidden");
 
   const estadoActual = await consultarEstadoBloqueo();
 
@@ -3395,6 +4916,7 @@ async function cargarEstadoBloqueo() {
     await cargarEstadoBloqueo(); // Refresca visual después de cambiar
   };
 }
+
 
 async function cambiarEstadoBloqueo(nuevoEstado) {
   await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/usuarios?nombre=eq.CONTROL_GLOBAL", {
@@ -3441,37 +4963,31 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+async function mostrarPinDinamicoAdmin() {
+  const pin = await generarPinDinamico();
+  const el = document.getElementById("valorPinDinamicoSolo");
+  if (el) el.textContent = pin;
+}
 
-
-
-
- // Aquí va toda tu función verMovimientos()
 function verMovimientos(referencia) {
   filtroReferenciaGlobal = referencia;
 
   const modal = document.getElementById("modalMovimientos");
-  if (modal) {
-    modal.classList.remove("hidden");
-  } else {
-    console.warn("⚠️ No se encontró el modalMovimientos en el DOM");
-  }
+  if (modal) modal.classList.remove("hidden");
 
   const cantidad = document.getElementById("cantidadMovimientos")?.value || "50";
   const fechaInicio = document.getElementById("fechaInicio")?.value;
   const fechaFin = document.getElementById("fechaFin")?.value;
   const loteSeleccionado = document.getElementById("selectLote")?.value;
 
-  let url = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/TimeStamps?referencia=eq.${encodeURIComponent(referencia)}&select=usuario,movimiento,fecha_str,lote,remision,unidad_destino,fecha`;
+  let url = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/TimeStamps?referencia=eq.${encodeURIComponent(referencia)}&select=usuario,movimiento,fecha_str,lote,remision,unidad_destino,fecha,pin_autorizado_por,timestamp,ts_eliminado`;
 
   const filtros = [];
-
   if (fechaInicio) filtros.push(`fecha=gte.${new Date(fechaInicio).getTime()}`);
   if (fechaFin) filtros.push(`fecha=lte.${new Date(fechaFin).getTime() + 86400000 - 1}`);
   if (loteSeleccionado) filtros.push(`lote=eq.${encodeURIComponent(loteSeleccionado)}`);
-
   if (filtros.length) url += `&${filtros.join("&")}`;
-  if (cantidad !== "todos") url += `&order=fecha.desc&limit=${cantidad}`;
-  else url += `&order=fecha.desc`;
+  url += `&order=fecha.desc`;
 
   fetch(url, {
     headers: { "apikey": API_KEY, "Authorization": `Bearer ${API_KEY}` }
@@ -3481,13 +4997,12 @@ function verMovimientos(referencia) {
       return res.json();
     })
     .then(data => {
-      console.log("🧾 Movimientos recibidos:", data);
       const contenedor = document.getElementById("movimientosContenido");
       const selectLote = document.getElementById("selectLote");
 
       if (selectLote && referencia !== selectLote.dataset.referencia) {
         const lotesUnicos = [...new Set(data.map(m => m.lote))].filter(Boolean);
-        selectLote.innerHTML = `<option value="">Todos</option>` + 
+        selectLote.innerHTML = `<option value="">Todos</option>` +
           lotesUnicos.map(l => `<option value="${l}">${l}</option>`).join("");
         selectLote.dataset.referencia = referencia;
       }
@@ -3497,41 +5012,104 @@ function verMovimientos(referencia) {
         return;
       }
 
+      const grupos = {};
+      for (const m of data) {
+        const clave = `${m.remision || "-"}||${m.lote || "-"}||${m.unidad_destino || "-"}`;
+        if (!grupos[clave]) grupos[clave] = [];
+        grupos[clave].push(m);
+      }
+
       let html = `<table class="w-full text-sm text-left border mt-2 rounded-xl overflow-hidden">
         <thead class="bg-teal-900 text-white text-center">
           <tr>
+            <th class="p-2">📂</th>
             <th class="p-2">Fecha</th>
             <th class="p-2">Usuario</th>
-            <th class="p-2">Acción</th>
             <th class="p-2">Lote</th>
             <th class="p-2">Remisión</th>
             <th class="p-2">Unidad Destino</th>
+            <th class="p-2">Cantidad</th>
+            <th class="p-2 whitespace-normal w-32">Excedente<br>Autorizado por</th>
           </tr>
         </thead>
-        <tbody class="text-black text-center">`;      
+        <tbody class="text-black text-center">`;
 
-      data.forEach(mov => {
-        const unidadNombre = unidadesDestino[mov.unidad_destino] || mov.unidad_destino || "-";
+      let i = 0;
+      for (const [clave, movimientos] of Object.entries(grupos)) {
+        const [remision, lote, unidad] = clave.split("||");
+        const primero = movimientos[0];
+        const unidadNombre = unidadesDestino[unidad] || unidad || "-";
+        const autorizado = movimientos.find(m => m.pin_autorizado_por)?.pin_autorizado_por || " ";
+        const id = i++;
 
-        html += `<tr>
-          <td class="p-2">${mov.fecha_str || "-"}</td>
-          <td class="p-2">${mov.usuario || "-"}</td>
-          <td class="p-2 capitalize">${mov.movimiento || "-"}</td>
-          <td class="p-2">${mov.lote || "-"}</td>
-          <td class="p-2">${mov.remision ?? "-"}</td>
+        html += `<tr class="bg-gray-100">
+          <td class="p-2">
+            <button id="btnToggle-${id}" onclick="toggleSubtabla('${id}')" class="text-xs px-1.5 py-0.5 rounded-full border border-gray-400 hover:bg-gray-200">▶</button>
+          </td>
+          <td class="p-2">${primero.fecha_str || "-"}</td>
+          <td class="p-2">${primero.usuario || "-"}</td>
+          <td class="p-2">${lote}</td>
+          <td class="p-2">${remision}</td>
           <td class="p-2">${unidadNombre}</td>
+          <td class="p-2">${movimientos.length}</td>
+          <td class="p-2 text-red-800 font-bold">${autorizado}</td>
         </tr>`;
-      });
+
+        html += `<tr id="subtabla-${id}" class="hidden bg-white"><td colspan="8" class="p-0">
+          <table class="w-full text-xs text-center">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr>
+                <th class="p-1">Fecha</th>
+                <th class="p-1">NS</th>
+                <th class="p-1">Movimiento</th>
+                <th class="p-1">¿Excedente?</th>
+              </tr>
+            </thead>
+            <tbody>`;
+        for (const m of movimientos) {
+          const nsBase = m.timestamp || m.ts_eliminado;
+          const ns = nsBase ? String(nsBase).slice(-8) : "-";
+          const excedente = m.pin_autorizado_por
+            ? `<span class="text-red-800 font-bold">Sí</span>`
+            : `<span class="text-gray-400 font-bold">No</span>`;
+
+          html += `<tr>
+            <td class="p-1">${m.fecha_str || "-"}</td>
+            <td class="p-1">${ns}</td>
+            <td class="p-1">${m.movimiento || "-"}</td>
+            <td class="p-1">${excedente}</td>
+          </tr>`;
+        }
+        html += `</tbody></table></td></tr>`;
+      }
 
       html += "</tbody></table>";
       contenedor.innerHTML = html;
     })
     .catch(err => {
       console.error("Error al cargar movimientos:", err);
-      const contenedor = document.getElementById("movimientosContenido");
-      contenedor.innerHTML = "<p class='text-sm text-center text-red-600'>Error al obtener movimientos.</p>";
+      document.getElementById("movimientosContenido").innerHTML =
+        "<p class='text-sm text-center text-red-600'>Error al obtener movimientos.</p>";
     });
 }
+
+
+
+function toggleSubtabla(id) {
+  const sub = document.getElementById("subtabla-" + id);
+  const btn = document.getElementById("btnToggle-" + id);
+
+  if (!sub || !btn) {
+    console.warn("🔍 No se encontró subtabla o botón para:", id);
+    return;
+  }
+
+  const visible = !sub.classList.contains("hidden");
+  sub.classList.toggle("hidden");
+  btn.textContent = visible ? "▶" : "▼";
+}
+
+
 
   document.addEventListener("DOMContentLoaded", () => {
     const mesSelect = document.getElementById("mesCaptura");
@@ -3633,6 +5211,7 @@ function cerrarModalSobrescribir() {
   document.getElementById("modalSobrescribir").classList.add("hidden");
   callbackSobrescribir = null;
 }
+
 async function cargarTablaRemisionSAP(numeroRemision) {
   const res = await fetch(`https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?numero_remision=eq.${numeroRemision}`, {
     headers: {
@@ -3645,51 +5224,131 @@ async function cargarTablaRemisionSAP(numeroRemision) {
   const cuerpo = document.getElementById("bodyRemisionSAP");
   cuerpo.innerHTML = "";
 
+  avanceRemision = {}; // 👈 REINICIA AVANCE ACTUAL
+
   data.forEach(item => {
+    const clave = `${item.referencia}||${item.lote}`;
+    avanceRemision[clave] = {
+      nombre: item.descripcion || '',
+      escaneados: item.cantidad_escaneada
+    };
+
     const fila = document.createElement("tr");
     fila.innerHTML = `
       <td class="p-2">${item.referencia}</td>
       <td class="p-2">${item.descripcion || ''}</td>
+      <td class="p-2">${item.lote || ''}</td>
       <td class="p-2 text-center">${item.cantidad_escaneada}</td>
-      <td class="p-2 text-center">${item.cantidad_solicitada}</td>
     `;
     cuerpo.appendChild(fila);
-  });
+});
+
 
   document.getElementById("tablaRemisionSAP").classList.remove("hidden");
-
-  // 🔄 Sincroniza avanceRemision para escaneos en tiempo real
-  avanceRemision = {};
-  data.forEach(item => {
-    avanceRemision[item.referencia] = {
-      nombre: item.descripcion || '',
-      escaneados: item.cantidad_escaneada,
-      total: item.cantidad_solicitada
-    };
-  });
 }
-
 
 function actualizarTablaRemisionSAP() {
   const tbody = document.getElementById("bodyRemisionSAP");
   tbody.innerHTML = "";
 
-  Object.entries(avanceRemision).forEach(([ref, info]) => {
-    const completado = info.escaneados >= info.total;
+  Object.entries(avanceRemision).forEach(([clave, info]) => {
+    const [referencia, lote] = clave.split("||");
+
+    if (ocultarValidados && info.escaneados > 0) return;
+
     const fila = document.createElement("tr");
-    fila.className = completado ? "bg-green-100" : "";
+    fila.className = info.escaneados > 0 ? "bg-emerald-200 text-emerald-800" : "";
 
     fila.innerHTML = `
-      <td class="p-2 font-mono">${ref}</td>
-      <td class="p-2">${info.nombre}</td>
+      <td class="p-2">${referencia}</td>
+      <td class="p-2">${info.nombre || ""}</td>
+      <td class="p-2">${lote}</td>
       <td class="p-2 text-center">${info.escaneados}</td>
-      <td class="p-2 text-center">${info.total}</td>
     `;
 
     tbody.appendChild(fila);
   });
 
   document.getElementById("tablaRemisionSAP").classList.remove("hidden");
+}
+
+document.getElementById("btnToggleFilasValidadas").addEventListener("click", () => {
+  ocultarValidados = !ocultarValidados;
+  document.getElementById("btnToggleFilasValidadas").textContent = ocultarValidados
+    ? "Mostrar validados"
+    : "Ocultar validados";
+  actualizarTablaRemisionSAP();
+});
+function confirmarModoInventario() {
+  document.getElementById("modalInventario").classList.remove("hidden");
+}
+
+
+async function procesarBasurero(datos) {
+  if (!datos || !datos.referencia || !datos.lote || !datos.timestamp) {
+    mostrarModal("❌ Código inválido para eliminar", "#6b7280");
+    return;
+  }
+
+  inputQR?.focus(); // 👈 Asegura que vuelva a enfocar después de eliminar
+
+  const payload = {
+    referencia: datos.referencia,
+    lote: datos.lote,
+    timestamp: datos.timestamp,
+    usuario: usuario || "Basurero"
+  };
+
+  try {
+    const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/eliminar_etiqueta_basurero", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    console.log("🧾 Respuesta de eliminar_etiqueta_basurero:", data);
+
+    if (data.status === "ok") {
+      mostrarModal("♻️ Etiqueta eliminada completamente", "#0f172a");
+
+      try {
+        await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/registro_errores", {
+          method: "POST",
+          headers: {
+            "apikey": API_KEY,
+            "Authorization": `Bearer ${API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            usuario: usuario || "Basurero",
+            referencia: datos.referencia,
+            lote: datos.lote,
+            fecha: new Date().toISOString(),
+            motivo: "borrado etiqueta",
+            modo: "borrar",
+            pin_ingresado: usuario || "Basurero",
+            valido: false,
+            timestamp: datos.timestamp
+          })
+        });
+        console.log("📦 Registro de eliminación guardado en registro_errores.");
+      } catch (err) {
+        console.warn("⚠️ No se pudo guardar en registro_errores:", err);
+      }
+
+      // ✅ Limpiar y reactivar input de escaneo
+      if (inputQR) {
+        inputQR.value = "";
+        inputQR.classList.remove("hidden");
+        inputQR.focus();
+      }
+    }
+
+  } catch (err) {
+    console.error("❌ Error al contactar Supabase:", err);
+    mostrarModal("❌ Error de red", "#dc2626");
+  }
 }
 
   </script>
