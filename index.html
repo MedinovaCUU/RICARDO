@@ -124,9 +124,9 @@ body{
   height: 640px;              /* 👈 similar a altura visual del input + aire */
   border-radius: 22px;
 
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 14px 40px rgba(0,0,0,.32);
+  /* background: rgba(255,255,255,0.03); */
+  /* border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 14px 40px rgba(0,0,0,.32); */
 
   overflow: hidden;           /* 👈 nunca se sale del panel */
   touch-action: none;
@@ -151,11 +151,11 @@ body{
 .hexFrontLabel{
   position:absolute;
   left:50%;
-  bottom:14px;
+  bottom:0px;
   transform:translateX(-50%);
 
   max-width: calc(100% - 28px);
-  padding:10px 16px;
+  padding:10px 6px;
   border-radius:999px;
 
   background:rgba(255,255,255,.06);
@@ -175,7 +175,7 @@ body{
   pointer-events:none;
 }
 
-/* 🎬 Texto con clamp + fade-out (no corte duro) */
+🎬 Texto con clamp + fade-out (no corte duro)
 .hexFrontLabel__text{
   display:-webkit-box;
   -webkit-box-orient:vertical;
@@ -222,7 +222,7 @@ body{
   overflow:visible;
   contain: paint;
 }
-.hexBtn:hover{ filter:brightness(1.05); }
+/* .hexBtn:hover{ filter:brightness(1.0); } */
 
 .hexItem, .hexSvg{
   will-change: transform, opacity, filter;
@@ -240,7 +240,7 @@ body{
 }
 
 /* Front */
-.hexItem.isFront .hexBtn{
+/* .hexItem.isFront .hexBtn{
   background:rgba(255,255,255,.06);
   border-color:rgba(23,162,166,.55);
   box-shadow:0 22px 60px rgba(0,0,0,.42);
@@ -248,7 +248,7 @@ body{
 .hexItem.isFront .hexStroke{
   filter: drop-shadow(0 0 16px rgba(23,162,166,.35));
   opacity:1;
-}
+} */
 
 /* Tint front (solo “Modo”) */
 .hexItem.mode-green.isFront .hexBtn{ border-color: rgba(16,185,129,.60); }
@@ -268,14 +268,14 @@ body{
   }
 
   .hexRing{
-    inset: 0 0 54px 0;
+    inset: 0 0 140px 0;
     perspective: 9000px;
     transform: translate3d(0, 10px, 0) rotateX(14deg);
   }
 
   .hexItem{
-    width: 120px;
-    height: 112px;
+    width: 200px;
+    height: 240px;
   }
 
   .hexSvg{
@@ -283,7 +283,7 @@ body{
     height: 64px;
   }
 
-  .hexFrontLabel{ font-size: 12.5px; }
+  .hexFrontLabel{ font-size: 14.5px; }
   .hexFrontLabel__text{ -webkit-line-clamp: 4; line-clamp: 4; }
 }
 /* =========================
@@ -1077,7 +1077,7 @@ body{
 
   <!-- CONTENEDOR PRINCIPAL -->
   <div class="w-full max-w-2xl mt-2 sm:mt-3 md:mt-4">
-    <div class="space-panel rounded-[28px] p-6 md:p-7 shadow-2xl pt-5">
+    <!-- <div class="space-panel rounded-[28px] p-6 md:p-7 shadow-2xl pt-5"> -->
 
       <!-- <div class="flex flex-wrap justify-center gap-3 mt-2">
         <button onclick="solicitarNIP()" class="space-btn px-5 py-3 rounded-2xl btn-wrap">
@@ -1088,10 +1088,10 @@ body{
         </button>
       </div> -->
 
-      <div class="mt-6">
+      <div class="mt-4">
         <label for="refBusqueda" class="sr-only">Buscar por referencia</label>
         <input type="text" id="refBusqueda" placeholder="Buscar por referencia..." class="space-input w-full text-center" oninput="buscarReferencia(this.value)" autocomplete="off"/>
-        <div id="resultadoBusqueda" class="text-sm text-white/80 mt-3"></div>
+        <div id="resultadoBusqueda" class="text-sm text-white/80 mt-4"></div>
       </div>
 
       <!-- <div id="estadoUsuario" onclick="mostrarMenuModo()" class="mt-4 cursor-pointer space-card p-4 rounded-2xl hover:bg-white/10 transition" role="button" tabindex="0">
@@ -1197,10 +1197,10 @@ body{
   </button>
 
   <!-- BOTÓN OPCIONES USUARIO -->
-  <button onclick="mostrarOpcionesAdmin()"
+  <!-- <button onclick="mostrarOpcionesAdmin()"
     class=" bottom-4 right-4 z-50 rounded-full px-4 py-3 text-sm font-semibold bg-white/10 border border-white/15 shadow-lg hover:bg-white/15 transition">
     ⚙️ Opciones de usuario
-  </button>
+  </button> -->
 
   <!-- MODAL REPORTE MENSUAL -->
   <div id="modalReporteMensual" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 space-modal-backdrop">
