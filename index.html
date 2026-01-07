@@ -14,12 +14,12 @@
   <!-- ✅ Externos -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="https://cdn.jsdelivr.net/gh/qzind/tray/qz-tray.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/qzind/tray@master/qz-tray.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
   <!-- ✅ Supabase (v2) -->
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
 // =========================
 // 🔥 LOG helper global (simple pero útil)
@@ -111,14 +111,205 @@ body{
     padding-top: env(safe-area-inset-top);
   }
 }
-.hexDock{ width:min(680px,94vw); margin:0 auto; }
+.hexDock{
+  width:100%;
+  max-width:100%;
+  margin:0;
+  box-sizing:border-box;
+  display:flex;
+  justify-content:center;
+}
 .hexStage{
-  position:relative; width:100%; height:260px; border-radius:26px;
-  background:rgba(255,255,255,0.03);
-  border:1px solid rgba(255,255,255,0.08);
-  box-shadow:0 18px 50px rgba(0,0,0,.35);
-  overflow:hidden;
+  position:relative;
+  width:100%;
+  max-width:200%;
+  box-sizing:border-box;
+  height:840px; /* ajusta si quieres más/menos alto, pero sin romper el contenedor */
+  min-height: 420px;
+  border-radius:26px;
+
+  background:rgba(255,255,255,0.0);
+  /* border:1px solid rgba(255,255,255,0.08); */
+  /* box-shadow:0 18px 50px rgba(0,0,0,.35); */
+
+  overflow:visible;           /* ✅ permite que el domo no se recorte */
   touch-action:none;
+
+  padding-bottom:56px;      /* ✅ reserva espacio interno para el label */
+  display:grid;
+  place-items: center;
+}
+
+.hexRing{
+  position:absolute;
+  inset: 0;         /* ✅ deja ese “hueco” al label */
+  perspective:1px;
+  transform: rotateX(0deg);
+  transform-style: preserve-3d;
+  overflow: visible;
+}
+
+
+.hexFrontLabel{
+  position:absolute;
+  left:50%;
+  bottom:14px;
+  transform:translateX(-50%);
+
+  max-width: calc(100% - 28px);
+  padding:10px 16px;
+  border-radius:999px;
+
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(14px);
+
+  color:rgba(255,255,255,.90);
+  font-family:'MagmaWave', sans-serif;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+  line-height:1.15;
+
+  text-align:center;
+  overflow:hidden;
+  pointer-events:none;
+}
+
+/* 🎬 Texto con clamp + fade-out (no corte duro) */
+.hexFrontLabel__text{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+  line-clamp: 3;
+
+  text-align:center;
+  white-space:normal;
+
+  /* fade cinematic al final (solo texto) */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
+}
+
+@media (max-width:480px){
+  .hexFrontLabel{ font-size:13px; }
+  .hexFrontLabel__text{ -webkit-line-clamp:4; line-clamp:4; }
+}
+/* 🔻 Estado fondo (default) */
+.hexItem{
+  position:absolute;              /* ✅ NO relative */
+  left:50%;
+  top:50%;                        /* ✅ NO 1% */
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:138px;
+  height:126px;
+  transform-style:preserve-3d;
+  pointer-events: none;
+  cursor:pointer;
+  user-select:none;
+  filter:none;
+  opacity:1;
+  transition:filter .25s ease, opacity .25s ease;
+  overflow: visible;
+  will-change: transform, opacity, filter;
+}
+
+/* Base SVG (anti-recorte)
+   Nota: muchos SVG vienen con artboard "justo"; con blur/3D pueden parecer recortados.
+   Usamos sizing relativo + un pequeño padding virtual para que nunca pegue al borde. */
+.hexSvg{
+  width: 100%;
+  height: 100%;
+  max-width: 96px;
+  max-height: 96px;
+  object-fit: contain;
+  display: block;
+  transform-origin: center;
+  transform-style: preserve-3d;
+  /* Evita clipping raro en algunos navegadores cuando hay 3D + filters */
+  backface-visibility: visible;
+  will-change: transform, filter;
+}
+
+/* 🔻 Fondo: difuso + más transparente (sin afectar el frente) */
+.hexItem:not(.isFront){
+  opacity: 0.22;
+}
+
+/* Aplica el blur/saturación SOLO al SVG del fondo (evita halos raros en el contenedor) */
+.hexItem:not(.isFront) .hexSvg{
+  filter: blur(2.4px) saturate(0.62) brightness(0.78);
+  opacity: 0.55;
+  transform: scale(0.96);
+}
+
+/* Centro siempre visible (modo) */
+.hexItem.isCenter{
+  opacity: 1;
+  filter: none;
+}
+.hexItem.isCenter .hexSvg{
+  filter: none;
+  opacity: 1;
+}
+
+/* SVG frontal: nítido */
+.hexItem.isFront .hexSvg{
+  filter: none;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.hexBtn{
+  position:relative;
+  width:78%; height:78%;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:22px;
+  padding: 0px;
+  pointer-events: auto;
+  /* background:rgba(0,0,0,0.0); */
+  /* border:1px solid rgba(23,162,166,.0); */
+  /* box-shadow:0 16px 40px rgba(0,0,0,.0); */
+  transition:filter .15s ease, opacity .15s ease;
+  overflow:visible;
+}
+.hexBtn:hover{ filter:brightness(1.05); }
+
+/* Cuando aplicamos blur/saturate en el SVG, algunos motores rasterizan y pueden cortar.
+   Este "bleed" garantiza margen para filtros. */
+.hexItem .hexBtn{ filter: none; }
+.hexItem:not(.isFront) .hexBtn{ padding: 12px; }
+
+/* .hexStroke{
+  position:absolute; inset:0; border-radius:22px; pointer-events:none;
+  outline:2px solid rgba(23,162,166,.55);
+  outline-offset:-8px;
+  filter: drop-shadow(0 0 12px rgba(23,162,166,.18));
+  opacity:0;
+} */
+
+/* 🔺 Hex al frente */
+.hexItem.isFront{
+  filter:none;
+  opacity:1;
+}
+/* Front */
+/* .hexItem.isFront .hexBtn{
+  background:rgba(255,255,255,.06);
+  border-color:rgba(23,162,166,.55);
+  box-shadow:0 22px 60px rgba(0,0,0,.42);
+} */
+/* Stroke solo en frente */
+.hexItem:not(.isFront) .hexStroke{
+  opacity: 0;
+}
+
+/* Glow frontal */
+.hexItem.isFront .hexStroke{
+  opacity: 1;
 }
 .hexGlow{
   position:absolute; inset:-40px; pointer-events:none;
@@ -128,52 +319,6 @@ body{
     radial-gradient(420px 220px at 80% 25%, rgba(204,163,0,.10), transparent 70%);
   filter: blur(2px);
 }
-.hexRing{ position:absolute; inset:0; perspective:900px; transform-style:preserve-3d; }
-
-.hexItem{
-  position:absolute; left:50%; top:52%;
-  width:138px; height:126px;
-  translate:-50% -50%;
-  transform-style:preserve-3d;
-  cursor:pointer; user-select:none;
-}
-.hexBtn{
-  width:100%; height:100%;
-  display:flex; align-items:center; justify-content:center;
-  border-radius:22px;
-  background:rgba(0,0,0,0.20);
-  border:1px solid rgba(23,162,166,.32);
-  box-shadow:0 16px 40px rgba(0,0,0,.32);
-  transition:filter .15s ease, opacity .15s ease;
-  overflow:hidden;
-}
-.hexBtn:hover{ filter:brightness(1.05); }
-
-.hexStroke{
-  position:absolute; inset:0; border-radius:22px; pointer-events:none;
-  outline:2px solid rgba(23,162,166,.55);
-  outline-offset:-8px;
-  filter: drop-shadow(0 0 12px rgba(23,162,166,.18));
-  opacity:.9;
-}
-
-.hexSvg{
-  width:72px; height:72px;
-  display:block;
-  filter: drop-shadow(0 0 12px rgba(255,255,255,.10));
-}
-
-/* Front */
-.hexItem.isFront .hexBtn{
-  background:rgba(255,255,255,.06);
-  border-color:rgba(23,162,166,.55);
-  box-shadow:0 22px 60px rgba(0,0,0,.42);
-}
-.hexItem.isFront .hexStroke{
-  filter: drop-shadow(0 0 16px rgba(23,162,166,.35));
-  opacity:1;
-}
-
 /* Tint front (solo “Modo”) */
 .hexItem.mode-green.isFront .hexBtn{ border-color: rgba(16,185,129,.60); }
 .hexItem.mode-green.isFront .hexStroke{ outline-color: rgba(16,185,129,.70); filter: drop-shadow(0 0 16px rgba(16,185,129,.25)); }
@@ -184,7 +329,18 @@ body{
 @media (max-width:480px){
   .hexStage{ height:240px; }
   .hexItem{ width:124px; height:114px; }
-  .hexSvg{ width:66px; height:66px; }
+  .hexSvg{
+    width: 74%;
+    height: 74%;
+    max-width: 88px;
+    max-height: 88px;
+    object-fit: contain;
+    display: block;
+    transform-origin: center;
+    transform-style: preserve-3d;
+    backface-visibility: visible;
+    will-change: transform, filter;
+  }
 }
 /* =========================
    Glass Components
@@ -1032,11 +1188,14 @@ body{
 <!-- <div class="mt-6">
   <div class="text-center text-sm text-white/70 mb-3">Módulos principales</div> -->
 
-  <div id="hexDock" class="hexDock">
-    <div class="hexStage">
-      <div id="hexRing" class="hexRing"></div>
-      <div class="hexGlow"></div>
+  <div id="hexDock" class="hexDock w-full">
+  <div id="hexStage" class="hexStage">
+    <div id="hexRing" class="hexRing"></div>
+    <div id="hexFrontLabel" class="hexFrontLabel" aria-live="polite">
+      <span class="hexFrontLabel__text"></span>
     </div>
+  </div>
+
 
     <!-- <div class="mt-3 text-center">
       <div id="hexHint" class="text-xs text-white/60">
@@ -1095,10 +1254,10 @@ body{
   </button>
 
   <!-- BOTÓN OPCIONES USUARIO -->
-  <button onclick="mostrarOpcionesAdmin()"
+  <!-- <button onclick="mostrarOpcionesAdmin()"
     class=" bottom-4 right-4 z-50 rounded-full px-4 py-3 text-sm font-semibold bg-white/10 border border-white/15 shadow-lg hover:bg-white/15 transition">
     ⚙️ Opciones de usuario
-  </button>
+  </button> -->
 
   <!-- MODAL REPORTE MENSUAL -->
   <div id="modalReporteMensual" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 space-modal-backdrop">
@@ -1716,72 +1875,87 @@ function sanitizeHipotesisOutputForUser(text) {
 
   return s;
 }
+//#region UI principal
 // =========================
 // HEX DOCK (Opción 2) + SVG
 // =========================
-(function(){
-  const FRONT_Z = 260;
-  const DEPTH = 220;
-  const SPREAD_X = 250;
-  const SPREAD_Y = 62;
-  const SNAP_MS = 520;
+(function () {
+  // ---------- Logger seguro (no rompe si logx no existe) ----------
+  const logx =
+    (typeof window !== "undefined" && typeof window.logx === "function")
+      ? window.logx
+      : (...args) => console.log(...args);
 
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+  // 🔁 Estado del dock
   let items = [];
-  let currentRot = 0;
-  let targetRot = 0;
   let dragging = false;
-  let dragStartX = 0;
-  let dragStartRot = 0;
+  let dragStartX = 0,
+    dragStartY = 0,
+    startX = 0,
+    startY = 0;
+
+  // ======= CONFIG DOMO (malla hex + hemisfera) =======
+  // Objetivo: iconos “uno al lado del otro” (malla) + curvatura domo frontal.
+  // No anillo 360, no elementos atrás del escenario.
+  const R = 300; // radio del domo (ajusta)
+  const PERSPECTIVE_Z = 0; // empuje hacia cámara
+  const SPACING = 0; // separación entre centros (ajustado a tamaño real del hex)
+  const MAX_PITCH = 0.25; // límite rotación vertical (rad)
+  const MAX_YAW = 0.25; // límite rotación horizontal (rad)
+
+  let rotX = 0,
+    rotY = 0; // current
+  let trgX = 0,
+    trgY = 0; // target
+  let basePoints = []; // puntos base por item (antes de rotación)
 
   // 🔁 Estado modo (UI-only, NO legacy modo ni window.modo)
-  function getModoState(){
-    // UI-only: NO depender de `modo` (legacy) ni de `window.modo`
+  function getModoState() {
     // Fuente 1: window.modoUI (estado visual del dock)
     // Fuente 2: modoSeleccionado (estado real del selector)
-    const mUI = (typeof window !== "undefined") ? window.modoUI : undefined;
-    const mSel = (typeof modoSeleccionado !== "undefined") ? modoSeleccionado : undefined;
+    const mUI = typeof window !== "undefined" ? window.modoUI : undefined;
+    const mSel = typeof modoSeleccionado !== "undefined" ? modoSeleccionado : undefined;
 
     const m =
-      (mUI === "entrada" || mUI === "salida") ? mUI :
-      ((mSel === "entrada" || mSel === "salida") ? mSel : null);
+      mUI === "entrada" || mUI === "salida"
+        ? mUI
+        : mSel === "entrada" || mSel === "salida"
+          ? mSel
+          : null;
 
     if (m === "entrada") return "entrada";
     if (m === "salida") return "salida";
     return "inactivo";
   }
-function onClickIfExists(id, handler) {
-  const el = document.getElementById(id);
-  if (!el) {
-    logx("⚠️[UI]", "Elemento no existe", { id });
-    return;
-  }
-  el.addEventListener("click", handler);
-  logx("✅[UI]", "Listener conectado", { id });
-}
-  function setModoState(next){
+
+  function setModoState(next) {
     // UI-only: NO tocar `modo` (legacy) ni `window.modo`
-    window.modoUI = (next === "inactivo") ? null : next;
+    window.modoUI = next === "inactivo" ? null : next;
 
     const usuarioActivoEl = document.getElementById("usuarioActivo");
     const modoLabelEl = document.getElementById("modoLabel");
 
-    if(modoLabelEl){
-      if(next === "entrada"){
+    if (modoLabelEl) {
+      if (next === "entrada") {
         modoLabelEl.textContent = "ENTRADA";
-        modoLabelEl.className = "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-emerald-500/15 border border-emerald-400/30 text-sm";
-      } else if(next === "salida"){
+        modoLabelEl.className =
+          "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-emerald-500/15 border border-emerald-400/30 text-sm";
+      } else if (next === "salida") {
         modoLabelEl.textContent = "SALIDA";
-        modoLabelEl.className = "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-rose-500/15 border border-rose-400/30 text-sm";
+        modoLabelEl.className =
+          "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-rose-500/15 border border-rose-400/30 text-sm";
       } else {
         modoLabelEl.textContent = "INACTIVO";
-        modoLabelEl.className = "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-white/10 border border-white/10 text-sm";
+        modoLabelEl.className =
+          "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-white/10 border border-white/10 text-sm";
       }
     }
 
-    if(usuarioActivoEl){
-      usuarioActivoEl.textContent = (next === "inactivo")
-        ? "Selecciona un modo para iniciar"
-        : `Modo activo: ${next.toUpperCase()}`;
+    if (usuarioActivoEl) {
+      usuarioActivoEl.textContent =
+        next === "inactivo" ? "Selecciona un modo para iniciar" : `Modo activo: ${next.toUpperCase()}`;
     }
 
     logx("🧭[MODO_UI]", "setModoState()", { next });
@@ -1789,133 +1963,513 @@ function onClickIfExists(id, handler) {
   }
 
   // 🧠 Rutas a SVG (ajústalas a tus archivos .svg)
-  // Puedes dejarlas como .jpeg temporalmente, pero la idea es que sean SVG.
   const ICONS = {
     modo: {
       inactivo: "MODO_INACTIVO.svg",
-      entrada:  "MODO_ENTRADA.svg",
-      salida:   "MODO_SALIDA.svg"  // <- aquí va el interestelar nuevo
+      entrada: "MODO_ENTRADA.svg",
+      salida: "MODO_SALIDA.svg",
     },
-    capturar:  "CAPTURAR_DATOS.svg",
-    reporte:   "GENERAR_REPORTE.svg",
+    capturar: "CAPTURAR_DATOS.svg",
+    reporte: "GENERAR_REPORTE.svg",
     caducidad: "ALERTA_CADUCIDAD.svg",
-    qc:        "QC_MANDOS.svg",
+    qc: "QC_MANDOS.svg",
     hipotesis: "HIPOTESIS.svg",
-    usuario:   "CONFIGURACION.svg"
+    usuario: "CONFIGURACION.svg",
   };
 
-  // ✅ Acciones al “activar” cada hex cuando queda al frente
-  function activate(id){
-    logx("🧩[HEX]", "Activando", { id });
-
-    // ✅ El hex "modo" NO debe ciclar automáticamente.
-    // Debe abrir el selector de modo existente (estadoUsuario -> mostrarMenuModo()).
-    if (id === "modo") {
-      if (typeof mostrarMenuModo === "function") {
-        logx("🧭[MODO]", "Hex modo -> mostrarMenuModo()");
-        mostrarMenuModo();
-        return;
-      }
-      // fallback: modalModo directo (por si mostrarMenuModo no existe)
-      document.getElementById("modalModo")?.classList.remove("hidden");
-      logx("🧭[MODO]", "Hex modo -> fallback abrir #modalModo");
-      return;
-    }
-
-    // Para módulos: si está inactivo, NO abrir el módulo.
-    // En su lugar, abrir el selector de modo (mismo entrypoint que el bloque estadoUsuario).
-    if (getModoState() === "inactivo") {
-      if (typeof mostrarMenuModo === "function") {
-        logx("⚠️[HEX]", "Modo inactivo -> mostrarMenuModo()", { target: id });
-        mostrarMenuModo();
-        return;
-      }
-      document.getElementById("modalModo")?.classList.remove("hidden");
-      logx("⚠️[HEX]", "Modo inactivo -> fallback abrir #modalModo", { target: id });
-      return;
-    }
-
-    // Acciones reales de tu app (solo cuando ya hay modo activo)
-    if(id === "capturar") solicitarNIP?.();
-    if(id === "reporte") abrirModalReporteMensual?.();
-    if(id === "caducidad") mostrarAlertasCaducidad?.();
-    if(id === "qc") abrirModalQC?.();
-    if(id === "hipotesis") abrirModalHipotesis?.();
-    if(id === "usuario") mostrarOpcionesAdmin?.();
+  // 🔒 Gate de modo: solo algunos módulos requieren modo activo
+  function requiereModoActivo(id) {
+    // ✅ Ajusta esta lista si luego decides que otros módulos también deben exigir modo
+    return id === "none";
   }
 
-  function svgTag(src){
+  // ✅ Acciones al “activar” cada hex cuando queda al frente
+  function activate(id) {
+    logx("🧩[HEX]", "Activando", { id });
+
+    // ✅ El hex "modo" abre el selector de modo existente.
+    if (id === "modo") {
+      // Permite explícitamente abrir el selector SOLO desde el hex "modo"
+      window.__hexAllowMostrarMenuModo = true;
+      try {
+        if (typeof mostrarMenuModo === "function") {
+          logx("🧭[MODO]", "Hex modo -> mostrarMenuModo()");
+          mostrarMenuModo();
+          return;
+        }
+        // fallback: modalModo directo (por si mostrarMenuModo no existe)
+        document.getElementById("modalModo")?.classList.remove("hidden");
+        logx("🧭[MODO]", "Hex modo -> fallback abrir #modalModo");
+        return;
+      } finally {
+        window.__hexAllowMostrarMenuModo = false;
+      }
+    }
+
+    // Modo INACTIVO solo bloquea los que requieren modo.
+    if (getModoState() === "inactivo" && requiereModoActivo(id)) {
+      if (typeof mostrarMenuModo === "function") {
+        logx("⚠️[HEX]", "Modo inactivo (requerido) -> mostrarMenuModo()", { target: id });
+        mostrarMenuModo();
+        return;
+      }
+      document.getElementById("modalModo")?.classList.remove("hidden");
+      logx("⚠️[HEX]", "Modo inactivo (requerido) -> fallback abrir #modalModo", { target: id });
+      return;
+    }
+
+    // Acciones reales de tu app
+    if (id === "capturar") solicitarNIP?.();
+    if (id === "reporte") abrirModalReporteMensual?.();
+    if (id === "caducidad") mostrarAlertasCaducidad?.();
+    if (id === "qc") abrirModalQC?.();
+    if (id === "hipotesis") abrirModalHipotesis?.();
+    if (id === "usuario") mostrarOpcionesAdmin?.();
+  }
+
+  // 🧱 Guard: evita que otras funciones re-abran el selector de modo por accidente.
+  // Solo lo permitimos cuando el usuario toca el hex "modo".
+  (function wrapMostrarMenuModoOnce() {
+    try {
+      if (typeof window === "undefined") return;
+      if (window.__hexMostrarMenuModoWrapped) return;
+      window.__hexMostrarMenuModoWrapped = true;
+
+      const original = window.mostrarMenuModo;
+      if (typeof original !== "function") return;
+
+      window.__hexAllowMostrarMenuModo = window.__hexAllowMostrarMenuModo || false;
+
+      window.mostrarMenuModo = function (...args) {
+        if (!window.__hexAllowMostrarMenuModo) {
+          logx("🚫[MODO]", "mostrarMenuModo bloqueado (solo se abre desde hex 'modo')");
+          return;
+        }
+        return original.apply(this, args);
+      };
+
+      logx("🛡️[MODO]", "Wrapper mostrarMenuModo instalado");
+    } catch (e) {
+      // silent (no queremos romper la app por esto)
+    }
+  })();
+
+  function svgTag(src) {
     // Usamos <img> para SVG externos (simple y estable).
-    // Si luego quieres recolor dinámico por CSS (fill), lo hacemos inline.
     return `<img class="hexSvg" src="${src}" alt="">`;
   }
 
-  function build(){
+  // axial(q,r) -> pixel (hex pointy-top)
+  function axialToXY(q, r) {
+    const x = SPACING * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r);
+    const y = SPACING * (1.5 * r);
+    return { x, y };
+  }
+
+  // genera coordenadas axial por anillos: center + ring1 + ring2...
+  function genAxialCoords(n) {
+    const out = [{ q: 0, r: 0 }];
+    if (n <= 1) return out;
+
+    let k = 1;
+    while (out.length < n) {
+      let q = k,
+        r = 0;
+      const dirs = [
+        { q: 0, r: 1 },
+        { q: -1, r: 1 },
+        { q: -1, r: 0 },
+        { q: 0, r: -1 },
+        { q: 1, r: -1 },
+        { q: 1, r: 0 },
+      ];
+
+      for (const d of dirs) {
+        for (let step = 0; step < k; step++) {
+          if (out.length >= n) break;
+          out.push({ q, r });
+          q += d.q;
+          r += d.r;
+        }
+        if (out.length >= n) break;
+      }
+      k++;
+    }
+    return out;
+  }
+
+  // 2D -> hemisfera (z>=0) con recorte a círculo (evita “atrás”)
+  function toHemisphere(x2d, y2d) {
+    const max = R * 0.92;
+    const d = Math.hypot(x2d, y2d);
+    let x = x2d,
+      y = y2d;
+
+    if (d > max && d > 0) {
+      const s = max / d;
+      x *= s;
+      y *= s;
+    }
+
+    const zz = Math.max(0, R * R - x * x - y * y);
+    const z = Math.sqrt(zz); // 0..R
+    return { x, y: -y, z }; // y invertido
+  }
+
+  // Rota un punto por rotX/rotY (pitch/yaw)
+  function rotatePoint(p, rx, ry) {
+    // yaw (Y)
+    let x = p.x * Math.cos(ry) + p.z * Math.sin(ry);
+    let z = -p.x * Math.sin(ry) + p.z * Math.cos(ry);
+    let y = p.y;
+
+    // pitch (X)
+    const y2 = y * Math.cos(rx) - z * Math.sin(rx);
+    const z2 = y * Math.sin(rx) + z * Math.cos(rx);
+
+    return { x, y: y2, z: z2 };
+  }
+
+  // ✅ Centro + Anillo (sin solapes)
+const RING_2D = 95; // ajusta: 170–210 según tamaño real de tus hex
+
+  function computeBasePoints(n){
+    basePoints = [];
+    if(!n){
+      logx("🧩[HEX]", "computeBasePoints(): no items", { n });
+      return;
+    }
+
+    // 0) Centro absoluto: “modo”
+    basePoints[0] = { x: 2, y: -3, z: R };
+
+    // 1) Anillo alrededor: (n-1) puntos equidistantes
+    const m = Math.max(0, n - 1);
+    for(let j=0; j<m; j++){
+      const ang = (j / m) * (Math.PI * 2);
+      const x2d = Math.cos(ang) * RING_2D;
+      const y2d = Math.sin(ang) * RING_2D;
+      basePoints[j + 1] = toHemisphere(x2d, y2d);
+    }
+
+    logx("🧩[HEX]", "computeBasePoints() OK", {
+      n, R, RING_2D,
+      center: basePoints[0],
+      sample1: basePoints[1] || null
+    });
+  }
+
+  function focusIndex(idx) {
+    const p0 = basePoints[idx];
+    if (!p0) {
+      logx("⚠️[HEX]", "focusIndex(): p0 missing", { idx, len: basePoints?.length || 0 });
+      return;
+    }
+
+    // yaw para llevar X a 0
+    const yaw = -Math.atan2(p0.x, p0.z);
+
+    // aplica yaw a p0 para calcular pitch
+    const z1 = -p0.x * Math.sin(yaw) + p0.z * Math.cos(yaw);
+    const y1 = p0.y;
+
+    const pitch = Math.atan2(y1, z1);
+
+    trgY = clamp(yaw, -MAX_YAW, MAX_YAW);
+    trgX = clamp(pitch, -MAX_PITCH, MAX_PITCH);
+
+    logx("🧲[HEX]", "focusIndex()", { idx, trgX, trgY, yaw, pitch, p0 });
+  }
+
+  function refreshModeIcon() {
+    const modeEl = items.find((x) => x.dataset.id === "modo");
+    if (!modeEl) return;
+
+    const state = getModoState();
+    modeEl.classList.remove("mode-green", "mode-red");
+    if (state === "entrada") modeEl.classList.add("mode-green");
+    if (state === "salida") modeEl.classList.add("mode-red");
+
+    const img = modeEl.querySelector("img.hexSvg");
+    if (img) {
+      img.src = ICONS.modo[state];
+      img.alt = `Modo ${state}`;
+    }
+    logx("🎨[HEX]", "refreshModeIcon()", { state, src: ICONS.modo[state] });
+  }
+
+function render(){
+  const n = items.length;
+  if(!n) return;
+
+  // easing
+  rotX += (trgX - rotX) * 0.10;
+  rotY += (trgY - rotY) * 0.10;
+
+  let frontEl = null;
+  let bestZ = -99999;
+
+  // ✅ Ajuste fino de centrado global dentro del panel
+  const CENTER_X = -5;
+  const CENTER_Y = -10;
+
+  // Para “giro 3D tipo pupila”
+  const RAD2DEG = 180 / Math.PI;
+
+  for(let i=0;i<n;i++){
+    const el = items[i];
+    const isMode = el.dataset.id === "modo";
+
+    const p0 = basePoints[i] || {x:0,y:0,z:R};
+
+    // ✅ Todos se mueven con el domo (incluye modo).
+    // (Si tu basePoints[0] es el centro, “modo” permanecerá centrado.)
+    const p = rotatePoint(p0, rotX, rotY);
+
+    // ✅ z01 primero (para que todo dependa coherentemente de profundidad)
+    const z01 = clamp((p.z + R) / (2 * R), 0, 1);
+
+    // ✅ “modo” destaca, pero NO se empuja en Z (evita que tape a otros)
+    const scale = (isMode ? 1.02 : 0.78) + z01 * (isMode ? 0.28 : 0.48);
+    const op    = (isMode ? 1.00 : 0.22) + z01 * (isMode ? 0.00 : 0.78);
+
+    // ✅ Orientación 3D (se nota el “giro” al rotar la esfera)
+    const yawDeg = Math.atan2(p.x, p.z) * RAD2DEG;
+    const xzLen  = Math.hypot(p.x, p.z);
+    const pitchDeg = -Math.atan2(p.y, xzLen) * RAD2DEG;
+
+    // Transform del contenedor (posición + orientación + escala)
+    el.style.transform =
+      `translate3d(calc(-50% + ${(p.x + CENTER_X).toFixed(2)}px), calc(-50% + ${(p.y + CENTER_Y).toFixed(2)}px), ${(p.z + PERSPECTIVE_Z).toFixed(2)}px)
+       rotateY(${yawDeg.toFixed(2)}deg)
+       rotateX(${pitchDeg.toFixed(2)}deg)
+       scale(${scale.toFixed(3)})`;
+
+    el.style.zIndex  = String(Math.round(z01 * 1000) + (isMode ? 10 : 0));
+    el.style.opacity = String(op.toFixed(3));
+
+    // ✅ Centro visual: modo siempre es “center” (solo estilo)
+    el.classList.toggle("isCenter", isMode);
+
+    // Blur SOLO al SVG (fondo difuso)
+    const fog = Math.pow(1 - z01, 2.35);
+    const blur = 0.10 + fog * 4.2;
+    const sat = 0.55 + z01 * 0.45;
+    const bright = 0.72 + z01 * 0.28;
+
+    const img = el.querySelector(".hexSvg");
+    if(img){
+      // Micro-tilt del ícono (extra “vida” sin romper legibilidad)
+      const tiltX = clamp((-p.y / R) * 10, -10, 10);
+      const tiltY = clamp(( p.x / R) * 10, -10, 10);
+
+      const squashX = 1 - Math.min(0.14, Math.abs(p.x) / R * 0.14);
+      const squashY = 1 - Math.min(0.14, Math.abs(p.y) / R * 0.14);
+
+      if(isMode || z01 > 0.92){
+        img.style.filter = "none";
+        img.style.opacity = "1";
+        img.style.transform =
+          `scale(1.22) scaleX(${squashX.toFixed(3)}) scaleY(${squashY.toFixed(3)}) rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg)`;
+      } else {
+        img.style.filter = `blur(${blur.toFixed(2)}px) saturate(${sat.toFixed(2)}) brightness(${bright.toFixed(2)})`;
+        img.style.opacity = String((0.50 + z01 * 0.35).toFixed(3));
+        img.style.transform =
+          `scale(0.98) scaleX(${squashX.toFixed(3)}) scaleY(${squashY.toFixed(3)}) rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg)`;
+      }
+    }
+
+    // ✅ El “front” lo decide SOLO entre los módulos (no modo),
+    // para que el label frontal no se quede pegado a “modo”.
+    if(!isMode && p.z > bestZ){
+      bestZ = p.z;
+      frontEl = el;
+    }
+  }
+
+  items.forEach(it => it.classList.remove("isFront"));
+  if(frontEl) frontEl.classList.add("isFront");
+
+  const labelWrap = document.getElementById("hexFrontLabel");
+  const labelText = labelWrap?.querySelector?.(".hexFrontLabel__text");
+  if(labelText){
+    const name = frontEl?.dataset?.label || frontEl?.dataset?.id || "";
+    labelText.textContent = name ? `⟡ ${name}` : "";
+  }
+}
+function tick() {
+    render();
+    requestAnimationFrame(tick);
+  }
+
+function attachDrag(stage) {
+  if (!stage) return;
+
+  // ✅ Evita scroll/gestos del navegador en mobile mientras arrastras
+  stage.style.touchAction = "none";
+
+  // Ajustes finos
+  const DRAG_THRESHOLD_PX = 7;   // 👈 si no pasas esto, cuenta como click
+  const SPEED = 0.006;
+
+  let pointerId = null;
+  let isDragging = false;
+  let moved = false;
+
+  const down = (e) => {
+    // ✅ Si el usuario tocó un hex/botón, NO iniciamos drag (dejamos que haga click)
+    if (e.target?.closest?.(".hexItem, .hexBtn")) return;
+
+    pointerId = e.pointerId;
+    isDragging = true;
+    moved = false;
+
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    startY = trgY;
+    startX = trgX;
+
+    // ✅ Captura el puntero: aunque te salgas del stage, seguimos recibiendo eventos
+    stage.setPointerCapture(pointerId);
+
+    // Evita selección de texto/scroll/zoom accidental
+    e.preventDefault();
+  };
+
+  const move = (e) => {
+    if (!isDragging || e.pointerId !== pointerId) return;
+
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+
+    // ✅ Umbral: si no se movió “lo suficiente”, NO lo tratamos como drag
+    if (!moved && (Math.abs(dx) + Math.abs(dy)) < DRAG_THRESHOLD_PX) return;
+    moved = true;
+
+    trgY = clamp(startY + dx * SPEED, -MAX_YAW, MAX_YAW);
+    trgX = clamp(startX + dy * SPEED, -MAX_PITCH, MAX_PITCH);
+
+    e.preventDefault();
+  };
+
+  const up = (e) => {
+    if (!isDragging || e.pointerId !== pointerId) return;
+
+    isDragging = false;
+
+    try { stage.releasePointerCapture(pointerId); } catch (_) {}
+    pointerId = null;
+
+    // ✅ Si hubo movimiento real, cancelamos cualquier “click fantasma”
+    if (moved) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  const cancel = () => {
+    isDragging = false;
+    pointerId = null;
+  };
+
+  // ✅ Pointer Events (funciona en mouse + touch + pen)
+  stage.addEventListener("pointerdown", down, { passive: false });
+  stage.addEventListener("pointermove", move, { passive: false });
+  stage.addEventListener("pointerup", up, { passive: false });
+  stage.addEventListener("pointercancel", cancel, { passive: true });
+  stage.addEventListener("pointerleave", cancel, { passive: true });
+
+  // ✅ Si cambia de pestaña o pierde foco, cortamos drag para que no “explote”
+  window.addEventListener("blur", cancel);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) cancel();
+  });
+}
+
+  function build() {
     const ring = document.getElementById("hexRing");
-    if(!ring) return logx("❌[HEX]", "No existe #hexRing");
+    if (!ring) return logx("❌[HEX]", "No existe #hexRing");
 
     // ✅ Inicializa modo visual del dock (UI-only)
     try {
-      window.modoUI = (modoSeleccionado === "entrada" || modoSeleccionado === "salida")
-        ? modoSeleccionado
-        : null;
-    } catch(e) {}
+      window.modoUI =
+        modoSeleccionado === "entrada" || modoSeleccionado === "salida" ? modoSeleccionado : null;
+    } catch (e) {}
 
-    // Orden sugerido (6 hex)
     const data = [
-      { id:"modo",      getSrc: ()=> ICONS.modo[getModoState()], kind:"mode" },
-      { id:"capturar",  src: ICONS.capturar },
-      { id:"reporte",   src: ICONS.reporte },
-      { id:"caducidad", src: ICONS.caducidad },
-      { id:"qc",        src: ICONS.qc },
-      { id:"hipotesis", src: ICONS.hipotesis },
-      { id:"usuario", src: ICONS.usuario },
-      // Si prefieres "usuario" en vez de alguno, cambia aquí:
-      // { id:"usuario",   src: ICONS.usuario },
-    ];
+      { id: "modo", label: "Selecciona un modo para iniciar", getSrc: () => ICONS.modo[getModoState()] },
 
-    // 👇 Ojo: pediste 6 iconos principales.
-    // Arriba hay 6 si mantienes hipotesis y quitas usuario,
-    // o puedes reemplazar hipotesis por usuario.
-    // Te lo dejo así para que elijas cuál queda en el dock.
-    // Si quieres 6 EXACTOS con usuario, dime y te lo reordeno.
+      { id: "capturar", label: "Capturar Datos de Inventario o Pruebas Facturadas", src: ICONS.capturar },
+      { id: "reporte", label: "Generar Reporte de IO", src: ICONS.reporte },
+      { id: "caducidad", label: "Mostrar Alertas de Caducidad", src: ICONS.caducidad },
+      { id: "qc", label: "Centro de Mando de Control de Calidad", src: ICONS.qc },
+      { id: "hipotesis", label: "Laboratorio de Evaluación de Hipotesis", src: ICONS.hipotesis },
+      { id: "usuario", label: "Opciones de Usuario", src: ICONS.usuario },
+    ].slice(0, 7);
 
     ring.innerHTML = "";
-    items = data.map((d, idx) => {
-      const el = document.createElement("div");
-      el.className = "hexItem";
-      el.dataset.id = d.id;
-      el.dataset.idx = String(idx);
+    // ✅ En build(), justo cuando creas cada item (antes de append)
+  items = data.map((d, idx) => {
+    const el = document.createElement("div");
+    el.className = "hexItem";
+    el.dataset.id = d.id;
+    el.dataset.idx = String(idx);
+    el.dataset.label = d.label || d.id;
 
-      const src = d.getSrc ? d.getSrc() : d.src;
+    // ✅ Forzamos anclaje al centro (corrige “desfase”)
+    el.style.position = "absolute";
+    el.style.left = "50%";
+    el.style.top = "50%";
+    el.style.transformStyle = "preserve-3d";
+    el.style.willChange = "transform";
 
-      el.innerHTML = `
-        <div class="hexBtn">
-          ${svgTag(src)}
-          <div class="hexStroke"></div>
-        </div>
-      `;
+    const src = d.getSrc ? d.getSrc() : d.src;
 
-      el.addEventListener("click", () => {
-        const id = d.id;
-        const isFrontNow = el.classList.contains("isFront");
-        logx("🖱️[HEX]", "Click", { id, idx, isFrontNow });
+    el.innerHTML = `
+      <div class="hexBtn">
+        ${svgTag(src)}
+        <div class="hexStroke"></div>
+      </div>
+    `;
 
-        if (isFrontNow) {
-          // ✅ Ya está al frente -> ahora sí ejecuta la acción
-          activate(id);
-        } else {
-          // ✅ No está al frente -> solo céntralo, NO activar
-          snapToIndex(idx, false);
-        }
-      });
+    el.addEventListener("click", () => {
+      const id = d.id;
+      const isFrontNow = el.classList.contains("isFront");
+      logx("🖱️[HEX]", "Click", { id, idx, isFrontNow });
 
-      ring.appendChild(el);
-      return el;
+      // ✅ “modo” siempre ejecuta acción (no requiere estar al frente)
+      if (id === "modo") return activate(id);
+
+      if (isFrontNow) activate(id);
+      else focusIndex(idx);
     });
 
-    targetRot = 0;
-    currentRot = 0;
+    ring.appendChild(el);
+    return el;
+  });
+
+  // ✅ En build(), después de const ring = ...
+  // (esto ayuda si tu #hexRing o stage no están bien posicionados por CSS)
+  ring.style.position = ring.style.position || "relative";
+  ring.style.transformStyle = "preserve-3d";
+  ring.style.perspective = ring.style.perspective || "1200px";
+  ring.style.overflow = ring.style.overflow || "visible";
+
+    // ✅ DOMO: slots se calculan cuando ya existen los items
+    computeBasePoints(items.length);
+
+    // ✅ Icono inicial al frente
+    const preferredFrontIdx = 0;
+    logx("🧿[HEX]", "Centro configurado", {
+      preferredFrontIdx,
+      centerId: data?.[preferredFrontIdx]?.id,
+      total: data.length,
+    });
+    focusIndex(preferredFrontIdx);
+
+    // ✅ Sincroniza current con target para arrancar estable
+    rotX = trgX;
+    rotY = trgY;
 
     attachDrag(document.querySelector(".hexStage"));
     tick();
@@ -1924,154 +2478,34 @@ function onClickIfExists(id, handler) {
     refreshModeIcon();
   }
 
-  function refreshModeIcon(){
-    const modeEl = items.find(x => x.dataset.id === "modo");
-    if(!modeEl) return;
-
-    const state = getModoState();
-    modeEl.classList.remove("mode-green", "mode-red");
-    if(state === "entrada") modeEl.classList.add("mode-green");
-    if(state === "salida") modeEl.classList.add("mode-red");
-
-    const img = modeEl.querySelector("img.hexSvg");
-    if(img){
-      img.src = ICONS.modo[state];
-      img.alt = `Modo ${state}`;
-    }
-    logx("🎨[HEX]", "refreshModeIcon()", { state, src: ICONS.modo[state] });
-  }
-
-  function render(){
-    const n = items.length;
-    if(!n) return;
-
-    currentRot += (targetRot - currentRot) * 0.12;
-
-    for(let i=0;i<n;i++){
-      const el = items[i];
-      const step = (Math.PI * 2) / n;
-      const ang = (i * step) + currentRot;
-
-      const xNorm = Math.sin(ang);
-      const zNorm = Math.cos(ang);
-      const behind = zNorm < 0;
-
-      const x = xNorm * SPREAD_X;
-      const z = zNorm * DEPTH;
-      const y = (1 - Math.abs(xNorm)) * SPREAD_Y;
-
-      const scale = 0.84 + (zNorm * 0.18);
-      const opacity = behind ? 0.15 : 1;
-      const zIndex = Math.round((zNorm + 1) * 1000);
-
-      el.style.transform = `translate3d(calc(-50% + ${x}px), calc(-50% + ${y}px), ${z + FRONT_Z}px) scale(${scale})`;
-      el.style.opacity = String(opacity);
-      el.style.zIndex = String(zIndex);
-
-      const isFront = (!behind && zNorm > 0.92);
-      el.classList.toggle("isFront", isFront);
-      el.style.pointerEvents = behind ? "none" : "auto";
-
-      // ✅ Solo tracking del elemento al frente (sin activar acciones)
-      if (isFront) {
-        const frontId = el.dataset.id;
-        if (window.__HEX_FRONT_ID !== frontId) {
-          window.__HEX_FRONT_ID = frontId;
-          logx("🛰️[HEX]", "Front changed (no auto-activate)", { frontId });
-        }
-      }
-    }
-  }
-
-  function tick(){
-    render();
-    requestAnimationFrame(tick);
-  }
-
-  function nearestIndex(){
-    const n = items.length;
-    const step = (Math.PI * 2) / n;
-    let bestIdx = 0;
-    let bestScore = -999;
-
-    for(let i=0;i<n;i++){
-      const ang = (i * step) + targetRot;
-      const score = Math.cos(ang);
-      if(score > bestScore){
-        bestScore = score;
-        bestIdx = i;
-      }
-    }
-    return bestIdx;
-  }
-
-  function snapToIndex(idx, activateAfter){
-    const n = items.length;
-    const step = (Math.PI * 2) / n;
-    const desired = -idx * step;
-
-    logx("🧲[HEX]", "Snap", { idx, desired });
-
-    anime({
-      targets: { rot: targetRot },
-      rot: desired,
-      duration: SNAP_MS,
-      easing: "easeOutExpo",
-      update: (a) => { targetRot = a.animations[0].currentValue; },
-      complete: () => {
-        const id = items[idx]?.dataset?.id;
-        logx("✅[HEX]", "Snap complete", { idx, id });
-        if(activateAfter && id) activate(id);
-      }
-    });
-  }
-
-  function attachDrag(stage){
-    if(!stage) return;
-
-    const onDown = (clientX) => {
-      dragging = true;
-      dragStartX = clientX;
-      dragStartRot = targetRot;
-      logx("👇[HEX]", "Drag start", { x: clientX, rot: targetRot });
-    };
-
-    const onMove = (clientX) => {
-      if(!dragging) return;
-      const dx = clientX - dragStartX;
-      targetRot = dragStartRot + dx * 0.0065;
-    };
-
-    const onUp = () => {
-      if(!dragging) return;
-      dragging = false;
-      const idx = nearestIndex();
-      logx("🧷[HEX]", "Drag end -> nearest (snap only)", { idx });
-      snapToIndex(idx, false);
-    };
-
-    stage.addEventListener("mousedown", (e)=> onDown(e.clientX));
-    window.addEventListener("mousemove", (e)=> onMove(e.clientX));
-    window.addEventListener("mouseup", onUp);
-
-    stage.addEventListener("touchstart", (e)=> onDown(e.touches[0].clientX), { passive:true });
-    stage.addEventListener("touchmove", (e)=> onMove(e.touches[0].clientX), { passive:true });
-    stage.addEventListener("touchend", onUp);
-  }
-
-  // Expose helpers for external UI sync (after login, etc)
-  try { window.__hexRefreshModeIcon = refreshModeIcon; } catch(e) {}
-  try { window.__hexSetModoUI = setModoState; } catch(e) {}
+  // 🌐 Hooks públicos (sync desde login / setModoState externo)
+  window.hexDock = window.hexDock || {};
+  window.hexDock.refreshModeIcon = refreshModeIcon;
+  try {
+    window.__hexRefreshModeIcon = refreshModeIcon;
+  } catch (e) {}
+  try {
+    window.__hexSetModoUI = setModoState;
+  } catch (e) {}
 
   window.addEventListener("DOMContentLoaded", () => {
-    if(typeof anime !== "function"){
-      logx("❌[HEX]", "anime.js no cargó (revisa CDN)");
-      return;
+    // ✅ DOMO no depende de anime.js; si no carga, NO bloqueamos el render.
+    if (typeof anime !== "function") {
+      logx("⚠️[HEX]", "anime.js no cargó (no es requerido para domo). Continuando sin anime.");
     }
-    build();
-  });
 
+    try {
+      build();
+    } catch (e) {
+      console.error(e);
+      try {
+        logx("❌[HEX]", "Error al construir el domo", { message: e?.message, stack: e?.stack });
+      } catch (_) {}
+    }
+  });
 })();
+//#endregion UI principal
+
 //#endregion funciones auxiliares
 //88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
 //#region Modulo Hipotesis
@@ -2632,6 +3066,10 @@ async function validarPinYUnidad() {
     unidadSeleccionada = "Eliminar";
     modo = "salida";
     remisionActual = "Etiqueta"; // opcional para que todo quede consistente
+
+    // ✅ Sync visual del HEX dock (UI-only) para basurero
+    try { window.modoUI = "salida"; } catch(e) {}
+    try { window.__hexRefreshModeIcon && window.__hexRefreshModeIcon(); } catch(e) {}
 
     // cerrar modal bien
     if (modalPin) {
@@ -4920,7 +5358,8 @@ function solicitarPinModo(tipo, boton) {
   // Estado
   modoSeleccionado = tipo;
   unidadSeleccionada = null;
-
+  // UI-only: NO confirmar icono todavía
+  window.modoUIPendiente = tipo;
   // Inputs
   const inputNIP = document.getElementById("inputNIP");
   const inputUnidad = document.getElementById("inputUnidad");
@@ -4999,6 +5438,11 @@ function cerrarModalPin() {
   modal.classList.add("hidden");
   modal.classList.remove("flex");
   modal.style.display = "none";
+  window.modoUIPendiente = null;
+
+  // si NO se confirmó modo (no hubo validar), forzamos UI a inactivo
+  try { window.modoUI = "inactivo"; } catch(e) {}
+  try { window.hexDock?.refreshModeIcon?.(); } catch(e) {}
 }
 
 
@@ -5265,8 +5709,8 @@ function agregarFila(ref, lote, estado) {
     tabla.appendChild(fila);
   }
 
-</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js">function agregarFila(ref, lote, estado) {
+
+  function agregarFila(ref, lote, estado) {
     const tabla = document.getElementById("tablaRegistros");
     const contenedor = document.getElementById("tablaContenedora");
 
@@ -5285,8 +5729,6 @@ function agregarFila(ref, lote, estado) {
     tabla.appendChild(fila);
   }
 
-</script>
-<script>
   //#region 888888888888888888888888888888888888888888888888888888888888888888 FORECAST 88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
 // ====================== REGRESIÓN + FORECAST (CORREGIDO Y COHERENTE) ======================
 
