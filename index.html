@@ -134,8 +134,8 @@ body{
   padding-bottom: 44px;       /* espacio reservado para el label */
 
   /* 🎯 Centro del dock (ajústalo 1–2% si lo ves corrido) */
-  --dock-center-x: 55%;
-  --dock-center-y: 54%;
+  --dock-center-x: 50%;
+  --dock-center-y: 50%;
 }
 
 /* El ring ocupa SOLO el área útil del stage */
@@ -190,10 +190,6 @@ body{
   mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
 }
 
-@media (max-width:480px){
-  .hexFrontLabel{ font-size:13px; }
-  .hexFrontLabel__text{ -webkit-line-clamp:4; line-clamp:4; }
-}
 .hexGlow{
   position:absolute; inset:-40px; pointer-events:none;
   background:
@@ -206,9 +202,8 @@ body{
   position:absolute;
   left: var(--dock-center-x, 50%);
   top:  var(--dock-center-y, 50%);
-  width:500 px;
-  height:500 px;
-  translate:-50% -50%;
+  width:260px;
+  height:300px;
   transform-style:preserve-3d;
   cursor:pointer;
   user-select:none;
@@ -225,6 +220,7 @@ body{
   /* box-shadow:0 16px 40px rgba(0,0,0,.32); */
   transition:filter .15s ease, opacity .15s ease;
   overflow:visible;
+  contain: paint;
 }
 .hexBtn:hover{ filter:brightness(1.05); }
 
@@ -232,12 +228,15 @@ body{
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
+.hexBtn{ width:100%; height:100%; }
+
 .hexSvg{
-  width:72px; height:72px;
-  display:block;
-  filter: drop-shadow(0 0 12px rgba(255,255,255,.10));
+  width: 30%;
+  height: 30%;
+  object-fit: contain;
 }
 
 /* Front */
@@ -258,10 +257,34 @@ body{
 .hexItem.mode-red.isFront .hexBtn{ border-color: rgba(244,63,94,.55); }
 .hexItem.mode-red.isFront .hexStroke{ outline-color: rgba(244,63,94,.65); filter: drop-shadow(0 0 16px rgba(244,63,94,.22)); }
 
-@media (max-width:480px){
-  .hexStage{ height:240px; }
-  .hexItem{ width:124px; height:114px; }
-  .hexSvg{ width:66px; height:66px; }
+@media (max-width: 520px){
+  /* Más alto para que el frontal grande NO se corte */
+  .hexStage{
+    height: 420px;
+    padding-bottom: 54px;  /* aire real para el label */
+    overflow: visible;     /* clave: evita clipping al escalar */
+    --dock-center-x: 50%;
+    --dock-center-y: 56%;
+  }
+
+  .hexRing{
+    inset: 0 0 54px 0;
+    perspective: 9000px;
+    transform: translate3d(0, 10px, 0) rotateX(14deg);
+  }
+
+  .hexItem{
+    width: 120px;
+    height: 112px;
+  }
+
+  .hexSvg{
+    width: 64px;
+    height: 64px;
+  }
+
+  .hexFrontLabel{ font-size: 12.5px; }
+  .hexFrontLabel__text{ -webkit-line-clamp: 4; line-clamp: 4; }
 }
 /* =========================
    Glass Components
