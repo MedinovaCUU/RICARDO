@@ -16,47 +16,50 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/gh/qzind/tray/qz-tray.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
   <!-- ✅ Supabase (v2) -->
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script>
-// =========================
-// 🔥 LOG helper global (simple pero útil)
-// =========================
+<script>
 window.LOGS_ON = true;
-window.logx = function logx(tag, msg, obj) {
-  if (!window.LOGS_ON) return;
+window.logx = function(tag, msg, obj){
+  if(!window.LOGS_ON) return;
   const line = `[${new Date().toISOString()}] ${tag} ${msg}`;
-  if (obj !== undefined) console.log(line, obj);
-  else console.log(line);
+  (obj !== undefined) ? console.log(line, obj) : console.log(line);
 };
-// =========================
-// ✅ SOL DEBUG HOVER
-// =========================
+
 window.SOL_DEBUG_HOVER = false;
 window.solDbg = (...args) => { if (window.SOL_DEBUG_HOVER) console.log("[SOL_HOVER]", ...args); };
 
-    // =========================
-    // ✅ Config Supabase
-    // =========================
-    window.SUPABASE_URL = "https://ldjrpfsbpcfninntffoj.supabase.co";
-    window.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkanJwZnNicGNmbmlubnRmZm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0MjcxNjYsImV4cCI6MjA2MjAwMzE2Nn0.vxPo7XXaeKPa-jDQRA2jvOJ7dvJZDHRNZB7blbONNZo"; // <-- deja la tuya
+// ✅ Config única
+window.SUPABASE_URL = "https://ldjrpfsbpcfninntffoj.supabase.co";
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkanJwZnNicGNmbmlubnRmZm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0MjcxNjYsImV4cCI6MjA2MjAwMzE2Nn0.vxPo7XXaeKPa-jDQRA2jvOJ7dvJZDHRNZB7blbONNZo"; // <-- deja la tuya
 
-    // Espera a que el script defer haya cargado
-    window.addEventListener("DOMContentLoaded", () => {
-      try {
-        if (!window.supabase || typeof window.supabase.createClient !== "function") {
-          logx("❌[Supabase]", "No existe window.supabase.createClient. Revisa el CDN.");
-          return;
-        }
-        window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
-        logx("✅[Supabase]", "Cliente listo", { hasSb: !!window.sb });
-      } catch (e) {
-        logx("❌[Supabase]", "Fallo inicializando cliente", { err: String(e?.message || e) });
-      }
-    });
-  </script>
+
+// ✅ getter único (evita dobles clientes)
+window.getSB = function getSB(){
+  if (window.sb) return window.sb;
+  if (!window.supabase?.createClient) return null;
+  window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  return window.sb;
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  const sb = window.getSB();
+  if(!sb){
+    logx("❌[Supabase]", "No existe supabase.createClient. Revisa CDN / orden.");
+    return;
+  }
+  logx("✅[Supabase]", "Cliente listo", { hasSb: !!sb });
+});
+</script>
 
   <style>
 
@@ -65,25 +68,44 @@ window.solDbg = (...args) => { if (window.SOL_DEBUG_HOVER) console.log("[SOL_HOV
   --bg-1:#06161d;
 
   --glass: rgba(0,18,22,.72);
-  --panel: rgba(0,18,22,.78);
   --panel-strong: rgba(0,18,22,.82);
-
+  --panel: rgba(8,26,34,.58);
+  --panel2: rgba(8,26,34,.72);
   --stroke: rgba(23,162,166,.30);
   --stroke-strong: rgba(23,162,166,.40);
   --stroke-soft: rgba(255,255,255,.10);
-
+  --stroke2: rgba(255,255,255,.16);
+  --stroke3: rgba(0,229,255,.18);
   --teal:#17a2a6;
   --blue:#1e40af;
-
+  --cyan:#00e5ff;
+  --amber:#ffb000;
   --txt:#eaf6f7;
   --muted: rgba(255,255,255,.72);
 
   --shadow: 0 25px 60px rgba(0,0,0,.55);
   --shadow-soft: 0 18px 45px rgba(0,0,0,.35);
-
+  --shadow2: 0 16px 38px rgba(0,0,0,.32);
+  --r: 28px;
+  --r2: 18px;
   --radius: 24px;
   --radius-sm: 16px;
+
+  --glowCyan: 0 0 0 1px rgba(0,229,255,.12), 0 0 32px rgba(0,229,255,.10);
+  --glowTeal: 0 0 0 1px rgba(23,162,166,.14), 0 0 34px rgba(23,162,166,.14);
+  --glowAmber: 0 0 28px rgba(255,176,0,.18);
+
+  /* ✅ Compact HUD glass tuning */
+  --glassBlur: 3px;
+  --glassA: .015;
+  --panelA: .12;
+
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --ui: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
 }
+*{ box-sizing:border-box; }
+html, body{ height:100%; }
+
 .dial { width: 140px; height: 140px; touch-action: none; }
 .dial svg { width: 100%; height: 100%; overflow: visible; }
 .dial .bg { stroke: rgba(255,255,255,0.10); }
@@ -111,181 +133,7 @@ body{
     padding-top: env(safe-area-inset-top);
   }
 }
-/* El dock NO limita ancho: hereda del contenedor principal */
-.hexDock{
-  width: 100%;
-  margin: 0 auto;
-}
 
-/* El stage es el que define el “alto visual” */
-.hexStage{
-  position: relative;
-  width: 100%;
-  height: 640px;              /* 👈 similar a altura visual del input + aire */
-  border-radius: 22px;
-
-  /* background: rgba(255,255,255,0.03); */
-  /* border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 14px 40px rgba(0,0,0,.32); */
-
-  overflow: hidden;           /* 👈 nunca se sale del panel */
-  touch-action: none;
-  align-items: center;
-  padding-bottom: 44px;       /* espacio reservado para el label */
-
-  /* 🎯 Centro del dock (ajústalo 1–2% si lo ves corrido) */
-  --dock-center-x: 50%;
-  --dock-center-y: 50%;
-}
-
-/* El ring ocupa SOLO el área útil del stage */
-.hexRing{
-  position: absolute;
-  inset: 0 0 44px 0;          /* 👈 respeta el espacio del label */
-  perspective: 12000px;
-  transform: translate3d(0, 6px, 0) rotateX(16deg);
-  transform-origin: 50% 50%;
-}
-
-
-.hexFrontLabel{
-  position:absolute;
-  left:50%;
-  bottom:0px;
-  transform:translateX(-50%);
-
-  max-width: calc(100% - 28px);
-  padding:10px 6px;
-  border-radius:999px;
-
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.10);
-  backdrop-filter: blur(14px);
-
-  color:rgba(255,255,255,.90);
-  font-family:'MagmaWave', sans-serif;
-  font-size:14px;
-  font-weight:700;
-  letter-spacing:.10em;
-  text-transform:uppercase;
-  line-height:1.15;
-
-  text-align:center;
-  overflow:hidden;
-  pointer-events:none;
-}
-
-🎬 Texto con clamp + fade-out (no corte duro)
-.hexFrontLabel__text{
-  display:-webkit-box;
-  -webkit-box-orient:vertical;
-  -webkit-line-clamp:3;
-  line-clamp: 3;
-
-  text-align:center;
-  white-space:normal;
-
-  /* fade cinematic al final (solo texto) */
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
-}
-
-.hexGlow{
-  position:absolute; inset:-40px; pointer-events:none;
-  background:
-    radial-gradient(520px 240px at 50% 72%, rgba(23,162,166,.20), transparent 60%),
-    radial-gradient(360px 180px at 20% 20%, rgba(30,64,175,.14), transparent 60%),
-    radial-gradient(420px 220px at 80% 25%, rgba(204,163,0,.10), transparent 70%);
-  filter: blur(2px);
-}
-.hexItem{
-  position:absolute;
-  left: var(--dock-center-x, 50%);
-  top:  var(--dock-center-y, 50%);
-  width:260px;
-  height:300px;
-  transform-style:preserve-3d;
-  cursor:pointer;
-  user-select:none;
-  transition:
-    transform .25s ease,
-    opacity .25s ease;
-}
-.hexBtn{
-  width:100%; height:100%;
-  display:flex; align-items:center; justify-content:center;
-  border-radius:22px;
-  /* background:rgba(0,0,0,0.20); */
-  /* border:1px solid rgba(23,162,166,.32); */
-  /* box-shadow:0 16px 40px rgba(0,0,0,.32); */
-  transition:filter .15s ease, opacity .15s ease;
-  overflow:visible;
-  contain: paint;
-}
-/* .hexBtn:hover{ filter:brightness(1.0); } */
-
-.hexItem, .hexSvg{
-  will-change: transform, opacity, filter;
-  backface-visibility: hidden;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-}
-
-.hexBtn{ width:100%; height:100%; }
-
-.hexSvg{
-  width: 30%;
-  height: 30%;
-  object-fit: contain;
-}
-
-/* Front */
-/* .hexItem.isFront .hexBtn{
-  background:rgba(255,255,255,.06);
-  border-color:rgba(23,162,166,.55);
-  box-shadow:0 22px 60px rgba(0,0,0,.42);
-}
-.hexItem.isFront .hexStroke{
-  filter: drop-shadow(0 0 16px rgba(23,162,166,.35));
-  opacity:1;
-} */
-
-/* Tint front (solo “Modo”) */
-.hexItem.mode-green.isFront .hexBtn{ border-color: rgba(16,185,129,.60); }
-.hexItem.mode-green.isFront .hexStroke{ outline-color: rgba(16,185,129,.70); filter: drop-shadow(0 0 16px rgba(16,185,129,.25)); }
-
-.hexItem.mode-red.isFront .hexBtn{ border-color: rgba(244,63,94,.55); }
-.hexItem.mode-red.isFront .hexStroke{ outline-color: rgba(244,63,94,.65); filter: drop-shadow(0 0 16px rgba(244,63,94,.22)); }
-
-@media (max-width: 520px){
-  /* Más alto para que el frontal grande NO se corte */
-  .hexStage{
-    height: 420px;
-    padding-bottom: 54px;  /* aire real para el label */
-    overflow: visible;     /* clave: evita clipping al escalar */
-    --dock-center-x: 50%;
-    --dock-center-y: 56%;
-  }
-
-  .hexRing{
-    inset: 0 0 140px 0;
-    perspective: 9000px;
-    transform: translate3d(0, 10px, 0) rotateX(14deg);
-  }
-
-  .hexItem{
-    width: 200px;
-    height: 240px;
-  }
-
-  .hexSvg{
-    width: 64px;
-    height: 64px;
-  }
-
-  .hexFrontLabel{ font-size: 14.5px; }
-  .hexFrontLabel__text{ -webkit-line-clamp: 4; line-clamp: 4; }
-}
 /* =========================
    Glass Components
 ========================= */
@@ -653,36 +501,352 @@ body{
 
 .hud-glow-teal{ filter: drop-shadow(0 0 10px rgba(23,162,166,.35)); }
 .hud-glow-gold{ filter: drop-shadow(0 0 10px rgba(204,163,0,.28)); }
-  </style>
+
+/* #region =================MAPA3D=======================     */
+
+
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+    ::-webkit-scrollbar-thumb{
+      background: linear-gradient(180deg, rgba(0,229,255,.18), rgba(23,162,166,.18));
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-track{ background: rgba(0,0,0,.25); }
+
+    .map3d-scope .mono{ font-family: var(--mono); }
+
+    /* ===============================
+       Glass primitives
+    =============================== */
+    .map3d-scope .space-panel{
+      position:relative;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(0,229,255,.10), transparent 55%),
+        radial-gradient(900px 520px at 92% 26%, rgba(59,130,246,.10), transparent 60%),
+        radial-gradient(900px 520px at 30% 110%, rgba(255,176,0,.07), transparent 58%),
+        rgba(8,26,34,var(--panelA));
+      border: 1px solid rgba(23,162,166,.42);
+      border-radius: var(--r);
+      box-shadow: var(--shadow), var(--glowTeal);
+      backdrop-filter: blur(var(--glassBlur));
+      -webkit-backdrop-filter: blur(var(--glassBlur));
+      overflow:hidden;
+    }
+
+    .map3d-scope .space-panel::before{
+      content:"";
+      position:absolute; inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(90deg, rgba(0,229,255,.16), transparent 18%) top left / 220px 1px no-repeat,
+        linear-gradient(180deg, rgba(0,229,255,.16), transparent 18%) top left / 1px 220px no-repeat,
+        linear-gradient(270deg, rgba(255,176,0,.14), transparent 18%) top right / 220px 1px no-repeat,
+        linear-gradient(180deg, rgba(255,176,0,.14), transparent 18%) top right / 1px 220px no-repeat,
+        linear-gradient(90deg, rgba(255,255,255,.10), transparent 22%) bottom left / 240px 1px no-repeat,
+        linear-gradient(0deg, rgba(255,255,255,.10), transparent 22%) bottom left / 1px 240px no-repeat,
+        linear-gradient(270deg, rgba(255,255,255,.08), transparent 22%) bottom right / 240px 1px no-repeat,
+        linear-gradient(0deg, rgba(255,255,255,.08), transparent 22%) bottom right / 1px 240px no-repeat;
+      opacity:.85;
+    }
+
+    .map3d-scope .space-card{
+      position:relative;
+      background:
+        radial-gradient(900px 500px at 10% 20%, rgba(0,229,255,.06), transparent 60%),
+        rgba(255,255,255,var(--glassA));
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r2);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .map3d-scope .space-btn{
+      border-radius: 18px;
+      padding:11px 14px;
+      font-weight: 900;
+      color:#fff;
+      background:
+        radial-gradient(100% 120% at 10% 0%, rgba(0,229,255,.22), transparent 52%),
+        linear-gradient(90deg, rgba(59,130,246,.22), rgba(23,162,166,.22));
+      border: 1px solid rgba(0,229,255,.18);
+      box-shadow: 0 14px 34px rgba(0,0,0,.34), 0 0 32px rgba(0,229,255,.10);
+      transition: transform .12s ease, filter .12s ease, opacity .12s ease;
+      cursor:pointer;
+      user-select:none;
+    }
+    .map3d-scope .space-btn:hover{ filter: brightness(1.08); transform: translateY(-1px); }
+    .map3d-scope .space-btn:active{ transform: translateY(0); opacity:.96; }
+
+    .map3d-scope .space-btn-ghost{
+      border-radius: 18px;
+      padding:11px 14px;
+      font-weight: 900;
+      color: rgba(255,255,255,.90);
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 12px 28px rgba(0,0,0,.24);
+      transition: background .12s ease, transform .12s ease;
+      cursor:pointer;
+      user-select:none;
+    }
+    .map3d-scope .space-btn-ghost:hover{ background: rgba(255,255,255,.09); transform: translateY(-1px); }
+    .map3d-scope .space-btn-ghost:active{ transform: translateY(0); }
+
+    /* ===============================
+       HUD layers
+    =============================== */
+    .hud-frame{
+      position:absolute;
+      inset:12px;
+      border-radius: 28px;
+      border: 1px solid rgba(0,229,255,.14);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.06),
+        0 0 0 1px rgba(0,0,0,.30);
+      pointer-events:none;
+      opacity:.75;
+      z-index: 1;
+    }
+
+    .hud-grid{
+      position:absolute;
+      inset:0;
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.06) 1px, transparent 1px);
+      background-size: 44px 44px;
+      opacity: .055;
+      pointer-events:none;
+      mask-image: radial-gradient(circle at 50% 45%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 48%, rgba(0,0,0,0) 72%);
+      -webkit-mask-image: radial-gradient(circle at 50% 45%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 48%, rgba(0,0,0,0) 72%);
+      z-index: 2;
+    }
+
+    .hud-topbar{
+      position:absolute;
+      left:18px; right:18px; top:14px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+      pointer-events:none;
+      color: rgba(255,255,255,.74);
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      text-shadow: 0 10px 28px rgba(0,0,0,.25);
+
+      /* ✅ SIEMPRE arriba de rails/dock */
+      z-index: 30;
+      position: absolute; /* asegura stacking */
+    }
+    .hud-title{
+      font-weight: 950;
+      color: rgba(255,255,255,.88);
+      letter-spacing:.18em;
+    }
+    .hud-signal{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 14px 40px rgba(0,0,0,.22);
+    }
+    .hud-signal i{
+      width:8px; height:8px; border-radius:999px;
+      display:inline-block;
+    }
+
+    .scanlines::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,.06),
+        rgba(255,255,255,.06) 1px,
+        transparent 2px,
+        transparent 7px
+      );
+      opacity: .02;
+      pointer-events:none;
+      mix-blend-mode: overlay;
+    }
+
+    #hudTip{
+      position:absolute;
+      z-index:50;
+      pointer-events:none;
+      transform: translate(10px, 10px);
+      padding: 10px 12px;
+      border-radius: 16px;
+      background:
+        radial-gradient(600px 260px at 10% 10%, rgba(0,229,255,.12), transparent 65%),
+        rgba(0,0,0,.64);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: rgba(255,255,255,.92);
+      font-size: 12px;
+      display:none;
+      min-width: 220px;
+      max-width: 340px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.52), 0 0 32px rgba(0,229,255,.10);
+    }
+    #hudTip b{ color: rgba(255,176,0,.95); }
+
+    /* ===============================
+       Map wrap + compact rails/dock
+    =============================== */
+    #map3dWrap{
+      position: relative;
+      isolation: isolate;
+    }
+    /* ✅ MAPA3D: aparición elegante (oculto → visible) */
+    #mapa3dDemo{
+      transition: opacity .28s ease, transform .28s ease, filter .28s ease;
+      will-change: opacity, transform, filter;
+    }
+    #mapa3dDemo.map3d-hidden{
+      opacity: 0;
+      transform: translateY(18px) scale(.985);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+    #mapa3dDemo.map3d-showing{
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+      pointer-events: auto;
+    }
+    @media (prefers-reduced-motion: reduce){
+      #mapa3dDemo{ transition: none !important; }
+      #mapa3dDemo.map3d-hidden{ transform:none; filter:none; }
+    }
+    /* ✅ Vignette ligera (con content y z-index correcto) */
+    #map3dWrap::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index: 2;
+      background:
+        radial-gradient(860px 540px at 50% 45%, transparent 58%, rgba(0,0,0,.22) 88%),
+        radial-gradient(1100px 680px at 50% 38%, rgba(0,229,255,.10), transparent 64%);
+    }
+
+    .hud-rails{
+      position:absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      top: 64px;                 /* ✅ deja libre la franja del título + widgets */
+
+      display:grid;
+      grid-template-columns: 320px 1fr 360px;
+      gap: 12px;
+      pointer-events:none; /* el mapa sigue interactivo */
+      z-index: 10;
+    }
+
+    .hud-rail{
+      pointer-events:auto;
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .hud-rail .space-card{
+      padding: 12px;
+      border-radius: 18px;
+    }
+
+    .hud-bottomDock{
+      position:absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      height: 170px;
+      pointer-events:auto;
+      z-index: 11;
+
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.12);
+      background:
+        radial-gradient(800px 220px at 12% 10%, rgba(0,229,255,.10), transparent 90%),
+        radial-gradient(700px 240px at 86% 10%, rgba(255,176,0,.07), transparent 90%),
+        rgba(0,0,0,.28);
+      backdrop-filter: blur(var(--glassBlur));
+      -webkit-backdrop-filter: blur(var(--glassBlur));
+      box-shadow: 0 22px 70px rgba(0,0,0,.45), 0 0 30px rgba(0,229,255,.08);
+      overflow:hidden;
+    }
+
+    .hud-bottomDock .dockGrid{
+      height:100%;
+      display:grid;
+      grid-template-columns: 340px 1fr;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    @media (max-width: 1100px){
+      .hud-rails{ grid-template-columns: 300px 1fr 320px; }
+      .hud-bottomDock{ height: 190px; }
+      .hud-bottomDock .dockGrid{ grid-template-columns: 300px 1fr; }
+    }
+    @media (max-width: 900px){
+      .hud-rails{
+        grid-template-columns: 1fr;
+        grid-auto-rows: auto;
+        gap: 10px;
+      }
+      .hud-bottomDock{
+        position: relative;
+        left:auto; right:auto; bottom:auto;
+        margin-top: 12px;
+        height: auto;
+      }
+      .hud-bottomDock .dockGrid{
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ✅ Canvas más presente */
+    #map3dCanvas{
+      filter: contrast(1.08) saturate(1.06);
+    }
+
+/* #endregion =================MAPA3D=======================     */
+
+</style>
 </head>
 
 <body class="min-h-screen flex flex-col items-center justify-center text-white px-3 py-6 sm:py-8 md:py-10">
 
-<!-- ✅ Loader (space) -->
-<div id="loaderOverlay"
-     class="fixed inset-0 z-[99999] hidden select-none flex items-center justify-center space-modal-backdrop">
-  <div id="loaderPanel"
-       class="space-panel p-6 flex items-center gap-4 w-[min(370px,92vw)]">
-    <img src="loader.gif" alt="Cargando..." class="w-20 h-20 pointer-events-none">
-    <div class="text-white/80 flex-1 min-w-0">
-      <div class="fuente-magma tracking-widest text-lg">
-        PROCESANDO
-      </div>
+  <!-- ✅ Loader (space) -->
+  <div id="loaderOverlay"
+       class="fixed inset-0 z-[99999] hidden select-none flex items-center justify-center space-modal-backdrop">
+    <div id="loaderPanel"
+         class="space-panel p-6 flex items-center gap-4 w-[min(370px,92vw)]">
+      <img src="loader.gif" alt="Cargando..." class="w-20 h-20 pointer-events-none">
+      <div class="text-white/80 flex-1 min-w-0">
+        <div class="fuente-magma tracking-widest text-lg">PROCESANDO</div>
 
-      <!-- 🔒 Status con ancho fijo (no brinca con los "...") -->
-      <div id="loaderStatus"
-           class="text-xs text-white/60 inline-block w-[28ch] whitespace-nowrap font-mono">
-        Ejecutando operación…
-      </div>
+        <div id="loaderStatus"
+             class="text-xs text-white/60 inline-block w-[28ch] whitespace-nowrap font-mono">
+          Ejecutando operación…
+        </div>
 
-      <!-- ✅ Ticker: si aparece, no cambia la altura porque reservamos espacio -->
-      <div id="loaderTicker"
-           class="hidden mt-3 text-[11px] bg-black/30 border border-white/10
-                  rounded-xl p-2 space-y-1 max-h-36 min-h-[90px] overflow-y-auto font-mono">
+        <div id="loaderTicker"
+             class="hidden mt-3 text-[11px] bg-black/30 border border-white/10
+                    rounded-xl p-2 space-y-1 max-h-36 min-h-[90px] overflow-y-auto font-mono">
+        </div>
       </div>
     </div>
   </div>
-</div>
+
 
 
   <!-- =========================
@@ -710,13 +874,9 @@ body{
   <!-- PORTADA -->
   <div class="text-center mb-3 sm:mb-4 md:mb-5">
     <a href="https://instagram.com/medinova.cuu" target="_blank" rel="noopener noreferrer">
-      <img src="Andromeda.png" alt="Logo Medinova" class="block mx-auto h-auto w-auto max-h-[clamp(9rem,18vw,11rem)] -mb-3 sm:-mb-2 md:-mb-1" />
+      <img src="Andromeda.png" alt="Logo Medinova"
+           class="block mx-auto h-auto w-auto max-h-[clamp(9rem,18vw,11rem)] -mb-3 sm:-mb-2 md:-mb-1" />
     </a>
-    <!-- <h1 class="text-5xl font-bold tracking-widest text-white fuente-magma">R.I.C.A.R.D.O.</h1>
-    <p class="text-base text-white/80 font-medium max-w-2xl mx-auto text-center">
-      <strong>R</strong>egistro <strong>I</strong>nteligente de <strong>C</strong>ontrol, <strong>A</strong>lmacenamiento y
-      <strong>R</strong>astreo <strong>D</strong>igital de <strong>O</strong>peraciones
-    </p> -->
   </div>
 
   <!-- Modal selección modo -->
@@ -1077,31 +1237,31 @@ body{
 
   <!-- CONTENEDOR PRINCIPAL -->
   <div class="w-full max-w-2xl mt-2 sm:mt-3 md:mt-4">
-    <!-- <div class="space-panel rounded-[28px] p-6 md:p-7 shadow-2xl pt-5"> -->
+    <div class="space-panel rounded-[28px] p-6 md:p-7 shadow-2xl pt-5">
 
-      <!-- <div class="flex flex-wrap justify-center gap-3 mt-2">
+      <div class="flex flex-wrap justify-center gap-3 mt-2">
         <button onclick="solicitarNIP()" class="space-btn px-5 py-3 rounded-2xl btn-wrap">
           📝 <span class="btn-text">Inventario/<wbr>Pruebas facturadas</span>
         </button>
         <button onclick="abrirModalReporteMensual()" class="space-btn px-5 py-3 rounded-2xl btn-wrap">
           📊 <span class="btn-text">Generar <wbr>reporte</span>
         </button>
-      </div> -->
-
-      <div class="mt-4">
-        <label for="refBusqueda" class="sr-only">Buscar por referencia</label>
-        <input type="text" id="refBusqueda" placeholder="Buscar por referencia..." class="space-input w-full text-center" oninput="buscarReferencia(this.value)" autocomplete="off"/>
-        <div id="resultadoBusqueda" class="text-sm text-white/80 mt-4"></div>
       </div>
 
-      <!-- <div id="estadoUsuario" onclick="mostrarMenuModo()" class="mt-4 cursor-pointer space-card p-4 rounded-2xl hover:bg-white/10 transition" role="button" tabindex="0">
+      <div class="mt-6">
+        <label for="refBusqueda" class="sr-only">Buscar por referencia</label>
+        <input type="text" id="refBusqueda" placeholder="Buscar por referencia..." class="space-input w-full text-center" oninput="buscarReferencia(this.value)" autocomplete="off"/>
+        <div id="resultadoBusqueda" class="text-sm text-white/80 mt-3"></div>
+      </div>
+
+      <div id="estadoUsuario" onclick="mostrarMenuModo()" class="mt-4 cursor-pointer space-card p-4 rounded-2xl hover:bg-white/10 transition" role="button" tabindex="0">
         <div class="text-base flex items-center justify-center gap-2">
           <span id="usuarioActivo" class="text-lg font-extrabold ml-2 text-white/90">Selecciona un modo para iniciar</span>
         </div>
         <div class="mt-2 text-center">
           <span id="modoLabel" class="inline-block font-bold px-3 py-1 rounded-2xl text-white bg-white/10 border border-white/10 text-sm">INACTIVO</span>
         </div>
-      </div> -->
+      </div>
 
       <div id="contenedorQR" class="relative w-full mb-4 hidden mt-4">
         <label for="inputQR" class="sr-only">Escanea el código QR</label>
@@ -1129,25 +1289,8 @@ body{
           </table>
         </div>
       </div>
-<!-- <div class="mt-6">
-  <div class="text-center text-sm text-white/70 mb-3">Módulos principales</div> -->
 
-      <div id="hexDock" class="hexDock w-full">
-  <div id="hexStage" class="hexStage">
-    <div id="hexRing" class="hexRing"></div>
-    <div id="hexFrontLabel" class="hexFrontLabel" aria-live="polite">
-      <span class="hexFrontLabel__text"></span>
-    </div>
-  </div>
-
-    <!-- <div class="mt-3 text-center">
-      <div id="hexHint" class="text-xs text-white/60">
-        Arrastra para girar • Toca un hexágono para traerlo al frente
-      </div>
-    </div> -->
-  </div>
-</div>
-      <!-- <div class="text-center mt-6 space-y-3">
+      <div class="text-center mt-6 space-y-3">
         <button id="btnAlertasCaducidad" class="space-btn px-5 py-3 rounded-2xl">
           ⚠️ Ver productos próximos a caducar
         </button>
@@ -1163,7 +1306,7 @@ body{
             🧪 Laboratorio de Hipótesis
           </button>
         </div>
-      </div> -->
+      </div>
 
       <div id="resumenEscaneos" class="hidden mt-6 space-card p-3 rounded-2xl text-sm text-white/85"></div>
 
@@ -1197,10 +1340,10 @@ body{
   </button>
 
   <!-- BOTÓN OPCIONES USUARIO -->
-  <!-- <button onclick="mostrarOpcionesAdmin()"
-    class=" bottom-4 right-4 z-50 rounded-full px-4 py-3 text-sm font-semibold bg-white/10 border border-white/15 shadow-lg hover:bg-white/15 transition">
+  <button onclick="mostrarOpcionesAdmin()"
+    class="fixed bottom-4 right-4 z-50 rounded-full px-4 py-3 text-sm font-semibold bg-white/10 border border-white/15 shadow-lg hover:bg-white/15 transition">
     ⚙️ Opciones de usuario
-  </button> -->
+  </button>
 
   <!-- MODAL REPORTE MENSUAL -->
   <div id="modalReporteMensual" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 space-modal-backdrop">
@@ -1582,6 +1725,179 @@ body{
     </div>
   </div>
 
+<!-- #region =================MAPA3D=======================     */ -->
+  <section class="w-full p-4 sm:p-6 hidden map3d-hidden" id="mapa3dDemo" aria-hidden="true">
+  <style>
+  /* =============================
+     MAPA3D: show/hide elegante
+     ============================= */
+  #mapa3dDemo{
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition: opacity .35s ease, transform .45s cubic-bezier(.2,.8,.2,1);
+    will-change: opacity, transform;
+  }
+  #mapa3dDemo.map3d-hidden{
+    opacity: 0;
+    transform: translateY(18px) scale(.985);
+    pointer-events: none;
+  }
+  #mapa3dDemo.map3d-showing{
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  @media (prefers-reduced-motion: reduce){
+    #mapa3dDemo{ transition: none; }
+  }
+  </style>
+<div class="max-w-6xl mx-auto space-y-4">
+
+      <!-- Header -->
+      <div class="space-panel p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <div class="text-xs text-white/60 tracking-[.28em] uppercase">Demo • Mapa 3D Reactivos</div>
+          <div class="text-xl sm:text-2xl font-black tracking-wider">HUD Sci-Fi • Panel glass (producto)</div>
+          <div class="text-sm text-white/60 mt-1">
+            Este módulo está diseñado para abrirse al seleccionar un resultado en buscarReferencias.
+            El mapa 3D queda atrás y los datos viven en paneles de cristal.
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button class="space-btn-ghost" onclick="MAP3D.toggleFX()">✨ FX: <span id="fxState" class="mono">ON</span></button>
+          <button class="space-btn-ghost" onclick="MAP3D.toggleStatic()">🎛️ Render: <span id="renderState" class="mono">STATIC</span></button>
+          <button class="space-btn" onclick="MAP3D.resetView()">🛰️ Reset vista</button>
+          <button class="space-btn-ghost" onclick="MAP3D_UI.hide()">⬅️ Volver</button>
+        </div>
+      </div>
+
+      <!-- Glass HUD overlay -->
+      <div class="space-panel p-3 sm:p-4 map3d-scope">
+        <div class="hidden">
+          <input id="inRef" />
+          <input id="inUbi" />
+        </div>
+
+        <div id="map3dWrap"
+             class="relative w-full h-[720px] sm:h-[760px] rounded-3xl overflow-hidden border border-white/10 bg-black/10 scanlines">
+          <canvas id="map3dCanvas" class="absolute inset-0 w-full h-full"></canvas>
+
+          <div class="absolute inset-0 pointer-events-none" style="z-index:3">
+            <div class="hud-grid"></div>
+            <div class="hud-frame"></div>
+
+          <!-- Topbar -->
+          <div class="hud-topbar">
+            <div class="hud-title">WAREHOUSE REACTOR MAP</div>
+            <div class="flex items-center gap-3">
+              <span class="hud-signal"><i></i><span id="hudDate">—</span></span>
+              <span class="mono text-white/55">•</span>
+
+              <!-- Weather mini widget -->
+              <span class="hud-signal">
+                <i style="background:rgba(255,176,0,.9); box-shadow:0 0 18px rgba(255,176,0,.22)"></i>
+                <span id="hudWeather">—</span>
+              </span>
+
+              <span class="mono text-white/55">•</span>
+
+              <span class="hud-signal">
+                <i style="background:rgba(59,130,246,.9); box-shadow:0 0 18px rgba(59,130,246,.22)"></i>
+                <span id="hudTemp">—</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Rails -->
+          <div class="hud-rails">
+            <!-- LEFT rail: producto + forecast histórico -->
+            <div class="hud-rail">
+              <div class="space-card">
+                <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Producto</div>
+                <div class="mt-2">
+                  <div class="text-lg font-black text-white/90 mono" id="uiProdRef">—</div>
+                  <div class="text-sm text-white/70 mt-1" id="uiProdNombre">—</div>
+                  <div class="text-xs text-white/55 mt-1">
+                    Fabricante: <span class="text-white/75" id="uiProdFabricante">—</span>
+                  </div>
+                </div>
+
+                <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-white/70">
+                  <div class="rounded-xl bg-white/5 border border-white/10 p-2">
+                    <div class="text-white/50">UBI</div>
+                    <div class="mono font-black text-white/85" id="hudTarget">—</div>
+                  </div>
+                  <div class="rounded-xl bg-white/5 border border-white/10 p-2">
+                    <div class="text-white/50">Pick</div>
+                    <div class="mono font-black text-white/85" id="hudPick">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-card">
+                <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Consumo histórico</div>
+                <div class="mt-2 relative w-full h-[220px]">
+                  <canvas id="graficaForecast" class="block w-full h-full"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- CENTER spacer (no UI aquí, deja ver el mapa) -->
+            <div></div>
+
+            <!-- RIGHT rail: forecast pro + entregas + botón movimientos -->
+            <div class="hud-rail">
+              <div class="space-card">
+                <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Pronóstico</div>
+                <div class="mt-2 relative w-full h-[240px]">
+                  <canvas id="graficaForecastPro" class="block w-full h-full"></canvas>
+                </div>
+              </div>
+
+              <div class="space-card">
+                <div class="flex items-center justify-between">
+                  <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Plan de entrega</div>
+                  <button
+                    type="button"
+                    onclick="(window.filtroReferenciaGlobal ? verMovimientos(window.filtroReferenciaGlobal) : null)"
+                    class="space-btn-ghost px-3 py-2 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/90 pointer-events-auto"
+                    title="Ver movimientos"
+                  >📚 Movimientos</button>
+                </div>
+
+                <!-- OJO: dejé solo un class para evitar duplicado -->
+                <div id="tablaEntregasForecast" class="mt-2 text-sm"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom dock: Lotes (pastel + detalle) -->
+          <div class="hud-bottomDock pointer-events-auto">
+            <div class="dockGrid">
+              <div class="space-card h-full">
+                <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Distribución de lotes</div>
+                <div class="mt-2 relative w-full h-[120px]">
+                  <canvas id="graficaLotesPie" class="block w-full h-full"></canvas>
+                </div>
+              </div>
+
+              <div class="space-card h-full">
+                <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Detalle</div>
+                <div class="mt-2" id="uiTablaLotes"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tooltip -->
+          <div id="hudTip"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- #endregion =================MAPA3D=======================     */ -->
+
 
   <!-- ================= Scripts locales ================= -->
   <script>
@@ -1660,6 +1976,91 @@ if (anioSelect) {
     anioSelect.innerHTML += `<option value="${y}">${y}</option>`;
   }
 }
+
+// =============================
+// MAPA3D UI: show/hide elegante
+// =============================
+window.MAP3D_UI = window.MAP3D_UI || {};
+
+window.MAP3D_UI.show = function(opts = {}){
+  const sec = document.getElementById("mapa3dDemo");
+  if(!sec) return;
+
+  if (!sec.classList.contains("hidden") && !sec.classList.contains("map3d-hidden")) {
+    // ya está visible
+    return;
+  }
+
+  sec.classList.remove("hidden");
+  sec.setAttribute("aria-hidden", "false");
+
+  sec.classList.add("map3d-hidden");
+  sec.classList.remove("map3d-showing");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      sec.classList.add("map3d-showing");
+      sec.classList.remove("map3d-hidden");
+      try{ sec.scrollIntoView({ behavior:"smooth", block:"start" }); } catch(_){ sec.scrollIntoView(); }
+
+      window.logx?.("[MAP3D_UI]", "Mostrando módulo", opts);
+    });
+  });
+};
+
+window.MAP3D_UI.hide = function(){
+  const sec = document.getElementById("mapa3dDemo");
+  if(!sec) return;
+
+  sec.classList.remove("map3d-showing");
+  sec.classList.add("map3d-hidden");
+  sec.setAttribute("aria-hidden", "true");
+
+  const end = (ev) => {
+    if (ev && ev.target !== sec) return;
+    sec.classList.add("hidden");
+    sec.removeEventListener("transitionend", end);
+    window.logx?.("[MAP3D_UI]", "Ocultando módulo");
+  };
+  sec.addEventListener("transitionend", end);
+
+  setTimeout(() => { if(!sec.classList.contains("hidden")) sec.classList.add("hidden"); }, 450);
+};
+
+// ✅ Entrada única: mostrar MAPA3D cuando se selecciona una referencia
+window.abrirMapa3DDesdeReferencia = function(referencia, ubi = ""){
+  if(!referencia) return;
+
+  window.filtroReferenciaGlobal = referencia;
+
+  // inputs ocultos (por si tu motor 3D los lee)
+  const inRef = document.getElementById("inRef");
+  const inUbi = document.getElementById("inUbi");
+  if(inRef) inRef.value = referencia;
+  if(inUbi) inUbi.value = ubi || "";
+
+  // HUD mínimo inmediato
+  const uiRef = document.getElementById("uiProdRef");
+  if(uiRef) uiRef.textContent = referencia;
+  const hudTarget = document.getElementById("hudTarget");
+  if(hudTarget) hudTarget.textContent = ubi || "—";
+
+  window.MAP3D_UI.show({ referencia, ubi });
+
+  // intenta avisar a tu engine si ya existe (sin romper si no)
+  try{
+    if(window.MAP3D && typeof window.MAP3D.setTarget === "function"){
+      window.MAP3D.setTarget({ referencia, ubi });
+    }
+    if(window.MAP3D && typeof window.MAP3D.loadProducto === "function"){
+      window.MAP3D.loadProducto(referencia);
+    }
+  }catch(err){
+    window.logx?.("❌[MAP3D]", "Error al cargar producto en MAP3D", err);
+  }
+
+  window.logx?.("✅[MAP3D]", "Referencia seleccionada → módulo MAPA3D", { referencia, ubi });
+};
 //#endregion Constanes==============================================================================================================
 
 //#region funciones auxiliares =====================================================================================================
@@ -1818,465 +2219,6 @@ function sanitizeHipotesisOutputForUser(text) {
 
   return s;
 }
-// =========================
-// HEX DOCK (Opción 2) + SVG
-// =========================
-(function(){
-  const FRONT_Z = 350;
-  const DEPTH = 220;
-  const SPREAD_X = 300;
-  const SPREAD_Y = -880;
-  const SNAP_MS = 520;
-
-  // 🧭 HEMISFERA (no 360): arco visible del dock
-  const ARC_DEG = 180;                 // 120–180 suele verse pro
-  const ARC = ARC_DEG * Math.PI/180;   // radianes
-
-  let items = [];
-  let currentRot = 0;
-  let targetRot = 0;
-  let dragging = false;
-  let dragStartX = 0;
-  let dragStartRot = 0;
-
-  // 🔁 Estado modo (UI-only, NO legacy modo ni window.modo)
-  function getModoState(){
-    // UI-only: NO depender de `modo` (legacy) ni de `window.modo`
-    // Fuente 1: window.modoUI (estado visual del dock)
-    // Fuente 2: modoSeleccionado (estado real del selector)
-    const mUI = (typeof window !== "undefined") ? window.modoUI : undefined;
-    const mSel = (typeof modoSeleccionado !== "undefined") ? modoSeleccionado : undefined;
-
-    const m =
-      (mUI === "entrada" || mUI === "salida") ? mUI :
-      ((mSel === "entrada" || mSel === "salida") ? mSel : null);
-
-    if (m === "entrada") return "entrada";
-    if (m === "salida") return "salida";
-    return "inactivo";
-  }
-function onClickIfExists(id, handler) {
-  const el = document.getElementById(id);
-  if (!el) {
-    logx("⚠️[UI]", "Elemento no existe", { id });
-    return;
-  }
-  el.addEventListener("click", handler);
-  logx("✅[UI]", "Listener conectado", { id });
-}
-  function setModoState(next){
-    // UI-only: NO tocar `modo` (legacy) ni `window.modo`
-    window.modoUI = (next === "inactivo") ? null : next;
-
-    const usuarioActivoEl = document.getElementById("usuarioActivo");
-    const modoLabelEl = document.getElementById("modoLabel");
-
-    if(modoLabelEl){
-      if(next === "entrada"){
-        modoLabelEl.textContent = "ENTRADA";
-        modoLabelEl.className = "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-emerald-500/15 border border-emerald-400/30 text-sm";
-      } else if(next === "salida"){
-        modoLabelEl.textContent = "SALIDA";
-        modoLabelEl.className = "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-rose-500/15 border border-rose-400/30 text-sm";
-      } else {
-        modoLabelEl.textContent = "INACTIVO";
-        modoLabelEl.className = "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-white/10 border border-white/10 text-sm";
-      }
-    }
-
-    if(usuarioActivoEl){
-      usuarioActivoEl.textContent = (next === "inactivo")
-        ? "Selecciona un modo para iniciar"
-        : `Modo activo: ${next.toUpperCase()}`;
-    }
-
-    logx("🧭[MODO_UI]", "setModoState()", { next });
-    refreshModeIcon();
-  }
-
-  // 🧠 Rutas a SVG (ajústalas a tus archivos .svg)
-  // Puedes dejarlas como .jpeg temporalmente, pero la idea es que sean SVG.
-  const ICONS = {
-    modo: {
-      inactivo: "MODO_INACTIVO.svg",
-      entrada:  "MODO_ENTRADA.svg",
-      salida:   "MODO_SALIDA.svg"  // <- aquí va el interestelar nuevo
-    },
-    capturar:  "CAPTURAR_DATOS.svg",
-    reporte:   "GENERAR_REPORTE.svg",
-    caducidad: "ALERTA_CADUCIDAD.svg",
-    qc:        "QC_MANDOS.svg",
-    hipotesis: "HIPOTESIS.svg",
-    usuario:   "CONFIGURACION.svg"
-  };
-
-  // ✅ Acciones al “activar” cada hex cuando queda al frente
-  function activate(id){
-    logx("🧩[HEX]", "Activando", { id });
-
-    // ✅ El hex "modo" NO debe ciclar automáticamente.
-    // Debe abrir el selector de modo existente (estadoUsuario -> mostrarMenuModo()).
-    if (id === "modo") {
-      if (typeof mostrarMenuModo === "function") {
-        logx("🧭[MODO]", "Hex modo -> mostrarMenuModo()");
-        mostrarMenuModo();
-        return;
-      }
-      // fallback: modalModo directo (por si mostrarMenuModo no existe)
-      document.getElementById("modalModo")?.classList.remove("hidden");
-      logx("🧭[MODO]", "Hex modo -> fallback abrir #modalModo");
-      return;
-    }
-
-    // Para módulos: si está inactivo, NO abrir el módulo.
-    // En su lugar, abrir el selector de modo (mismo entrypoint que el bloque estadoUsuario).
-    // if (getModoState() === "inactivo") {
-    //   if (typeof mostrarMenuModo === "function") {
-    //     logx("⚠️[HEX]", "Modo inactivo -> mostrarMenuModo()", { target: id });
-    //     mostrarMenuModo();
-    //     return;
-    //   }
-    //   document.getElementById("modalModo")?.classList.remove("hidden");
-    //   logx("⚠️[HEX]", "Modo inactivo -> fallback abrir #modalModo", { target: id });
-    //   return;
-    // }
-
-    // Acciones reales de tu app (solo cuando ya hay modo activo)
-    if(id === "capturar") solicitarNIP?.();
-    if(id === "reporte") abrirModalReporteMensual?.();
-    if(id === "caducidad") mostrarAlertasCaducidad?.();
-    if(id === "qc") abrirModalQC?.();
-    if(id === "hipotesis") abrirModalHipotesis?.();
-    if(id === "usuario") mostrarOpcionesAdmin?.();
-  }
-
-  function svgTag(src){
-    // Usamos <img> para SVG externos (simple y estable).
-    // Si luego quieres recolor dinámico por CSS (fill), lo hacemos inline.
-    return `<img class="hexSvg" src="${src}" alt="">`;
-  }
-
-  function build(){
-    const ring = document.getElementById("hexRing");
-    if(!ring) return logx("❌[HEX]", "No existe #hexRing");
-
-    // ✅ Inicializa modo visual del dock (UI-only)
-    try {
-      window.modoUI = (modoSeleccionado === "entrada" || modoSeleccionado === "salida")
-        ? modoSeleccionado
-        : null;
-    } catch(e) {}
-
-    // Orden sugerido (6 hex)
-    const data = [
-
-      { id: "capturar", label: "Capturar Datos de Inventario o Pruebas Facturadas", src: ICONS.capturar },
-      { id: "reporte", label: "Generar Reporte de IO", src: ICONS.reporte },
-      { id: "caducidad", label: "Mostrar Alertas de Caducidad", src: ICONS.caducidad },
-
-            { id: "modo", label: "Selecciona un modo para iniciar", getSrc: () => ICONS.modo[getModoState()] },
-
-      { id: "qc", label: "Centro de Mando de Control de Calidad", src: ICONS.qc },
-      { id: "hipotesis", label: "Laboratorio de Evaluación de Hipotesis", src: ICONS.hipotesis },
-      { id: "usuario", label: "Opciones de Usuario", src: ICONS.usuario },
-    ].slice(0, 7);
-
-    // 👇 Ojo: pediste 6 iconos principales.
-    // Arriba hay 6 si mantienes hipotesis y quitas usuario,
-    // o puedes reemplazar hipotesis por usuario.
-    // Te lo dejo así para que elijas cuál queda en el dock.
-    // Si quieres 6 EXACTOS con usuario, dime y te lo reordeno.
-
-    ring.innerHTML = "";
-    items = data.map((d, idx) => {
-      const el = document.createElement("div");
-      el.className = "hexItem";
-      el.dataset.id = d.id;
-      el.dataset.idx = String(idx);
-      el.dataset.label = d.label || d.id;
-
-      const src = d.getSrc ? d.getSrc() : d.src;
-
-      el.innerHTML = `
-        <div class="hexBtn">
-          ${svgTag(src)}
-          <div class="hexStroke"></div>
-        </div>
-      `;
-
-      el.addEventListener("click", () => {
-        const id = d.id;
-        const isFrontNow = el.classList.contains("isFront");
-        logx("🖱️[HEX]", "Click", { id, idx, isFrontNow });
-
-        if (isFrontNow) {
-          // ✅ Ya está al frente -> ahora sí ejecuta la acción
-          activate(id);
-        } else {
-          // ✅ No está al frente -> solo céntralo, NO activar
-          snapToIndex(idx, false);
-        }
-      });
-
-      ring.appendChild(el);
-      return el;
-    });
-
-    // 🎯 Icono inicial (elige con qué hex inicia al frente)
-    // Opciones: "modo", "capturar", "reporte", "caducidad", "qc", "hipotesis", "usuario"
-    const START_ID = "modo";
-    const startIdx = Math.max(0, data.findIndex(x => x.id === START_ID));
-
-    // coloca el START_ID al frente desde el arranque
-    targetRot = 0;
-    currentRot = 0;
-    snapToIndex(startIdx, false);
-
-    attachDrag(document.querySelector(".hexStage"));
-    tick();
-
-    try {
-      logx("🏷️[HEX]", "Labels cargados", items.map(it => ({ id: it.dataset.id, label: it.dataset.label })));
-    } catch(e) {}
-    logx("✅[HEX]", "Dock listo", { count: items.length, modo: getModoState() });
-    refreshModeIcon();
-  }
-
-  function refreshModeIcon(){
-    const modeEl = items.find(x => x.dataset.id === "modo");
-    if(!modeEl) return;
-
-    const state = getModoState();
-    modeEl.classList.remove("mode-green", "mode-red");
-    if(state === "entrada") modeEl.classList.add("mode-green");
-    if(state === "salida") modeEl.classList.add("mode-red");
-
-    const img = modeEl.querySelector("img.hexSvg");
-    if(img){
-      img.src = ICONS.modo[state];
-      img.alt = `Modo ${state}`;
-    }
-    logx("🎨[HEX]", "refreshModeIcon()", { state, src: ICONS.modo[state] });
-  }
-
-function render(){
-  const n = items.length;
-  if(!n) return;
-
-  currentRot += (targetRot - currentRot) * 0.12;
-
-  const startAngle = -ARC/2;
-  const step = (n > 1) ? (ARC/(n-1)) : 0;
-
-  let frontEl = null;
-  let bestZ = -999;
-
-  // 1) PASS: posicionar + detectar quién está más al frente
-  for (let i=0; i<n; i++){
-    const el = items[i];
-    const ang = startAngle + (i*step) + currentRot;
-
-    const xNorm = Math.sin(ang);
-    const zNorm = Math.cos(ang);   // -1..1
-    const z01   = (zNorm + 1)/2;   // 0..1
-
-    const x = xNorm * SPREAD_X;
-    const z = zNorm * DEPTH;
-    const y = (1 - z01) * SPREAD_Y;
-
-    const scale   = 0.78 + z01*0.40;
-    const opacity = 0.18 + z01*0.82;
-
-    el.style.transform =
-      `translate3d(calc(-50% + ${x}px), calc(-50% + ${y}px), ${z + FRONT_Z}px) scale(${scale})`;
-    el.style.opacity = String(opacity);
-    el.style.zIndex  = String(Math.round(z01*1000));
-
-    // opcional: deshabilitar clicks muy atrás
-    // el.style.pointerEvents = (zNorm < -0.25) ? "none" : "auto";
-
-    if (zNorm > bestZ){ bestZ = zNorm; frontEl = el; }
-  }
-
-  // marca isFront correctamente (ya sabemos quién es)
-  items.forEach(it => it.classList.toggle("isFront", it === frontEl));
-
-  // 2) PASS: efecto cinemático por distancia (tiers)
-  for (let i=0; i<n; i++){
-    const el = items[i];
-    const ang = startAngle + (i*step) + currentRot;
-
-    const zNorm = Math.cos(ang);   // -1..1
-    const z01   = (zNorm + 1)/2;   // 0..1
-    const isFront = (el === frontEl);
-
-    // =====================
-    // 🎥 CINEMÁTICO POR DISTANCIA (7 iconos / ARC 120)
-    // 0 = frente, 1 = laterales, 2 = casi desaparecen, 3+ = invisibles
-    // =====================
-
-    const frontIdx = frontEl ? Number(frontEl.dataset.idx || "0") : 0;
-    const idx = Number(el.dataset.idx || String(i));
-    const d = Math.abs(idx - frontIdx); // 0..3 (cuando n=7)
-
-    // Presets por "anillo" respecto al centro
-    // Ajusta estos 3 valores y ya queda calibrado.
-    const PRESETS = [
-      { v: 1.00, blur: 0.00, sat: 1.00, bright: 1.00, iconScale: 3.85 }, // frente
-      { v: 0.75, blur: 2.20, sat: 0.72, bright: 0.82, iconScale: 2.00 }, // laterales (apenas visibles)
-      { v: 0.33, blur: 7.50, sat: 0.48, bright: 0.68, iconScale: 0.98 }, // 2do atrás (casi nada)
-      { v: 0.00, blur: 12.0, sat: 0.40, bright: 0.62, iconScale: 0.95 }, // 3ro atrás (invisible)
-    ];
-
-    const p = PRESETS[Math.min(d, PRESETS.length - 1)];
-
-    // Suaviza para que no se sienta "corte" duro
-    const vEase = Math.pow(p.v, 1.35);
-
-    const blurPx = p.blur;
-    const op     = vEase;
-    const sat    = p.sat;
-    const bright = p.bright;
-
-    // Oculta por completo a partir del 3ro atrás
-    el.style.visibility = (d >= 3) ? "hidden" : "visible";
-    el.style.pointerEvents = (d >= 2) ? "none" : "auto";
-
-    const img = el.querySelector(".hexSvg");
-    if (img) {
-      if (isFront) {
-        img.style.filter = "none";
-        img.style.opacity = "1";
-        img.style.transform = `scale(${p.iconScale})`;
-      } else {
-        img.style.filter = `blur(${blurPx.toFixed(2)}px) saturate(${sat.toFixed(2)}) brightness(${bright.toFixed(2)})`;
-        img.style.opacity = String(op.toFixed(3));
-        img.style.transform = `scale(${p.iconScale})`;
-      }
-    }
-
-    const stroke = el.querySelector(".hexStroke");
-    if (stroke) {
-      // ✅ aquí sí tiene sentido: z01 > 0.92 es “muy al frente”
-      stroke.style.opacity = String((z01 > 0.92) ? 1 : (0.06 + z01 * 0.18));
-    }
-  }
-
-    // label
-    const labelEl = document.getElementById("hexFrontLabel");
-    const textEl = labelEl?.querySelector(".hexFrontLabel__text");
-
-    if (textEl) {
-      const name = frontEl?.dataset?.label || frontEl?.dataset?.id || "";
-      textEl.textContent = name ? `⟡ ${name} ⟡` : "";
-    } else if (labelEl) {
-      // fallback si cambia el HTML
-      const name = frontEl?.dataset?.label || frontEl?.dataset?.id || "";
-      labelEl.textContent = name ? `⟡ ${name} ⟡` : "";
-    }
-  }
-  function tick(){
-    render();
-    requestAnimationFrame(tick);
-  }
-
-  function nearestIndex(){
-    const n = items.length;
-    if (!n) return 0;
-
-    // buscamos el índice cuyo ángulo esté más cerca de 0 (frente)
-    const startAngle = -ARC / 2;
-    const step = (n > 1) ? (ARC / (n - 1)) : 0;
-
-    let bestIdx = 0;
-    let bestScore = -999;
-
-    for (let i = 0; i < n; i++) {
-      const baseAng = startAngle + (i * step);
-      const ang = baseAng + targetRot;
-      const score = Math.cos(ang); // 1 = más al frente
-      if (score > bestScore) {
-        bestScore = score;
-        bestIdx = i;
-      }
-    }
-
-    return bestIdx;
-  }
-
-  function snapToIndex(idx, activateAfter){
-    const n = items.length;
-    if (!n) return;
-
-    const startAngle = -ARC / 2;
-    const step = (n > 1) ? (ARC / (n - 1)) : 0;
-
-    // Queremos que el item idx quede con ang total = 0 (al frente)
-    const baseAng = startAngle + (idx * step);
-    const desired = -baseAng;
-
-    logx("🧲[HEX]", "Snap", { idx, desired });
-
-    anime({
-      targets: { rot: targetRot },
-      rot: desired,
-      duration: SNAP_MS,
-      easing: "easeOutExpo",
-      update: (a) => { targetRot = a.animations[0].currentValue; },
-      complete: () => {
-        const id = items[idx]?.dataset?.id;
-        logx("✅[HEX]", "Snap complete", { idx, id });
-        if(activateAfter && id) activate(id);
-      }
-    });
-  }
-
-  function attachDrag(stage){
-    if(!stage) return;
-
-    const onDown = (clientX) => {
-      dragging = true;
-      dragStartX = clientX;
-      dragStartRot = targetRot;
-      logx("👇[HEX]", "Drag start", { x: clientX, rot: targetRot });
-    };
-
-    const onMove = (clientX) => {
-      if(!dragging) return;
-      const dx = clientX - dragStartX;
-      targetRot = dragStartRot + dx * 0.0065;
-    };
-
-    const onUp = () => {
-      if(!dragging) return;
-      dragging = false;
-      const idx = nearestIndex();
-      logx("🧷[HEX]", "Drag end -> nearest (snap only)", { idx });
-      snapToIndex(idx, false);
-    };
-
-    stage.addEventListener("mousedown", (e)=> onDown(e.clientX));
-    window.addEventListener("mousemove", (e)=> onMove(e.clientX));
-    window.addEventListener("mouseup", onUp);
-
-    stage.addEventListener("touchstart", (e)=> onDown(e.touches[0].clientX), { passive:true });
-    stage.addEventListener("touchmove", (e)=> onMove(e.touches[0].clientX), { passive:true });
-    stage.addEventListener("touchend", onUp);
-  }
-
-  // Expose helpers for external UI sync (after login, etc)
-  try { window.__hexRefreshModeIcon = refreshModeIcon; } catch(e) {}
-  try { window.__hexSetModoUI = setModoState; } catch(e) {}
-
-  window.addEventListener("DOMContentLoaded", () => {
-    if(typeof anime !== "function"){
-      logx("❌[HEX]", "anime.js no cargó (revisa CDN)");
-      return;
-    }
-    build();
-  });
-
-})();
 //#endregion funciones auxiliares
 //88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
 //#region Modulo Hipotesis
@@ -2990,9 +2932,6 @@ async function validarPinYUnidad() {
 
     unidadSeleccionada = esSalida ? unidad : null;
     modo = modoSeleccionado;
-    // ✅ Sync visual del HEX dock (UI-only). NO tocar lógica core.
-    try { window.modoUI = modoSeleccionado; } catch(e) {}
-    try { window.__hexRefreshModeIcon && window.__hexRefreshModeIcon(); } catch(e) {}
 
     // cerrar modal bien
     if (modalPin) {
@@ -4915,14 +4854,16 @@ async function mostrarResultadosCoincidencias(ref, referenciasCache, cont) {
     const nombre = String(data.nombre || "");
     const fabricante = String(data.fabricante || "");
 
+    // ✅ Ubi segura (evita ReferenceError si no existe)
+    const ubi = String(data.ubi || data.ubicacion || data.ubicación || "");
+
     html += `
       <div id="grupo-${escapeHtml(refReal)}" class="space-card rounded-2xl p-4 border border-white/10 bg-white/5 shadow-xl mb-4">
         
         <!-- Header clickable -->
         <div
           class="rounded-2xl px-3 py-3 hover:bg-white/10 transition cursor-pointer flex items-start justify-between gap-3"
-          onclick="aislarGrupo('${escapeJs(refReal)}')"
-          role="button"
+            onclick="MAP3D_UI.openFromSearch({referencia:'${escapeJs(refReal)}', nombre:'${escapeJs(nombre)}', fabricante:'${escapeJs(fabricante)}', ubi:'${escapeJs((data.ubi ?? data.ubicacion ?? data.UBI ?? data.ubi_exacta ?? ''))}'})"          role="button"
           tabindex="0"
         >
           <div class="min-w-0 text-left">
@@ -5016,6 +4957,31 @@ function escapeJs(str) {
     .replaceAll('"', '\\"')
     .replaceAll("\n", "\\n")
     .replaceAll("\r", "\\r");
+}
+
+// =============================
+// ✅ MAPHUD fallback (no rompe si MAPHUD no existe)
+// =============================
+window.MAPHUD = window.MAPHUD || {};
+
+// Si ya tienes MAPHUD.openFromSearch definido en otra parte, este NO lo pisa
+if (typeof window.MAPHUD.openFromSearch !== "function") {
+  window.MAPHUD.openFromSearch = function({ referencia, nombre = "", fabricante = "", ubi = "" } = {}) {
+    try {
+      console.log("[MAPHUD] openFromSearch fallback", { referencia, nombre, fabricante, ubi });
+
+      // Si existe tu handler real de MAPA3D, úsalo
+      if (typeof window.abrirMapa3DDesdeReferencia === "function") {
+        window.abrirMapa3DDesdeReferencia(referencia, ubi);
+        return;
+      }
+
+      // Si no existe, al menos no truena
+      console.warn("[MAPHUD] No existe abrirMapa3DDesdeReferencia(). Implementa el show/hide del módulo MAPA3D.");
+    } catch (err) {
+      console.error("[MAPHUD] Error en fallback openFromSearch", err);
+    }
+  };
 }
 // ✅ Al cargar la página, carga los productos
 window.addEventListener("DOMContentLoaded", cargarReferencias);
@@ -5119,7 +5085,7 @@ function solicitarPinModo(tipo, boton) {
   console.log("[UI][modo] solicitarPinModo()", { tipo });
 
   // Cierra el menú flotante de modo (si existe)
-  const modalAnterior = (boton && boton.closest) ? boton.closest(".modal-modo") : document.querySelector(".modal-modo");
+  const modalAnterior = boton?.closest?.(".modal-modo");
   if (modalAnterior) modalAnterior.remove();
 
   // Estado
@@ -5155,8 +5121,7 @@ function solicitarPinModo(tipo, boton) {
   }
 
   modal.classList.remove("hidden");
-  modal.classList.add("flex");
-  modal.style.display = "flex"; // 🔒 fuerza display (evita conflicto hidden/flex)
+  modal.classList.add("flex"); // ✅ CLAVE para que items-center/justify-center funcionen
 
   // Focus seguro (después de pintar)
   requestAnimationFrame(() => {
@@ -5167,44 +5132,35 @@ function solicitarPinModo(tipo, boton) {
 
 
 
-// 🔑 Manejador general de Enter para todos los campos (null-safe)
+// 🔑 Manejador general de Enter para todos los campos:
 ["inputNIP", "inputUnidad", "inputRemision"].forEach(id => {
-  const el = document.getElementById(id);
-  if (!el) {
-    console.warn("[UI][modo] No existe input para handler Enter:", id);
-    return;
-  }
-
-  el.addEventListener("keydown", function (e) {
+  document.getElementById(id).addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
       if (id === "inputNIP") {
         const unidadGroup = document.getElementById("unidadDestinoGroup");
-        if (unidadGroup && !unidadGroup.classList.contains("hidden")) {
-          document.getElementById("inputUnidad")?.focus?.();
+        if (!unidadGroup.classList.contains("hidden")) {
+          document.getElementById("inputUnidad").focus();
         } else {
-          validarPinYUnidad?.();
+          validarPinYUnidad();
         }
       } else if (id === "inputUnidad") {
         const remisionGroup = document.getElementById("remisionGroup");
-        if (remisionGroup && !remisionGroup.classList.contains("hidden")) {
-          document.getElementById("inputRemision")?.focus?.();
+        if (!remisionGroup.classList.contains("hidden")) {
+          document.getElementById("inputRemision").focus();
         } else {
-          validarPinYUnidad?.();
+          validarPinYUnidad();
         }
       } else {
-        validarPinYUnidad?.();
+        validarPinYUnidad();
       }
     }
   });
 });
 
 function cerrarModalPin() {
-  const modal = document.getElementById("modalPinUnidad");
-  if (!modal) return;
-  modal.classList.add("hidden");
-  modal.classList.remove("flex");
-  modal.style.display = "none";
+  document.getElementById("modalPinUnidad").classList.add("hidden");
 }
+
 
 
 async function enviarModoInventario() {
@@ -9484,7 +9440,7 @@ async function mostrarAlertasCaducidad() {
 
     // Asignar el evento al botón una vez cargue todo
     document.addEventListener("DOMContentLoaded", function() {
-      // document.getElementById("btnAlertasCaducidad").addEventListener("click", mostrarAlertasCaducidad);
+      document.getElementById("btnAlertasCaducidad").addEventListener("click", mostrarAlertasCaducidad);
     });
 document.addEventListener("keydown", function(e) {
   if (e.key === "Escape") {
@@ -11173,7 +11129,7 @@ function cerrarSesion() {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { labels: { color: "rgba(255,255,255,.75)", sort: safeLegendSort } },
+            legend: { labels: { color: "rgba(255,255,255,.75)" } },
             tooltip: { enabled: true }
           },
           scales: {
@@ -11437,13 +11393,15 @@ function cerrarSesion() {
 
   // Listeners
   document.addEventListener("DOMContentLoaded", () => {
+    if (window.__qc_dom_ready_bound) return;
+    window.__qc_dom_ready_bound = true;
     qcSetDefaultDates();
     qcCargarUnidadesSelect();
     const btn = document.getElementById("btnQC");
     if(btn) btn.addEventListener("click", () => abrirModalQC());
     ["qcTipo","qcAlmacen","qcUnidad","qcDesde","qcHasta","qcSoloCriticos","qcIncluirCentral"].forEach(id => {
       const el = document.getElementById(id);
-      if(el) el.addEventListener("change", () => qclog("🔁 Filtro cambiado", { id, value: (el.type==="checkbox"?el.checked:el.value) }));
+      if(el) el.addEventListener("change", () => qclog("🔁 Filtro cambiado", { id, value: (el.type==="checkbox"?el.checked:el.value) } ));
     });
   });
 
@@ -11455,6 +11413,1325 @@ function cerrarSesion() {
   });
 })();
 //#endregion QC Command
+
+//#region Rastreo de Productos + Mapa 3D
+
+/* =========================================================
+   MAP HUD BRIDGE (Integración sin redeclarar tus funciones)
+   - Abre el módulo grande al click de un resultado
+   - Llena UI + dispara 3D + forecast + entregas + movimientos
+========================================================= */
+
+(function(){
+  // ---------- Safe log ----------
+  const _log = (tag, msg, obj) => {
+    try {
+      if (typeof window.logx === "function") window.logx(tag, msg, obj);
+      else console.log(`${tag} ${msg}`, obj ?? "");
+    } catch (e) {
+      console.log(`${tag} ${msg}`, obj ?? "");
+    }
+  };
+
+  // ---------- Helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const txt = (id, value) => { const el=$(id); if(el) el.textContent = value ?? "—"; };
+  const val = (id, value) => { const el=$(id); if(el) el.value = value ?? ""; };
+  const clean = (v) => (v==null ? "" : String(v)).trim();
+  const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : clean(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")
+  );
+
+  // Caducidad -> icono/estado (muy ligero)
+  function cadIcono(cad){
+    // cad puede venir como string "2026-03-10" o "10/03/2026" o "S/C"
+    const raw = clean(cad);
+    if(!raw || raw === "S/C") return { icon:"❔", cls:"text-white/60", label:"Sin dato" };
+
+    let d = null;
+    // intenta ISO first
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) d = new Date(raw + "T00:00:00");
+    else {
+      // intenta dd/mm/yyyy
+      const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) d = new Date(Number(m[3]), Number(m[2])-1, Number(m[1]));
+    }
+
+    if(!d || isNaN(d.getTime())) return { icon:"❔", cls:"text-white/60", label:"Sin parse" };
+
+    const now = new Date();
+    const days = Math.ceil((d.getTime() - now.getTime()) / 86400000);
+
+    if (days < 0) return { icon:"⛔", cls:"text-red-300", label:"Vencido" };
+    if (days <= 30) return { icon:"⚠️", cls:"text-amber-200", label:"≤ 30 días" };
+    if (days <= 90) return { icon:"🟡", cls:"text-yellow-200", label:"≤ 90 días" };
+    return { icon:"✅", cls:"text-emerald-200", label:"OK" };
+  }
+
+  function renderTablaLotes(lotes){
+    const wrap = $("uiTablaLotes");
+    if(!wrap) return;
+
+    const rows = Array.isArray(lotes) ? lotes : [];
+    if(!rows.length){
+      wrap.innerHTML = `<div class="text-white/50">Sin lotes</div>`;
+      return;
+    }
+
+    // normaliza campos
+    const norm = rows.map(r => ({
+      lote: clean(r.lote ?? r.lote_id ?? r.lot ?? ""),
+      cantidad: (r.cantidad ?? r.qty ?? r.stock ?? "—"),
+      caducidad: clean(r.caducidad ?? r.exp ?? r.fecha_caducidad ?? "S/C"),
+    }));
+
+    wrap.innerHTML = `
+      <div class="rounded-2xl border border-white/10 overflow-hidden">
+        <table class="w-full text-[11px] text-left">
+          <thead class="bg-black/30 text-white/80">
+            <tr>
+              <th class="p-2">Estado</th>
+              <th class="p-2">Lote</th>
+              <th class="p-2 text-right">Cant.</th>
+              <th class="p-2">Caducidad</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white/5 text-white">
+            ${norm.map(r=>{
+              const st = cadIcono(r.caducidad);
+              return `
+                <tr class="border-t border-white/10">
+                  <td class="p-2 ${st.cls}" title="${esc(st.label)}">${esc(st.icon)}</td>
+                  <td class="p-2 mono">${esc(r.lote || "—")}</td>
+                  <td class="p-2 text-right mono">${esc(r.cantidad)}</td>
+                  <td class="p-2 mono">${esc(r.caducidad || "S/C")}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Hook para tu pastel: si ya tienes función, la usa; si no, solo deja canvas listo.
+  function renderPieLotes(lotes){
+    // Si tú ya tienes un renderer para graficaLotesPie, úsalo:
+    if (typeof window.renderGraficaLotesPie === "function"){
+      try { window.renderGraficaLotesPie(lotes); return; } catch(e){}
+    }
+
+    // fallback ultra básico: solo escribe texto
+    const cv = $("graficaLotesPie");
+    if(!cv) return;
+    const ctx = cv.getContext?.("2d");
+    if(!ctx) return;
+
+    const rows = Array.isArray(lotes) ? lotes : [];
+    const total = rows.reduce((s,r)=> s + Number(r.cantidad ?? r.qty ?? r.stock ?? 0), 0) || 0;
+
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,.75)";
+    ctx.font = "12px ui-monospace, Menlo, Monaco, Consolas, monospace";
+    ctx.fillText(`Lotes: ${rows.length}`, 14, 20);
+    ctx.fillText(`Total: ${total}`, 14, 40);
+    ctx.fillStyle = "rgba(255,255,255,.35)";
+    ctx.fillText("Tip: si ya tienes renderer de pastel,", 14, 70);
+    ctx.fillText("define window.renderGraficaLotesPie(lotes)", 14, 88);
+    ctx.restore();
+  }
+
+  // ---------- API pública ----------
+  window.MAPHUD = {
+    // Llamar cuando el usuario haga click en un resultado
+    openFromSearch(payload){
+      const ref = clean(payload?.referencia ?? payload?.ref ?? payload?.Referencia);
+      const nombre = clean(payload?.nombre ?? payload?.Nombre ?? payload?.nombre_facturacion);
+      const fabricante = clean(payload?.fabricante ?? payload?.Fabricante ?? payload?.marca ?? payload?.maker);
+      const ubi = clean(payload?.ubi ?? payload?.UBI ?? payload?.ubicacion ?? "");
+
+      if(!ref){
+        _log("[HUD]", "openFromSearch: ref vacío", payload);
+        return;
+      }
+
+      // UI
+      txt("uiProdRef", ref);
+      txt("uiProdNombre", nombre || "—");
+      txt("uiProdFabricante", fabricante || "—");
+
+      // Inputs ocultos (compatibilidad)
+      val("inRef", ref);
+      if(ubi) val("inUbi", ubi);
+
+      // HUD mini
+      if (typeof window.MAP3D?.setHUD === "function"){
+        window.MAP3D.setHUD(ref, ubi || "—", "Seleccionado desde búsqueda");
+      } else {
+        // fallback: no pasa nada
+      }
+
+      _log("[HUD]", "Producto seleccionado", { ref, nombre, fabricante, ubi });
+
+      // 3D: buscarPorReferencia se encarga de encontrar la UBI real (Supabase)
+      try{
+        if (window.MAP3D?.buscarPorReferencia) window.MAP3D.buscarPorReferencia(ref);
+      }catch(e){
+        _log("[HUD]", "Error MAP3D.buscarPorReferencia", { err: String(e?.message||e) });
+      }
+
+      // Forecast histórico (tu función existente)
+      try{
+        if (typeof window.verForecast === "function"){
+          window.verForecast(ref, nombre, fabricante);
+          _log("[HUD]", "verForecast disparado", { ref });
+        }
+      }catch(e){
+        _log("[HUD]", "Error verForecast", { err: String(e?.message||e) });
+      }
+
+      // Movimientos (tu función existente) — OJO: tu verMovimientos abre modal; aquí solo lo usamos si quieres.
+      // Si NO quieres abrir modal automático, comenta estas 3 líneas.
+      try{
+        if (typeof window.verMovimientos === "function"){
+          // window.verMovimientos(ref);
+          _log("[HUD]", "Movimientos listos (manual por botón)", { ref });
+        }
+      }catch(e){
+        _log("[HUD]", "Error verMovimientos", { err: String(e?.message||e) });
+      }
+
+      // Lotes: si tu integración ya trae lotes, los renderiza
+      if (payload?.lotes){
+        try{
+          renderTablaLotes(payload.lotes);
+          renderPieLotes(payload.lotes);
+          _log("[HUD]", "Lotes renderizados (desde payload)", { n: payload.lotes.length });
+        }catch(e){
+          _log("[HUD]", "Error render lotes", { err: String(e?.message||e) });
+        }
+      }
+    },
+
+    // Si tu backend te retorna forecast pro con entregas:
+    applyForecastPro(pro){
+      try{
+        if (typeof window.renderEntregasForecast === "function"){
+          window.renderEntregasForecast(pro);
+          _log("[HUD]", "renderEntregasForecast OK", { rows: (pro?.entregas?.length ?? 0) });
+        }
+      }catch(e){
+        _log("[HUD]", "Error renderEntregasForecast", { err: String(e?.message||e) });
+      }
+    },
+
+    // Si tu backend retorna lotes después (asincrónico)
+    applyLotes(lotes){
+      renderTablaLotes(lotes);
+      renderPieLotes(lotes);
+      _log("[HUD]", "applyLotes OK", { n: Array.isArray(lotes) ? lotes.length : 0 });
+    }
+  };
+
+  /* =========================================================
+     OPCIÓN A: Hook por delegación (cero cambios en tu HTML)
+     - Si tus items de resultados tienen data-ref o data-referencia
+     - Ejemplo: <div class="resultado" data-ref="368171" data-nombre="..." data-fabricante="...">
+  ========================================================= */
+  window.MAPHUD.attachToSearchResults = function(containerId="resultadoBusqueda"){
+    const cont = $(containerId);
+    if(!cont){
+      _log("[HUD]", "attachToSearchResults: no existe contenedor", { containerId });
+      return;
+    }
+
+    cont.addEventListener("click", (e)=>{
+      const el = e.target.closest("[data-ref],[data-referencia]");
+      if(!el) return;
+
+      const ref = el.getAttribute("data-ref") || el.getAttribute("data-referencia");
+      const nombre = el.getAttribute("data-nombre") || el.getAttribute("data-nombre_facturacion") || "";
+      const fabricante = el.getAttribute("data-fabricante") || "";
+      const ubi = el.getAttribute("data-ubi") || "";
+
+      window.MAPHUD.openFromSearch({ referencia: ref, nombre, fabricante, ubi });
+    });
+
+    _log("[HUD]", "attachToSearchResults OK", { containerId });
+  };
+
+  /* =========================================================
+     OPCIÓN B: Hook directo (recomendado, 1 línea por resultado)
+     En tu HTML de cada item de búsqueda, agrega:
+     onclick="MAPHUD.openFromSearch({referencia:'${ref}', nombre:'${nombre}', fabricante:'${fab}', ubi:'${ubi}'})"
+  ========================================================= */
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    // Si quieres delegación automática:
+    // window.MAPHUD.attachToSearchResults("resultadoBusqueda");
+  });
+
+})();
+//#endregion Rastreo de Productos + Mapa 3D
   </script>
+
+
+
+<!-- #region =================MAPA3D=======================     */ -->
+
+
+
+  <!-- ✅ Script al final (importmap OK) -->
+  <script type="module">
+    import * as THREE from "three";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+    import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+    import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+    import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
+    import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+    import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
+
+// <<=================Cordenadas para clima====================>
+    window.WX_COORDS = { lat: 28.632995, lon: -106.0691 };
+
+
+    window.THREE = THREE;
+    window.__THREE_ADDONS__ = { GLTFLoader, EffectComposer, RenderPass, UnrealBloomPass, OutlinePass, ShaderPass, FXAAShader };
+
+    const ADDITIVE_BLOOM_SHADER = {
+      uniforms: {
+        tDiffuse: { value: null },
+        bloomTexture: { value: null }
+      },
+      vertexShader: /* glsl */`
+        varying vec2 vUv;
+        void main(){
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */`
+        uniform sampler2D tDiffuse;
+        uniform sampler2D bloomTexture;
+        varying vec2 vUv;
+        void main(){
+          vec4 base = texture2D(tDiffuse, vUv);
+          vec4 bloom = texture2D(bloomTexture, vUv);
+          gl_FragColor = base + bloom;
+        }
+      `
+    };
+
+    /* =========================
+       ✅ LOG helper (auditable)
+    ========================= */
+    window.LOGS_ON = true;
+    function logx(tag, msg, obj){
+      if(!window.LOGS_ON) return;
+      const line = `[${new Date().toISOString()}] ${tag} ${msg}`;
+      if(obj !== undefined) console.log(line, obj);
+      else console.log(line);
+
+      const box = document.getElementById("logBox");
+      if(box){
+        const prev = box.textContent || "";
+        box.textContent = (prev + line + (obj!==undefined?(" " + safeJson(obj)):"") + "\n").split("\n").slice(-18).join("\n");
+        box.scrollTop = box.scrollHeight;
+      }
+    }
+    function safeJson(o){ try { return JSON.stringify(o); } catch { return String(o); } }
+    function setBadge(text){
+      const el = document.getElementById("badge");
+      if(el) el.textContent = text;
+      // si no existe, no hacemos nada (evita crash)
+    }
+
+    /* =========================
+       ✅ Supabase config (opcional)
+    ========================= */
+    const USE_SUPABASE = true;
+    const SUPABASE_URL = "https://ldjrpfsbpcfninntffoj.supabase.co";
+    const USE_GLB_MODEL = true;
+    const GLB_URL = "./relaciones.glb";
+
+    const MAP3D_CONFIG = {
+      table_rel: "relaciones",
+      col_ref: "referencia",
+      col_ubi: "ubi",
+      col_unidad: "unidad",
+      col_ubi_txt: "ubicacion_formato_centrum",
+      col_nombre: "nombre_facturacion",
+      select: "referencia,ubi,unidad,ubicacion_formato_centrum,nombre_facturacion,id"
+    };
+
+    // ✅ NO dejes que el script truene por nodos inexistentes
+    (() => {
+      const elUse = document.getElementById("sbUse");
+      const elTable = document.getElementById("sbTable");
+      const elColRef = document.getElementById("sbColRef");
+      const elColUbi = document.getElementById("sbColUbi");
+      if (elUse) elUse.textContent = String(USE_SUPABASE);
+      if (elTable) elTable.textContent = MAP3D_CONFIG.table_rel;
+      if (elColRef) elColRef.textContent = MAP3D_CONFIG.col_ref;
+      if (elColUbi) elColUbi.textContent = MAP3D_CONFIG.col_ubi;
+    })();
+
+    let sb = null;
+    if(USE_SUPABASE){
+      try{
+        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        logx("[Supabase]", "Cliente inicializado");
+      }catch(e){
+        logx("[Supabase]", "Error creando cliente", {err: String(e?.message||e)});
+      }
+    }
+
+    /* =========================
+       ✅ Demo data (fallback)
+    ========================= */
+    const DEMO_RELACIONES = new Map([
+      ["368171", { referencia:"368171", ubi:"E3", unidad:"CUU", ubicacion_formato_centrum:"Estante E3 • Nivel 2", nombre_facturacion:"Reactivo Demo A" }],
+      ["MD-VE-C22", { referencia:"MD-VE-C22", ubi:"R4", unidad:"CUU", ubicacion_formato_centrum:"Refrigerado R4 • Cajón 1", nombre_facturacion:"Reactivo Demo B" }],
+      ["GLU-001", { referencia:"GLU-001", ubi:"T7", unidad:"CUU", ubicacion_formato_centrum:"Tarima T7 • Pasillo 3", nombre_facturacion:"Reactivo Demo C" }],
+      ["QC-ICE", { referencia:"QC-ICE", ubi:"C2", unidad:"CUU", ubicacion_formato_centrum:"Congelado C2 • Bandeja superior", nombre_facturacion:"Control Congelado" }],
+    ]);
+
+    /* =========================
+       ✅ Three.js HUD 3D module
+    ========================= */
+    window.MAP3D = {
+      canvas: null,
+      renderer: null,
+      scene: null,
+      camera: null,
+      composer: null,
+      fxEnabled: true,
+      staticMode: true,
+      useGlb: USE_GLB_MODEL,
+      glbUrl: GLB_URL,
+      needsRender: true,
+      slots: new Map(),
+      current: null,
+      camTarget: new THREE.Vector3(5, 2, 3),
+      camTargetDesired: new THREE.Vector3(5, 2, 3),
+      camPosDesired: null,
+      camFollowEnabled: true,
+      camLerp: 0.12,          // 0..1 (más alto = más rápido)
+      camLerpActive: false,
+      raycaster: new THREE.Raycaster(),
+      pointer: new THREE.Vector2(),
+
+      // ✅ Center bias (compensa rails para que el highlight se vea centrado)
+      viewBiasX: 360, // px (negativo desplaza el encuadre a la izquierda)
+      viewBiasY: 0,   // px
+
+      bloomLayer: (()=>{ const l = new THREE.Layers(); l.set(1); return l; })(),
+      useSelectiveBloom: true,
+
+      lastFrame: 0,
+      fpsCapMs: 1000/30,
+      stop: false,
+
+      init(){
+        this.canvas = document.getElementById("map3dCanvas");
+        if(!this.canvas){
+          console.error("[MAP3D] No existe #map3dCanvas");
+          return;
+        }
+
+        this.tickHUDTime();
+        setInterval(()=>this.tickHUDTime(), 1000);
+
+        const wrap = document.getElementById("map3dWrap");
+        const rect = wrap.getBoundingClientRect();
+        const w = Math.max(320, rect.width);
+        const h = Math.max(320, rect.height);
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas: this.canvas,
+          antialias: false,
+          alpha: false,
+          powerPreference: "high-performance"
+        });
+
+        renderer.setSize(w, h, false);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.08;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050d12);
+        scene.fog = new THREE.Fog(0x06151d, 22, 105);
+
+        const camera = new THREE.PerspectiveCamera(32, w/h, 0.1, 200);
+        camera.position.set(13, 23, 15);
+        camera.lookAt(8, 7, 5);
+
+        this._initialCamPos = camera.position.clone();
+        this._initialCamTarget = new THREE.Vector3(5, 2, 3);
+        this.camTarget = this._initialCamTarget.clone();
+        this.camTargetDesired = this._initialCamTarget.clone();
+        this.camPosDesired = camera.position.clone();
+        // Lights premium contrast
+        const amb = new THREE.AmbientLight(0xffffff, 0.04);
+        scene.add(amb);
+
+        const key = new THREE.DirectionalLight(0xeafcff, 0.8);
+        key.position.set(16, 22, 14);
+        key.target.position.set(0, 1.2, 0);
+        scene.add(key, key.target);
+
+        key.castShadow = true;
+        key.shadow.mapSize.set(4096, 4096);
+        key.shadow.bias = -0.0002;
+        key.shadow.normalBias = 0.015;
+        key.shadow.camera.near = 1;
+        key.shadow.camera.far = 60;
+        key.shadow.camera.left = -14;
+        key.shadow.camera.right = 14;
+        key.shadow.camera.top = 14;
+        key.shadow.camera.bottom = -14;
+
+        const rim = new THREE.DirectionalLight(0xffffcc, 3.22);
+        rim.position.set(-12, 10, -18);
+        rim.target.position.set(0, 1, 0);
+        scene.add(rim, rim.target);
+
+        const grid = new THREE.GridHelper(60, 60, 0x00e5ff, 0x00e5ff);
+        grid.material.opacity = 0.13;
+        grid.material.transparent = true;
+        grid.position.y = 0.01;
+        scene.add(grid);
+
+        if(this.useGlb){
+          setBadge("Cargando modelo 3D…");
+          this.loadGLB(scene, this.glbUrl);
+        }else{
+          this.buildAlmacen(scene);
+        }
+
+        this.composer = this.setupFX(renderer, scene, camera, w, h);
+        this.applyViewBias();
+        this.renderer = renderer;
+        this.scene = scene;
+        this.camera = camera;
+
+        // interactions
+        wrap.addEventListener("pointermove", (e)=>this.onPointerMove(e));
+        wrap.addEventListener("pointerdown", (e)=>this.onPointerDown(e));
+        window.addEventListener("resize", ()=>this.onResize());
+
+        // Enter shortcuts (compatibilidad si existen inputs)
+        const inRef = document.getElementById("inRef");
+        const inUbi = document.getElementById("inUbi");
+        if(inRef) inRef.addEventListener("keydown", (e)=>{ if(e.key==="Enter") this.buscarPorReferencia(); });
+        if(inUbi) inUbi.addEventListener("keydown", (e)=>{ if(e.key==="Enter") this.highlightUbi(e.target.value); });
+
+        const fxEl = document.getElementById("fxState");
+        const rEl = document.getElementById("renderState");
+        if (fxEl) fxEl.textContent = this.fxEnabled ? "ON" : "OFF";
+        if (rEl) rEl.textContent = this.staticMode ? "STATIC" : "LOOP";
+
+        logx("[MAP3D]", "Init ok", { w, h, pixelRatio: renderer.getPixelRatio() });
+
+        this.startLoop();
+        this.requestRender();
+      },
+
+      tickHUDTime(){
+        const d = new Date();
+        const fmt = d.toISOString().slice(0,10) + " • " + d.toTimeString().slice(0,8);
+        const el = document.getElementById("hudDate");
+        if(el) el.textContent = fmt;
+      },
+
+      requestRender(){ this.needsRender = true; },
+
+      startLoop(){
+        const loop = (t)=>{
+          if(this.stop) return;
+          requestAnimationFrame(loop);
+
+          if(!this.staticMode){
+            if((t - this.lastFrame) < this.fpsCapMs) return;
+            this.lastFrame = t;
+            this.render();
+            return;
+          }
+
+          if(this.needsRender){
+            this.needsRender = false;
+            this.render();
+          }
+        };
+        requestAnimationFrame(loop);
+      },
+
+      render(){
+        if(!this.renderer || !this.scene || !this.camera) return;
+        // ✅ Smooth camera follow toward highlighted target
+        if (this.camFollowEnabled && this.camLerpActive && this.camPosDesired) {
+          this.camera.position.lerp(this.camPosDesired, this.camLerp);
+          this.camTarget.lerp(this.camTargetDesired, this.camLerp);
+
+          this.camera.lookAt(this.camTarget);
+
+          // Stop condition
+          const dp = this.camera.position.distanceTo(this.camPosDesired);
+          const dt = this.camTarget.distanceTo(this.camTargetDesired);
+          if (dp < 0.01 && dt < 0.01) {
+            this.camLerpActive = false;
+          } else {
+            // keep requesting renders while moving in STATIC mode
+            this.needsRender = true;
+          }
+        } else {
+          // keep looking at current target even when not lerping
+          if (this.camTarget) this.camera.lookAt(this.camTarget);
+        }
+        if(this.fxEnabled && this.composer){
+          if(this.useSelectiveBloom && this.composer.bloomComposer && this.composer.finalComposer){
+            const prevMask = this.camera.layers.mask;
+
+            this.camera.layers.set(1);
+            this.composer.bloomComposer.render();
+
+            this.camera.layers.set(0);
+            this.composer.finalComposer.render();
+
+            this.camera.layers.mask = prevMask;
+            return;
+          }
+
+          if(this.composer.composer) this.composer.composer.render();
+          else this.renderer.render(this.scene, this.camera);
+
+        }else{
+          this.renderer.render(this.scene, this.camera);
+        }
+      },
+
+      setupFX(renderer, scene, camera, width, height){
+        const A = window.__THREE_ADDONS__ || {};
+        const EC = A.EffectComposer;
+        const RP = A.RenderPass;
+        const OP = A.OutlinePass;
+        const UBP = A.UnrealBloomPass;
+        const SP = A.ShaderPass;
+        const FXAA = A.FXAAShader;
+
+        if(!EC || !RP || !OP || !UBP || !SP || !FXAA){
+          logx("[FX]", "PostFX no disponible. Desactivando FX.", {
+            EC: !!EC, RP: !!RP, OP: !!OP, UBP: !!UBP, SP: !!SP, FXAA: !!FXAA
+          });
+          this.fxEnabled = false;
+          const fxEl = document.getElementById("fxState");
+          if (fxEl) fxEl.textContent = "OFF";
+          return null;
+        }
+
+        const bloomComposer = new EC(renderer);
+        bloomComposer.setSize(width, height);
+        bloomComposer.renderToScreen = false;
+        bloomComposer.addPass(new RP(scene, camera));
+
+        const bloomPass = new UBP(new THREE.Vector2(width, height), 0.34, 0.22, 0.92);
+        bloomPass.strength = 0.34;
+        bloomPass.radius = 0.22;
+        bloomPass.threshold = 0.92;
+        bloomComposer.addPass(bloomPass);
+
+        const finalComposer = new EC(renderer);
+        finalComposer.setSize(width, height);
+        finalComposer.addPass(new RP(scene, camera));
+
+        const outlinePass = new OP(new THREE.Vector2(width, height), scene, camera);
+        outlinePass.edgeStrength = 2.2;
+        outlinePass.edgeGlow = 0.35;
+        outlinePass.edgeThickness = 0.9;
+        outlinePass.pulsePeriod = 0;
+        outlinePass.visibleEdgeColor.set(0xffb000);
+        outlinePass.hiddenEdgeColor.set(0x00090c);
+        finalComposer.addPass(outlinePass);
+
+        const bloomMixPass = new SP(ADDITIVE_BLOOM_SHADER);
+        bloomMixPass.material.uniforms["bloomTexture"].value = bloomComposer.renderTarget2.texture;
+        finalComposer.addPass(bloomMixPass);
+
+        const fxaaPass = new SP(FXAA);
+        fxaaPass.material.uniforms["resolution"].value.set(1/width, 1/height);
+        finalComposer.addPass(fxaaPass);
+
+        return { bloomComposer, finalComposer, outlinePass, bloomPass, bloomMixPass, fxaaPass };
+      },
+
+      tintBaseMaterial(mat){
+        if(!mat) return;
+
+        const applyOne = (m)=>{
+          if(!m) return;
+          if(m.isMeshStandardMaterial || m.isMeshPhysicalMaterial){
+            if(m.color) m.color.lerp(new THREE.Color(0x6c9393), 0.30);
+            if(m.emissive) m.emissive.lerp(new THREE.Color(0x509595), 0.001);
+            if(typeof m.emissiveIntensity === "number") m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, 0.36);
+
+            if(m.transparent || (typeof m.opacity === "number" && m.opacity < 1)){
+              m.transparent = true;
+              m.opacity = Math.max(typeof m.opacity === "number" ? m.opacity : 1, 0.92);
+            }
+
+            if(typeof m.metalness === "number") m.metalness = Math.max(m.metalness, 0.10);
+            if(typeof m.roughness === "number") m.roughness = Math.min(m.roughness, 0.55);
+
+            if(m.isMeshPhysicalMaterial){
+              if(typeof m.transmission === "number") m.transmission = Math.min(m.transmission, 0.25);
+              if(typeof m.thickness === "number") m.thickness = Math.min(m.thickness, 0.15);
+              if(typeof m.ior === "number") m.ior = Math.max(m.ior, 1.20);
+            }
+
+            m.needsUpdate = true;
+          }
+        };
+
+        if(Array.isArray(mat)) mat.forEach(applyOne);
+        else applyOne(mat);
+      },
+      // ✅ Decide qué meshes son “pickables/slots” (evita EDIFICIO y estructura)
+      isPickableSlotName(nameRaw){
+        const nm = String(nameRaw || "").trim().toUpperCase();
+        if(!nm) return false;
+
+        // Bloqueos explícitos
+        if(nm === "EDIFICIO" || nm.includes("EDIFICIO")) return false;
+        if(nm === "PISO" || nm.includes("FLOOR")) return false;
+
+        // Patrón típico de UBI: letras + números (E3, R4, T7, C2, E12)
+        // Ajusta aquí si tus nombres reales cambian.
+        return /^[A-Z]{1,3}\d{1,3}$/.test(nm);
+      },
+
+      // ✅ Desplaza el centro de proyección para compensar el HUD lateral
+      applyViewBias(){
+        if(!this.camera) return;
+        const wrap = document.getElementById("map3dWrap");
+        if(!wrap) return;
+
+        const r = wrap.getBoundingClientRect();
+        const w = Math.max(320, Math.round(r.width));
+        const h = Math.max(320, Math.round(r.height));
+
+        if(typeof this.camera.setViewOffset !== "function" || typeof this.camera.clearViewOffset !== "function") return;
+
+        const bx = Number.isFinite(this.viewBiasX) ? this.viewBiasX : 0;
+        const by = Number.isFinite(this.viewBiasY) ? this.viewBiasY : 0;
+
+        if(Math.abs(bx) < 0.5 && Math.abs(by) < 0.5){
+          this.camera.clearViewOffset();
+          return;
+        }
+
+        // setViewOffset(fullW, fullH, x, y, width, height)
+        this.camera.setViewOffset(w, h, Math.round(bx), Math.round(by), w, h);
+      },
+      loadGLB(scene, url){
+        try{
+          const GLB = (window.__THREE_ADDONS__||{}).GLTFLoader;
+          if(!GLB){
+            setBadge("❌ GLTFLoader no cargó");
+            logx("[GLB]", "GLTFLoader undefined. Revisa importmap / módulos.");
+            this.buildAlmacen(scene);
+            this.requestRender();
+            return;
+          }
+
+          const loader = new GLB();
+          if(loader.setCrossOrigin) loader.setCrossOrigin("anonymous");
+
+          loader.load(url, (gltf)=>{
+            const model = gltf.scene;
+
+            const box = new THREE.Box3().setFromObject(model);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+
+            const maxDim = Math.max(size.x||1, size.y||1, size.z||1);
+            const target = 22;
+            const scale = target / maxDim;
+            model.scale.setScalar(scale);
+
+            const box2 = new THREE.Box3().setFromObject(model);
+            const center2 = new THREE.Vector3();
+            box2.getCenter(center2);
+            model.position.x += (0 - center2.x);
+            model.position.z += (0 - center2.z);
+            model.position.y += (0.02 - box2.min.y);
+
+            scene.add(model);
+
+            this.slots = new Map();
+            model.traverse((obj)=>{
+              if(!obj || !obj.isMesh) return;
+              const rawName = String(obj.name||"").trim();
+              if(!rawName) return;
+
+              // ✅ Solo registramos slots pickables (evita EDIFICIO y escenario)
+              if(!this.isPickableSlotName(rawName)) return;
+
+              obj.userData = obj.userData || {};
+              obj.userData.baseMaterial = obj.material;
+
+              this.tintBaseMaterial(obj.material);
+              obj.castShadow = true;
+              obj.receiveShadow = true;
+              this.slots.set(rawName.toUpperCase(), obj);
+            });
+
+            setBadge("✅ GLB cargado");
+            logx("[GLB]", "Modelo GLB cargado", { url, slots: this.slots.size, sample: [...this.slots.keys()].slice(0,12) });
+
+            this.requestRender();
+          }, (prog)=>{
+            if(prog && prog.total){
+              const pct = Math.round((prog.loaded/prog.total)*100);
+              setBadge(`Cargando GLB… ${pct}%`);
+            } else setBadge("Cargando GLB…");
+          }, (err)=>{
+            const msg = String(err?.message||err);
+            setBadge("⚠️ No se pudo cargar GLB (fallback demo)");
+            logx("[GLB]", "Error cargando GLB", { url, err: msg, hint:"Usa server (Live Server / http.server). file:// puede bloquear." });
+            this.buildAlmacen(scene);
+            this.requestRender();
+          });
+
+        }catch(e){
+          const msg = String(e?.message||e);
+          setBadge("⚠️ Error GLB (fallback demo)");
+          logx("[GLB]", "Excepción cargando GLB", { url, err: msg });
+          this.buildAlmacen(scene);
+          this.requestRender();
+        }
+      },
+
+      buildAlmacen(scene){
+        this.slots = new Map();
+
+        const matAmb = new THREE.MeshStandardMaterial({
+          color: 0x0e5462, roughness: 0.34, metalness: 0.20,
+          transparent: true, opacity: 0.22,
+          emissive: new THREE.Color(0x0aa9b2), emissiveIntensity: 0.50
+        });
+
+        const geom = new THREE.BoxGeometry(0.95, 0.75, 0.62);
+        for(let i=1;i<=20;i++){
+          const name = `E${i}`;
+          const mesh = new THREE.Mesh(geom, matAmb);
+          mesh.name = name;
+          mesh.userData = { label:"Estante", baseMaterial: matAmb };
+          mesh.position.set(-10.5 + (i-1)*1.1, 0.7, 3.0);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          scene.add(mesh);
+          this.slots.set(name.toUpperCase(), mesh);
+        }
+
+        logx("[MAP3D]", "Slots creados", { total: this.slots.size, sample: [...this.slots.keys()].slice(0,10) });
+      },
+
+      resetView(){
+        if(!this.camera) return;
+        if(this._initialCamPos && this._initialCamTarget){
+          this.camera.position.copy(this._initialCamPos);
+          this.camPosDesired = this._initialCamPos.clone();
+
+          this.camTarget.copy(this._initialCamTarget);
+          this.camTargetDesired.copy(this._initialCamTarget);
+
+          this.camera.lookAt(this.camTarget);
+        }else{
+          this.camera.position.set(13, 23, 15);
+          this.camPosDesired = this.camera.position.clone();
+
+          this.camTarget.set(5, 2, 9);
+          this.camTargetDesired.copy(this.camTarget);
+          this.camera.lookAt(this.camTarget);
+        }
+        this.camLerpActive = false;
+        this.requestRender();
+      },
+
+      toggleFX(){
+        this.fxEnabled = !this.fxEnabled;
+        const fxEl = document.getElementById("fxState");
+        if (fxEl) fxEl.textContent = this.fxEnabled ? "ON" : "OFF";
+        this.requestRender();
+      },
+
+      toggleStatic(){
+        this.staticMode = !this.staticMode;
+        const rEl = document.getElementById("renderState");
+        if (rEl) rEl.textContent = this.staticMode ? "STATIC" : "LOOP";
+        this.requestRender();
+      },
+
+      setHUD(ref, ubi, detalle){
+        // ✅ Evita crash si ids legacy no existen en este HUD
+        const elRef = document.getElementById("hudRef");
+        const elUbi = document.getElementById("hudUbi");
+        const elDet = document.getElementById("hudDetalle");
+        if(elRef) elRef.textContent = ref || "—";
+        if(elUbi) elUbi.textContent = ubi || "—";
+        if(elDet) elDet.textContent = detalle || "—";
+      },
+
+      async buscarPorReferencia(refOverride){
+        const ref = (refOverride ?? document.getElementById("inRef")?.value ?? "").trim();
+        if(!ref){ setBadge("Referencia vacía"); return; }
+
+        setBadge("Consultando…");
+        logx("[QUERY]", "Buscar por referencia", { ref });
+
+        if(USE_SUPABASE && sb){
+          try{
+            const { data, error } = await sb
+              .from(MAP3D_CONFIG.table_rel)
+              .select(MAP3D_CONFIG.select)
+              .eq(MAP3D_CONFIG.col_ref, ref)
+              .limit(5);
+
+            if(error) throw error;
+            if(!data || !data.length){
+              setBadge("Sin resultado");
+              this.setHUD(ref, "—", "No existe en relaciones");
+              return;
+            }
+
+            const row = data[0];
+            const ubi = String(row?.[MAP3D_CONFIG.col_ubi] || "").trim().toUpperCase();
+            const detalle = [
+              row?.[MAP3D_CONFIG.col_nombre] ? `Nombre: ${row[MAP3D_CONFIG.col_nombre]}` : null,
+              row?.[MAP3D_CONFIG.col_unidad] ? `Unidad: ${row[MAP3D_CONFIG.col_unidad]}` : null,
+              row?.[MAP3D_CONFIG.col_ubi_txt] ? `${row[MAP3D_CONFIG.col_ubi_txt]}` : null,
+            ].filter(Boolean).join(" • ") || "—";
+
+            this.setHUD(ref, ubi, detalle);
+            this.highlightUbi(ubi);
+            setBadge(`✅ ${ref} → ${ubi}`);
+            return;
+          }catch(e){
+            logx("[Supabase]", "Error consultando", { err: String(e?.message||e) });
+            setBadge("Error Supabase");
+          }
+        }
+
+        const row = DEMO_RELACIONES.get(ref);
+        if(!row){
+          setBadge("Sin resultado (demo)");
+          this.setHUD(ref, "—", "No existe en demo");
+          return;
+        }
+        const ubi = String(row.ubi || "").toUpperCase();
+        const detalle = `Nombre: ${row.nombre_facturacion} • Unidad: ${row.unidad} • ${row.ubicacion_formato_centrum}`;
+        this.setHUD(ref, ubi, detalle);
+        this.highlightUbi(ubi);
+        setBadge(`✅ (demo) ${ref} → ${ubi}`);
+      },
+      focusOnMesh(mesh, opts = {}){
+        if(!mesh || !this.camera) return;
+        const immediate = !!opts.immediate;
+
+        // world position of the highlighted object
+        const target = new THREE.Vector3();
+        mesh.getWorldPosition(target);
+
+        // Maintain current viewing offset relative to current target
+        const currentTarget = (this.camTarget || this._initialCamTarget || new THREE.Vector3()).clone();
+        const offset = this.camera.position.clone().sub(currentTarget);
+
+        // Clamp distance so it never gets too close/far
+        const dist = offset.length();
+        const minD = 8;
+        const maxD = 40;
+        const clamped = Math.max(minD, Math.min(maxD, dist || 18));
+        if (dist > 0.0001) offset.setLength(clamped);
+        else offset.set(10, 16, 10);
+
+        const desiredPos = target.clone().add(offset);
+
+        this.camTargetDesired.copy(target);
+        this.camPosDesired = desiredPos;
+
+        if (immediate) {
+          this.camTarget.copy(this.camTargetDesired);
+          this.camera.position.copy(this.camPosDesired);
+          this.camLerpActive = false;
+          this.applyViewBias();
+          this.requestRender();
+          return;
+        }
+
+        this.camLerpActive = true;
+        this.applyViewBias();
+        this.requestRender();
+      },
+
+      highlightUbi(ubiRaw){
+        const ubi = String(ubiRaw||"").trim().toUpperCase();
+        if(!ubi){ setBadge("UBI vacío"); return; }
+
+        const mesh = this.slots.get(ubi);
+        if(!mesh){
+          setBadge(`UBI inválida: ${ubi}`);
+          logx("[HIGHLIGHT]", "No existe ese objeto", { ubi });
+          return;
+        }
+
+        if(this.current && this.current !== mesh){
+          if(this.current.userData?.baseMaterial) this.current.material = this.current.userData.baseMaterial;
+          this.current.layers.disable(1);
+        }
+
+        if(!mesh.userData.highlightMaterial){
+          const base = mesh.userData.baseMaterial || mesh.material;
+          const m = base.clone();
+          m.emissive = new THREE.Color(0xffb000);
+          m.emissiveIntensity = 6.35;
+          m.opacity = 0.80;
+          m.metalness = 0.42;
+          m.roughness = 0.18;
+          m.transparent = true;
+          mesh.userData.highlightMaterial = m;
+        }
+        mesh.material = mesh.userData.highlightMaterial;
+        mesh.layers.enable(1);
+
+        this.current = mesh;
+        // ✅ Auto-focus camera to highlighted slot
+        this.focusOnMesh(mesh);
+        if(this.composer?.outlinePass){
+          this.composer.outlinePass.selectedObjects = [mesh];
+        }
+
+        setBadge(`Iluminado: ${ubi}`);
+        logx("[HIGHLIGHT]", "Slot iluminado", { ubi });
+
+        this.requestRender();
+      },
+
+      // =========================
+      // Pointer interactions (hover + click)
+      // =========================
+      _getPointerNDC(e){
+        const wrap = document.getElementById("map3dWrap");
+        if(!wrap) return null;
+        const r = wrap.getBoundingClientRect();
+        const x = ( (e.clientX - r.left) / r.width ) * 2 - 1;
+        const y = - ( (e.clientY - r.top) / r.height ) * 2 + 1;
+        return { x, y, r };
+      },
+
+      _pickSlot(e){
+        if(!this.camera || !this.scene) return null;
+        const ndc = this._getPointerNDC(e);
+        if(!ndc) return null;
+
+        this.pointer.set(ndc.x, ndc.y);
+        this.raycaster.setFromCamera(this.pointer, this.camera);
+
+        // Prefer picking slot meshes (cached). If empty, fallback to all scene meshes.
+        // ✅ Solo pick sobre slots registrados.
+        // Si no hay slots, no pickeamos nada (evita seleccionar EDIFICIO/escenario completo).
+        const targets = this.slots?.size ? Array.from(this.slots.values()) : [];
+        if(!targets.length) return null;
+
+        const hits = this.raycaster.intersectObjects(targets, true);
+
+        if(!hits?.length) return null;
+
+        // Climb to a mesh that is actually registered as a slot if possible
+        let obj = hits[0].object;
+        while(obj && !obj.isMesh) obj = obj.parent;
+        if(!obj) return null;
+
+        // If we have a slots map, climb until the object is one of the values
+        if(this.slots?.size){
+          const slotSet = new Set(this.slots.values());
+          let cur = obj;
+          while(cur && !slotSet.has(cur)) cur = cur.parent;
+          if(cur) obj = cur;
+        }
+
+        return obj;
+      },
+
+      onPointerMove(e){
+        try{
+          const tip = document.getElementById("hudTip");
+          if(!tip) return;
+
+          const mesh = this._pickSlot(e);
+          if(!mesh){
+            tip.style.display = "none";
+            return;
+          }
+
+          // Tooltip position
+          tip.style.left = (e.clientX + 12) + "px";
+          tip.style.top  = (e.clientY + 12) + "px";
+
+          const name = String(mesh.name || "").trim() || "Slot";
+          const label = String(mesh.userData?.label || "").trim();
+
+          // Keep tooltip compact
+          tip.innerHTML = `
+            <div class="text-[11px] text-white/60 tracking-[.22em] uppercase">Hover</div>
+            <div class="mt-1"><b>${name}</b>${label ? ` <span class="text-white/70">• ${label}</span>` : ""}</div>
+            <div class="mt-1 text-white/70">Click para enfocar</div>
+          `;
+          tip.style.display = "block";
+
+          // In STATIC mode, keep it alive
+          this.requestRender();
+        }catch(err){
+          logx("[POINTER]", "onPointerMove error", { err: String(err?.message||err) });
+        }
+      },
+
+      onPointerDown(e){
+        try{
+          // Prevent selecting when clicking UI cards (they sit above)
+          const t = e.target;
+          if(t && (t.closest?.(".space-card") || t.closest?.(".hud-topbar"))) return;
+
+          const mesh = this._pickSlot(e);
+          if(!mesh){
+            setBadge("Sin selección");
+            return;
+          }
+
+          const ubi = String(mesh.name || "").trim().toUpperCase();
+          if(ubi){
+            // Keep compatibility with existing flow
+            const inUbi = document.getElementById("inUbi");
+            if(inUbi) inUbi.value = ubi;
+
+            this.highlightUbi(ubi);
+            logx("[POINTER]", "Click select", { ubi });
+          }
+        }catch(err){
+          logx("[POINTER]", "onPointerDown error", { err: String(err?.message||err) });
+        }
+      },
+
+      onResize(){
+        const wrap = document.getElementById("map3dWrap");
+        if(!wrap || !this.renderer || !this.camera) return;
+
+        const r = wrap.getBoundingClientRect();
+        const w = Math.max(320, r.width);
+        const h = Math.max(320, r.height);
+
+        this.renderer.setSize(w, h, false);
+        this.camera.aspect = w/h;
+        this.camera.updateProjectionMatrix();
+        this.applyViewBias();
+        if(this.composer){
+          if(this.composer.finalComposer) this.composer.finalComposer.setSize(w, h);
+          if(this.composer.bloomComposer) this.composer.bloomComposer.setSize(w, h);
+          if(this.composer.fxaaPass){
+            this.composer.fxaaPass.material.uniforms["resolution"].value.set(1/w, 1/h);
+          }
+          if(this.composer.outlinePass){
+            this.composer.outlinePass.setSize(w, h);
+          }
+        }
+
+        this.requestRender();
+      }
+    };
+
+    /* =========================
+       Weather widget (ligero, sin API key)
+    ========================= */
+    async function fetchWeather(lat, lon){
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current_weather=true&timezone=auto`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(`Weather HTTP ${res.status}`);
+      return res.json();
+    }
+
+    function weatherLabel(code){
+      const map = {
+        0:"Despejado", 1:"Mayormente despejado", 2:"Parcial nublado", 3:"Nublado",
+        45:"Niebla", 48:"Niebla",
+        51:"Llovizna", 53:"Llovizna", 55:"Llovizna",
+        61:"Lluvia", 63:"Lluvia", 65:"Lluvia",
+        71:"Nieve", 73:"Nieve", 75:"Nieve",
+        80:"Chubascos", 81:"Chubascos", 82:"Chubascos",
+        95:"Tormenta", 96:"Tormenta", 99:"Tormenta"
+      };
+      return map[code] || "Clima";
+    }
+
+    async function initWeatherWidget(){
+      const hudWeather = document.getElementById("hudWeather");
+      const hudTemp = document.getElementById("hudTemp");
+      if(!hudWeather || !hudTemp) return;
+
+      hudWeather.textContent = "Clima…";
+      hudTemp.textContent = "—";
+
+      // ✅ Coordenadas fijas (sin permisos). Chihuahua por default.
+      // Puedes cambiarlo a CDMX: { lat: 19.4326, lon: -99.1332 }
+      const FIXED = window.WX_COORDS || { lat: 28.632995, lon: -106.0691 };
+      const run = async ()=>{
+        try{
+          const data = await fetchWeather(FIXED.lat, FIXED.lon);
+          const cw = data?.current_weather;
+
+          const t = (cw && typeof cw.temperature === "number")
+            ? `${Math.round(cw.temperature)}°C`
+            : "—";
+
+          const w = cw ? weatherLabel(cw.weathercode) : "Clima";
+
+          hudWeather.textContent = w;
+          hudTemp.textContent = t;
+
+          logx("[WX]", "Weather OK (fixed coords)", { ...FIXED, w, t });
+        }catch(e){
+          hudWeather.textContent = "Clima";
+          hudTemp.textContent = "—";
+          logx("[WX]", "Weather error", { err: String(e?.message||e) });
+        }
+      };
+
+      // primer fetch
+      run();
+
+      // refresco cada 15 min
+      setInterval(run, 15*60*1000);
+    }
+
+    /* =========================
+       Boot
+    ========================= */
+    window.addEventListener("DOMContentLoaded", ()=>{
+      try{
+        window.MAP3D.init();
+      }catch(e){
+        console.error("[BOOT] MAP3D.init falló:", e);
+      }
+
+      logx("[BOOT]", "HUD listo", { useSupabase: USE_SUPABASE });
+      initWeatherWidget();
+
+      // placeholders limpios (tu módulo grande inyectará todo)
+      const refEl = document.getElementById("uiProdRef");
+      const nomEl = document.getElementById("uiProdNombre");
+      const fabEl = document.getElementById("uiProdFabricante");
+      if(refEl) refEl.textContent = "—";
+      if(nomEl) nomEl.textContent = "—";
+      if(fabEl) fabEl.textContent = "—";
+    });
+  </script>
+  <!-- #endregion =================MAPA3D=======================     */ -->
+<script>
+  // =============================
+  // MAP3D_UI: abrir/cerrar módulo MAPA3D desde búsqueda
+  // =============================
+  window.MAP3D_UI = window.MAP3D_UI || {};
+
+  (function(){
+    const sec = () => document.getElementById('mapa3dDemo');
+
+    function showSection(){
+      const el = sec();
+      if(!el) return;
+
+      // ya visible
+      if(!el.classList.contains('hidden') && el.classList.contains('map3d-showing')) return;
+
+      el.setAttribute('aria-hidden','false');
+      el.classList.remove('hidden');
+
+      // fuerza transición
+      requestAnimationFrame(() => {
+        el.classList.remove('map3d-hidden');
+        el.classList.add('map3d-showing');
+      });
+
+      try{ el.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(_){}
+
+      window.logx?.('[MAP3D_UI]','show', { id: 'mapa3dDemo' });
+    }
+
+    function hideSection(){
+      const el = sec();
+      if(!el) return;
+
+      if(el.classList.contains('hidden')) return;
+
+      el.setAttribute('aria-hidden','true');
+      el.classList.add('map3d-hidden');
+      el.classList.remove('map3d-showing');
+
+      const onEnd = (ev) => {
+        if(ev.target !== el) return;
+        el.removeEventListener('transitionend', onEnd);
+        el.classList.add('hidden');
+        window.logx?.('[MAP3D_UI]','hidden', { id: 'mapa3dDemo' });
+      };
+      el.addEventListener('transitionend', onEnd);
+    }
+
+    window.MAP3D_UI.show = showSection;
+    window.MAP3D_UI.hide = hideSection;
+
+    window.MAP3D_UI.openFromSearch = function(payload){
+      try{
+        const ref = String(payload?.referencia || '').trim();
+        const nombre = String(payload?.nombre || '').trim();
+        const fabricante = String(payload?.fabricante || '').trim();
+        const ubi = String(payload?.ubi || '').trim();
+
+        // global que ya usas para movimientos/otros módulos
+        window.filtroReferenciaGlobal = ref || null;
+
+        // inputs ocultos del módulo
+        const inRef = document.getElementById('inRef');
+        const inUbi = document.getElementById('inUbi');
+        if(inRef) inRef.value = ref;
+        if(inUbi) inUbi.value = ubi;
+
+        // UI del rail izquierdo
+        const uiRef = document.getElementById('uiProdRef');
+        const uiNom = document.getElementById('uiProdNombre');
+        const uiFab = document.getElementById('uiProdFabricante');
+        const hudTarget = document.getElementById('hudTarget');
+
+        if(uiRef) uiRef.textContent = ref || '—';
+        if(uiNom) uiNom.textContent = nombre || '—';
+        if(uiFab) uiFab.textContent = fabricante || '—';
+        if(hudTarget) hudTarget.textContent = ubi || '—';
+
+        window.logx?.('[MAP3D_UI]','openFromSearch', { ref, nombre, fabricante, ubi });
+
+        showSection();
+
+        // Si tu motor 3D tiene un método para enfocar, lo intentamos sin romper nada
+        if(window.MAP3D && typeof window.MAP3D.setTarget === 'function'){
+          try{ window.MAP3D.setTarget(ubi || ref); }catch(_){}
+        }
+      }catch(err){
+        window.logx?.('❌[MAP3D_UI]','openFromSearch error', err);
+      }
+    };
+  })();
+</script>
 </body>
 </html>
