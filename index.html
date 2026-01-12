@@ -148,12 +148,63 @@ body{
 }
 
 .space-card{
-  background:rgba(255,255,255,.05);
-  border:1px solid var(--stroke-soft);
-  border-radius:18px;
-  box-shadow:var(--shadow-soft);
+  position: relative;
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden; /* CLAVE */
 }
+.space-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
 
+  background: rgba(0, 43, 62, 0.2);
+
+  /* 🔥 blur real SOLO al fondo */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  /* 🔥 gradiente: blur arriba / limpio centro / blur abajo */
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(1, 166, 255) 0%,
+    rgb(1, 166, 255) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgb(1, 225, 255) 0%,
+    rgb(1, 225, 255) 0%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgb(1, 166, 255) 0%,
+    rgb(1, 166, 255) 22%,
+    transparent 40%,
+    transparent 60%,
+    rgb(1, 225, 255) 78%,
+    rgb(1, 225, 255) 100%
+  );
+}
+.space-card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(0, 131, 163, 0.4),
+      transparent 35%,
+      transparent 65%,
+      rgba(0, 131, 163, 0.4)
+    );
+}
+.space-card > *{
+  position: relative;
+  z-index: 2;
+}
 .space-input{
   width:100%;
   padding:10px 12px;
@@ -554,7 +605,7 @@ body{
       background:
         radial-gradient(900px 500px at 10% 20%, rgba(0,229,255,.06), transparent 60%),
         rgba(255,255,255,var(--glassA));
-      border: 1px solid rgba(255,255,255,.12);
+      /* border: 1px solid rgba(255,255,255,.12); */
       border-radius: var(--r2);
       box-shadow: var(--shadow2);
       backdrop-filter: blur(6px);
@@ -627,7 +678,7 @@ body{
       position:absolute;
       left:18px; right:18px; top:14px;
       display:flex; align-items:center; justify-content:space-between;
-      gap:12px;
+      gap: 12px;
       pointer-events:none;
       color: rgba(255,255,255,.74);
       font-size: 12px;
@@ -740,7 +791,7 @@ body{
       left: 14px;
       right: 14px;
       bottom: 14px;
-      top: 64px;                 /* ✅ deja libre la franja del título + widgets */
+      top: 48px;                 /* ✅ deja libre la franja del título + widgets */
 
       display:grid;
       grid-template-columns: 320px 1fr 360px;
@@ -1236,7 +1287,7 @@ body{
   </div>
 
   <!-- CONTENEDOR PRINCIPAL -->
-  <div class="w-full max-w-2xl mt-2 sm:mt-3 md:mt-4">
+  <div id="mainUI" class="w-full max-w-2xl mt-2 sm:mt-3 md:mt-4">
     <div class="space-panel rounded-[28px] p-6 md:p-7 shadow-2xl pt-5">
 
       <div class="flex flex-wrap justify-center gap-3 mt-2">
@@ -1250,7 +1301,7 @@ body{
 
       <div class="mt-6">
         <label for="refBusqueda" class="sr-only">Buscar por referencia</label>
-        <input type="text" id="refBusqueda" placeholder="Buscar por referencia..." class="space-input w-full text-center" oninput="buscarReferencia(this.value)" autocomplete="off"/>
+        <input type="text" id="refBusqueda" placeholder="Buscar por referencia..." class="space-input w-full text-center" oninput="document.getElementById('resultadoBusqueda')?.classList.remove('hidden'); buscarReferencia(this.value)" autocomplete="off"/>
         <div id="resultadoBusqueda" class="text-sm text-white/80 mt-3"></div>
       </div>
 
@@ -1750,6 +1801,26 @@ body{
   @media (prefers-reduced-motion: reduce){
     #mapa3dDemo{ transition: none; }
   }
+
+  /* =============================
+   Sol mini (MAPA3D rail derecho)
+   ============================= */
+    #solReactivo text{ user-select:none; }
+    #solReactivo .ray{
+      stroke: rgba(77,201,198,.90);
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 10px rgba(77,201,198,.18));
+    }
+    #solReactivo .ray.low{
+      stroke: rgba(255,176,0,.95);
+      filter: drop-shadow(0 0 10px rgba(255,176,0,.14));
+    }
+    #solReactivo .ray.crit{
+      stroke: rgba(244,63,94,.95);
+      filter: drop-shadow(0 0 10px rgba(244,63,94,.16));
+    }
+    #solReactivo .core{ fill: rgba(255,255,255,.05); stroke: rgba(255,255,255,.14); }
+    #solReactivo .ring{ fill: none; stroke: rgba(255,255,255,.10); }
   </style>
 <div class="max-w-6xl mx-auto space-y-4">
 
@@ -1814,8 +1885,8 @@ body{
             <!-- LEFT rail: producto + forecast histórico -->
             <div class="hud-rail">
               <div class="space-card">
-                <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Producto</div>
-                <div class="mt-2">
+                <div class="text-[11px] text-white/60 tracking-[.04em] uppercase">Producto</div>
+                <div class="mt-1">
                   <div class="text-lg font-black text-white/90 mono" id="uiProdRef">—</div>
                   <div class="text-sm text-white/70 mt-1" id="uiProdNombre">—</div>
                   <div class="text-xs text-white/55 mt-1">
@@ -1837,7 +1908,7 @@ body{
 
               <div class="space-card">
                 <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Consumo histórico</div>
-                <div class="mt-2 relative w-full h-[220px]">
+                <div class="mt-1 relative w-full h-[220px]">
                   <canvas id="graficaForecast" class="block w-full h-full"></canvas>
                 </div>
               </div>
@@ -1846,31 +1917,50 @@ body{
             <!-- CENTER spacer (no UI aquí, deja ver el mapa) -->
             <div></div>
 
-            <!-- RIGHT rail: forecast pro + entregas + botón movimientos -->
-            <div class="hud-rail">
-              <div class="space-card">
-                <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Pronóstico</div>
-                <div class="mt-2 relative w-full h-[240px]">
-                  <canvas id="graficaForecastPro" class="block w-full h-full"></canvas>
-                </div>
-              </div>
+           <!-- RIGHT rail: pronóstico + plan de entrega + movimientos (mini) -->
+    <div class="hud-rail">
+      <div class="space-card">
+        <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Pronóstico</div>
+        <div class="mt-2 relative w-full h-[140px]">
+          <canvas id="graficaForecastPro" class="block w-full h-full"></canvas>
+        </div>
+      </div>
 
-              <div class="space-card">
-                <div class="flex items-center justify-between">
-                  <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Plan de entrega</div>
-                  <button
-                    type="button"
-                    onclick="(window.filtroReferenciaGlobal ? verMovimientos(window.filtroReferenciaGlobal) : null)"
-                    class="space-btn-ghost px-3 py-2 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/90 pointer-events-auto"
-                    title="Ver movimientos"
-                  >📚 Movimientos</button>
-                </div>
+      <div class="space-card">
+        <div class="flex items-center justify-between">
+          <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Plan de entrega</div>
+        </div>
+        <div id="tablaEntregasForecast" class="mt-2 text-sm"></div>
+      </div>
 
-                <!-- OJO: dejé solo un class para evitar duplicado -->
-                <div id="tablaEntregasForecast" class="mt-2 text-sm"></div>
-              </div>
-            </div>
+      <div class="space-card">
+        <div class="flex items-center justify-between">
+          <div class="text-[11px] text-white/60 tracking-[.24em] uppercase">Inventario por representación</div>
+          <div class="text-[10px] text-white/40 mono" id="uiSolInvMeta">—</div>
+        </div>
+
+        <div class="mt-2 rounded-2xl border border-white/10 bg-black/20 overflow-hidden relative">
+          <svg id="solReactivo" viewBox="0 0 420 420" class="w-full h-[140px] block"></svg>
+
+          <div id="solReactivoTooltip"
+              class="hidden absolute z-10 pointer-events-none px-3 py-2 rounded-2xl
+                      bg-black/70 border border-white/10 text-[12px] text-white/90
+                      shadow-2xl backdrop-blur-xl">
+            <div class="font-bold" id="solReactivoTipTitle">—</div>
+            <div class="text-white/70" id="solReactivoTipSub">—</div>
           </div>
+        </div>
+
+        <div class="mt-2 text-[11px] text-white/55">
+          Rayos = representaciones/almacenes que manejan el reactivo • largo = stock total
+        </div>
+      </div>
+
+        <!-- Mini tabla embebida -->
+        <div id="uiMovimientosMini" class="mt-2"></div>
+      </div>
+    </div>
+
 
           <!-- Bottom dock: Lotes (pastel + detalle) -->
           <div class="hud-bottomDock pointer-events-auto">
@@ -1897,6 +1987,133 @@ body{
   </div>
 </section>
 <!-- #endregion =================MAPA3D=======================     */ -->
+<script>
+  // =============================
+  // MAP3D_UI: abrir/cerrar módulo MAPA3D desde búsqueda
+  // - Al abrir: oculta resultados y panel principal (solo queda MAPA3D)
+  // - Al cerrar: restaura panel principal
+  // =============================
+  window.MAP3D_UI = window.MAP3D_UI || {};
+
+  (function(){
+    const sec = () => document.getElementById('mapa3dDemo');
+    const main = () => document.getElementById('mainUI');
+    const results = () => document.getElementById('resultadoBusqueda');
+
+    function showSection(){
+      const el = sec();
+      if(!el) return;
+
+      el.setAttribute('aria-hidden','false');
+      el.classList.remove('hidden');
+
+      // transición
+      requestAnimationFrame(() => {
+        el.classList.remove('map3d-hidden');
+        el.classList.add('map3d-showing');
+      });
+
+      try{ el.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(_){ }
+      window.logx?.('[MAP3D_UI]','show', { id: 'mapa3dDemo' });
+    }
+
+    function hideSection(){
+      const el = sec();
+      if(!el) return;
+
+      // prepara salida
+      el.setAttribute('aria-hidden','true');
+      el.classList.add('map3d-hidden');
+      el.classList.remove('map3d-showing');
+
+      const onEnd = (ev) => {
+        if(ev.target !== el) return;
+        el.removeEventListener('transitionend', onEnd);
+        el.classList.add('hidden');
+        window.logx?.('[MAP3D_UI]','hidden', { id: 'mapa3dDemo' });
+      };
+      el.addEventListener('transitionend', onEnd);
+    }
+
+    // API
+    window.MAP3D_UI.show = function(){
+      // 🔻 Cuando se muestra el MAPA3D, ocultamos el panel principal
+      const m = main();
+      if(m) m.classList.add('hidden');
+
+      // 🔻 Ocultamos resultados (para que no queden duplicados)
+      const r = results();
+      if(r){
+        r.innerHTML = '';
+        r.classList.add('hidden');
+      }
+
+      showSection();
+    };
+
+    window.MAP3D_UI.hide = function(){
+      hideSection();
+
+      // 🔺 Restaurar panel principal
+      const m = main();
+      if(m) m.classList.remove('hidden');
+
+      // 🔺 Mantén resultados ocultos hasta que el usuario vuelva a escribir
+      const r = results();
+      if(r) r.classList.remove('hidden');
+
+      window.logx?.('[MAP3D_UI]','restoreUI', { mainUI: !!m, results: !!r });
+    };
+
+    window.MAP3D_UI.openFromSearch = function(payload){
+      try{
+        const ref = String(payload?.referencia || '').trim();
+        const nombre = String(payload?.nombre || '').trim();
+        const fabricante = String(payload?.fabricante || '').trim();
+        const ubi = String(payload?.ubi || '').trim();
+
+        // guarda referencia global (la usas en Movimientos/otros)
+        window.filtroReferenciaGlobal = ref || null;
+
+        // inputs ocultos
+        const inRef = document.getElementById('inRef');
+        const inUbi = document.getElementById('inUbi');
+        if(inRef) inRef.value = ref;
+        if(inUbi) inUbi.value = ubi;
+
+        // UI del rail
+        const uiRef = document.getElementById('uiProdRef');
+        const uiNom = document.getElementById('uiProdNombre');
+        const uiFab = document.getElementById('uiProdFabricante');
+        const hudTarget = document.getElementById('hudTarget');
+
+        if(uiRef) uiRef.textContent = ref || '—';
+        if(uiNom) uiNom.textContent = nombre || '—';
+        if(uiFab) uiFab.textContent = fabricante || '—';
+        if(hudTarget) hudTarget.textContent = ubi || '—';
+
+        window.logx?.('[MAP3D_UI]','openFromSearch', { ref, nombre, fabricante, ubi });
+
+        // ✅ Oculta coincidencias + panel principal, muestra MAPA3D
+        window.MAP3D_UI.show();
+        // ✅ Render: inventario por representación (sol mini)
+        try{
+          if (window.SOL_REACTIVO && typeof window.SOL_REACTIVO.render === 'function') {
+            window.SOL_REACTIVO.render(ref);
+          }
+        }catch(err){
+          window.logx?.('❌[SOL_REACTIVO]','render error', err);
+        }
+        // opcional: enfocar target si existe
+        if(window.MAP3D && typeof window.MAP3D.setTarget === 'function'){
+          try{ window.MAP3D.setTarget(ubi || ref); }catch(_){ }
+        }
+      }catch(err){
+        window.logx?.('❌[MAP3D_UI]','openFromSearch error', err);
+      }
+    };
+  })();
+</script>
 
 
   <!-- ================= Scripts locales ================= -->
@@ -2026,7 +2243,243 @@ window.MAP3D_UI.hide = function(){
 
   setTimeout(() => { if(!sec.classList.contains("hidden")) sec.classList.add("hidden"); }, 450);
 };
+// =============================
+// SOL_REACTIVO: inventario por representación (mini)
+// - Rayos = almacenes/representaciones
+// - Largo = stock (suma)
+// - Tooltip on hover
+// =============================
+window.SOL_REACTIVO = window.SOL_REACTIVO || {};
 
+(function(){
+  const TAG = '[SOL_REACTIVO]';
+
+  const elSvg = () => document.getElementById('solReactivo');
+  const elMeta = () => document.getElementById('uiSolInvMeta');
+  const tip = () => document.getElementById('solReactivoTooltip');
+  const tipTitle = () => document.getElementById('solReactivoTipTitle');
+  const tipSub = () => document.getElementById('solReactivoTipSub');
+
+  function showTip(x, y, title, sub){
+    const t = tip();
+    if(!t) return;
+    const wrap = t.parentElement;
+    const r = wrap?.getBoundingClientRect?.();
+
+    if(tipTitle()) tipTitle().textContent = title || '—';
+    if(tipSub()) tipSub().textContent = sub || '—';
+
+    t.classList.remove('hidden');
+
+    if(r){
+      const px = Math.max(8, Math.min((x - r.left) + 12, r.width - 180));
+      const py = Math.max(8, Math.min((y - r.top) + 12, r.height - 70));
+      t.style.left = px + 'px';
+      t.style.top = py + 'px';
+    }
+  }
+
+  function hideTip(){
+    const t = tip();
+    if(!t) return;
+    t.classList.add('hidden');
+  }
+
+  function svgNS(tag){
+    return document.createElementNS('http://www.w3.org/2000/svg', tag);
+  }
+
+  function clearSvg(svg){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+  }
+
+  function pick(o, keys){
+    for(const k of keys){
+      if(o && o[k] != null && o[k] !== '') return o[k];
+    }
+    return null;
+  }
+
+  // Heurística: intenta detectar campo de representación/almacén
+  function getRep(row){
+    const v = pick(row, ['almacen','representacion','rep','ubi','ubicacion','unidad','lab_id','sucursal']);
+    return String(v ?? '—').trim() || '—';
+  }
+
+  function getQty(row){
+    const v = pick(row, ['cantidad','stock','existencia','qty','cant','unidades']);
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  async function fetchStockByRep(referencia){
+    // ✅ Defensivo: usa productos porque ya tienes referencia/cantidad.
+    // Si tu inventario por representación vive en otra tabla, lo cambiamos en 2 mins.
+    const url = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/productos?select=*&referencia=eq.${encodeURIComponent(referencia)}`;
+
+    window.logx?.(TAG, 'fetch', { referencia, url });
+
+    const r = await fetch(url, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+
+    if(!r.ok){
+      throw new Error(`Supabase productos -> ${r.status}`);
+    }
+
+    const rows = await r.json();
+    const map = new Map();
+
+    for(const row of (rows || [])){
+      const rep = getRep(row);
+      const qty = getQty(row);
+      map.set(rep, (map.get(rep) || 0) + qty);
+    }
+
+    return Array.from(map.entries())
+      .map(([rep, stock]) => ({ rep, stock }))
+      .sort((a,b) => b.stock - a.stock);
+  }
+
+  function renderSolar(svg, items){
+    clearSvg(svg);
+
+    const W = 420, H = 420;
+    const cx = W/2, cy = H/2;
+    const r0 = 48;     // núcleo
+    const rMin = 78;   // inicio rayos
+    const rMax = 178;  // fin rayos
+
+    const max = Math.max(1, ...items.map(x => x.stock));
+
+    // rings
+    const ring1 = svgNS('circle');
+    ring1.setAttribute('class','ring');
+    ring1.setAttribute('cx', cx);
+    ring1.setAttribute('cy', cy);
+    ring1.setAttribute('r', 118);
+    svg.appendChild(ring1);
+
+    const ring2 = svgNS('circle');
+    ring2.setAttribute('class','ring');
+    ring2.setAttribute('cx', cx);
+    ring2.setAttribute('cy', cy);
+    ring2.setAttribute('r', 156);
+    svg.appendChild(ring2);
+
+    // core
+    const core = svgNS('circle');
+    core.setAttribute('class','core');
+    core.setAttribute('cx', cx);
+    core.setAttribute('cy', cy);
+    core.setAttribute('r', r0);
+    svg.appendChild(core);
+
+    const coreText = svgNS('text');
+    coreText.setAttribute('x', cx);
+    coreText.setAttribute('y', cy + 5);
+    coreText.setAttribute('text-anchor','middle');
+    coreText.setAttribute('font-size','12');
+    coreText.setAttribute('fill','rgba(255,255,255,.75)');
+    coreText.setAttribute('class','mono');
+    coreText.textContent = 'STOCK';
+    svg.appendChild(coreText);
+
+    if(!items.length){
+      const msg = svgNS('text');
+      msg.setAttribute('x', cx);
+      msg.setAttribute('y', cy + 78);
+      msg.setAttribute('text-anchor','middle');
+      msg.setAttribute('font-size','12');
+      msg.setAttribute('fill','rgba(255,255,255,.55)');
+      msg.textContent = 'Sin datos por representación';
+      svg.appendChild(msg);
+      return;
+    }
+
+    const n = items.length;
+    const ang0 = -Math.PI/2;
+
+    items.forEach((it, i) => {
+      const a = ang0 + (i * 2*Math.PI / n);
+      const t = it.stock / max;
+      const len = rMin + (rMax - rMin) * Math.pow(t, 0.85);
+
+      const x1 = cx + Math.cos(a) * rMin;
+      const y1 = cy + Math.sin(a) * rMin;
+      const x2 = cx + Math.cos(a) * len;
+      const y2 = cy + Math.sin(a) * len;
+
+      const line = svgNS('line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+
+      let cls = 'ray';
+      if(it.stock <= 0) cls += ' crit';
+      else if(it.stock <= max * 0.05) cls += ' low';
+
+      line.setAttribute('class', cls);
+      line.setAttribute('stroke-width', String(4 + 6*t));
+      line.style.cursor = 'default';
+
+      line.addEventListener('mousemove', (ev) => {
+        showTip(ev.clientX, ev.clientY, it.rep, `Stock: ${Math.round(it.stock)}`);
+      });
+      line.addEventListener('mouseleave', hideTip);
+
+      svg.appendChild(line);
+
+      const label = svgNS('text');
+      const lx = cx + Math.cos(a) * (len + 14);
+      const ly = cy + Math.sin(a) * (len + 14);
+      label.setAttribute('x', lx);
+      label.setAttribute('y', ly);
+      label.setAttribute('text-anchor','middle');
+      label.setAttribute('font-size','10');
+      label.setAttribute('fill','rgba(255,255,255,.55)');
+      label.textContent = (it.rep || '—').slice(0, 7);
+      svg.appendChild(label);
+    });
+
+    svg.addEventListener('mouseleave', hideTip);
+  }
+
+  window.SOL_REACTIVO.render = async function(referencia){
+    const svg = elSvg();
+    if(!svg) return;
+
+    const meta = elMeta();
+    if(meta) meta.textContent = '…';
+
+    try{
+      hideTip();
+      const items = await fetchStockByRep(referencia);
+      const total = items.reduce((s,x)=> s + (x.stock||0), 0);
+      if(meta) meta.textContent = `${items.length} reps • ${Math.round(total)} u`;
+
+      renderSolar(svg, items);
+      window.logx?.(TAG, 'render ok', { referencia, reps: items.length, total });
+    }catch(err){
+      if(meta) meta.textContent = 'error';
+      clearSvg(svg);
+
+      const msg = svgNS('text');
+      msg.setAttribute('x', 210);
+      msg.setAttribute('y', 210);
+      msg.setAttribute('text-anchor','middle');
+      msg.setAttribute('font-size','12');
+      msg.setAttribute('fill','rgba(244,63,94,.85)');
+      msg.textContent = 'Error cargando inventario';
+      svg.appendChild(msg);
+
+      window.logx?.('❌'+TAG, 'render failed', { referencia, err: String(err?.message || err) });
+    }
+  };
+
+  window.SOL_REACTIVO.hideTip = hideTip;
+})();
 // ✅ Entrada única: mostrar MAPA3D cuando se selecciona una referencia
 window.abrirMapa3DDesdeReferencia = function(referencia, ubi = ""){
   if(!referencia) return;
