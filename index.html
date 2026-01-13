@@ -14,8 +14,9 @@
   <!-- ✅ Externos -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="https://cdn.jsdelivr.net/gh/qzind/tray/qz-tray.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- ✅ Charts (Chart.js) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script type="importmap">
   {
     "imports": {
@@ -34,6 +35,17 @@ window.logx = function(tag, msg, obj){
   const line = `[${new Date().toISOString()}] ${tag} ${msg}`;
   (obj !== undefined) ? console.log(line, obj) : console.log(line);
 };
+
+window.ensureChartJS = function ensureChartJS(){
+  const ok = !!window.Chart;
+  window.logx?.("✅[Charts]", ok ? "Chart.js disponible" : "Chart.js NO disponible (revisa CDN)", { ok });
+  return ok;
+};
+window.ensureChartJs = window.ensureChartJs || window.ensureChartJS;
+window.addEventListener("DOMContentLoaded", () => {
+  // Validación temprana: si Chart no está, las gráficas de forecast no se pintarán.
+  window.ensureChartJS?.();
+});
 
 window.SOL_DEBUG_HOVER = false;
 window.solDbg = (...args) => { if (window.SOL_DEBUG_HOVER) console.log("[SOL_HOVER]", ...args); };
@@ -1862,6 +1874,8 @@ body{
           <div class="hud-topbar">
             <div class="hud-title">WAREHOUSE REACTOR MAP</div>
             <div class="flex items-center gap-3">
+              <span class="mono text-white/55">CUU,MX</span>
+              <span class="mono text-white/55">•</span>
               <span class="hud-signal"><i></i><span id="hudDate">—</span></span>
               <span class="mono text-white/55">•</span>
 
@@ -1993,126 +2007,791 @@ body{
   // - Al abrir: oculta resultados y panel principal (solo queda MAPA3D)
   // - Al cerrar: restaura panel principal
   // =============================
+  const SB_KEY = window.API_KEY || window.SUPABASE_ANON_KEY;
+  window.MAP3D_UI = window.MAP3D_UI || {};
+window.verLotes = async function verLotes(referencia, opts = {}) {
+  const root = opts.rootEl || document;
+  const wrap =
+    root.querySelector("#uiTablaLotes") ||
+    root.querySelector("#tablaLotes") ||
+    document.getElementById("uiTablaLotes");
+
+  if (!wrap) {
+    window.logx?.("⚠️[verLotes]", "No existe contenedor #uiTablaLotes / #tablaLotes");
+    return;
+  }
+
+  wrap.innerHTML = `<div class="text-white/60 text-sm">Cargando lotes…</div>`;
+
+  try {
+    const url =
+      `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/productos` +
+      `?select=referencia,lote,caducidad,cantidad` +
+      `&referencia=eq.${encodeURIComponent(referencia)}`;
+
+    const res = await fetch(url, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const rows = await res.json();
+    if (!Array.isArray(rows) || !rows.length) {
+      wrap.innerHTML = `<div class="text-white/60 text-sm">Sin lotes para esta referencia.</div>`;
+      return;
+    }
+
+    // orden opcional: primero el que caduca antes
+    rows.sort((a, b) => {
+      const da = new Date(normalizarFechaExcel(a.caducidad)).getTime() || 0;
+      const db = new Date(normalizarFechaExcel(b.caducidad)).getTime() || 0;
+      return da - db;
+    });
+
+    wrap.innerHTML = `
+      <div class="rounded-2xl border border-white/10 overflow-hidden">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-black/30 text-white/90">
+            <tr>
+              <th class="p-2">Lote</th>
+              <th class="p-2 text-right">Cantidad</th>
+              <th class="p-2">Caducidad</th>
+              <th class="p-2 text-center">⚠️</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white/5 text-white/85">
+            ${rows.map(l => {
+              const dias = calcularDiasRestantes(l.caducidad);
+              let icono = "❗";
+              let badge = "bg-amber-400/15 text-amber-100 border-amber-300/20";
+              if (dias <= 30) { icono = "❗❗❗"; badge = "bg-rose-500/15 text-rose-100 border-rose-300/20"; }
+              else if (dias <= 60) { icono = "❗❗"; badge = "bg-amber-500/15 text-amber-100 border-amber-300/20"; }
+              else { badge = "bg-emerald-500/10 text-emerald-100 border-emerald-300/20"; }
+
+              return `
+                <tr class="border-t border-white/10">
+                  <td class="p-2">${escapeHtml(l.lote ?? "")}</td>
+                  <td class="p-2 text-right">${Number(l.cantidad ?? 0)}</td>
+                  <td class="p-2">${escapeHtml(normalizarFechaExcel(l.caducidad))}</td>
+                  <td class="p-2 text-center">
+                    <span class="inline-flex items-center justify-center px-2 py-1 rounded-xl border ${badge}"
+                          title="Días restantes: ${Number.isFinite(dias) ? dias : "—"}">
+                      ${icono}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    window.logx?.("✅[verLotes]", "ok", { referencia, rows: rows.length });
+  } catch (err) {
+    wrap.innerHTML = `<div class="text-rose-200 text-sm">Error cargando lotes.</div>`;
+    window.logx?.("❌[verLotes]", "failed", { referencia, err: String(err?.message || err) });
+  }
+};
+
+window.renderPlanEntrega = async function renderPlanEntrega(referencia, opts = {}) {
+  const root = opts.rootEl || document;
+
+  // usa contenedor del HUD si existe
+  const wrap =
+    root.querySelector("#tablaEntregasForecast") ||
+    document.getElementById("tablaEntregasForecast");
+
+  if (!wrap) {
+    window.logx?.("⚠️[renderPlanEntrega]", "No existe #tablaEntregasForecast");
+    return;
+  }
+
+  wrap.innerHTML = `<div class="text-white/60 text-sm">Cargando plan de entrega…</div>`;
+
+  try {
+    // Reusa tu helper si existe
+    const params = {
+      unidad: "TOTAL",
+      horizon: Number(window.FORECAST_DEFAULT_HORIZON ?? 6),
+      modelo: "auto",
+      merma_pct: Number(window.FORECAST_DEFAULT_MERMA_PCT ?? 5),
+      factor_vol_pct: 0
+    };
+
+    const data = (typeof fetchForecastProData === "function")
+      ? await fetchForecastProData(referencia, params)
+      : await (async () => {
+          const url =
+            `https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/forecast_producto` +
+            `?ref=${encodeURIComponent(referencia)}` +
+            `&unidad=${encodeURIComponent(params.unidad)}` +
+            `&horizon=${encodeURIComponent(params.horizon)}` +
+            `&modelo=${encodeURIComponent(params.modelo)}` +
+            `&merma_pct=${encodeURIComponent(params.merma_pct)}` +
+            `&factor_vol_pct=${encodeURIComponent(params.factor_vol_pct)}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.json();
+        })();
+
+    const pro = data?.pro;
+    if (!pro) {
+      wrap.innerHTML = `<div class="text-white/60 text-sm">Sin bloque PRO (backend no lo envió).</div>`;
+      return;
+    }
+
+    // ✅ IMPORTANTE: tu función renderEntregasForecast(pro) ya pinta en #tablaEntregasForecast.
+    // Aquí garantizamos que el ID exista dentro del root; si no, cae al global.
+    renderEntregasForecast(pro);
+
+    window.logx?.("✅[renderPlanEntrega]", "ok", { referencia });
+  } catch (err) {
+    wrap.innerHTML = `<div class="text-rose-200 text-sm">Error cargando plan de entrega.</div>`;
+    window.logx?.("❌[renderPlanEntrega]", "failed", { referencia, err: String(err?.message || err) });
+  }
+};
+
+(function(){
+  const sec = () => document.getElementById('mapa3dDemo');
+  const main = () => document.getElementById('mainUI');
+  const results = () => document.getElementById('resultadoBusqueda');
+
+  function showSection(){
+    const el = sec();
+    if(!el) return;
+
+    el.setAttribute('aria-hidden','false');
+    el.classList.remove('hidden');
+
+    requestAnimationFrame(() => {
+      el.classList.remove('map3d-hidden');
+      el.classList.add('map3d-showing');
+    });
+
+    try{ el.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(_){}
+    window.logx?.('[MAP3D_UI]','show', { id:'mapa3dDemo' });
+  }
+
+  function hideSection(){
+    const el = sec();
+    if(!el) return;
+
+    el.setAttribute('aria-hidden','true');
+    el.classList.add('map3d-hidden');
+    el.classList.remove('map3d-showing');
+
+    const onEnd = (ev) => {
+      if(ev.target !== el) return;
+      el.removeEventListener('transitionend', onEnd);
+      el.classList.add('hidden');
+      window.logx?.('[MAP3D_UI]','hidden', { id:'mapa3dDemo' });
+    };
+    el.addEventListener('transitionend', onEnd);
+  }
+
   window.MAP3D_UI = window.MAP3D_UI || {};
 
-  (function(){
-    const sec = () => document.getElementById('mapa3dDemo');
-    const main = () => document.getElementById('mainUI');
-    const results = () => document.getElementById('resultadoBusqueda');
+  window.MAP3D_UI.show = function(meta = {}){
+    const m = main();
+    if(m) m.classList.add('hidden');
 
-    function showSection(){
-      const el = sec();
-      if(!el) return;
+    const r = results();
+    if(r){
+      r.innerHTML = '';
+      r.classList.add('hidden');
+    }
 
-      el.setAttribute('aria-hidden','false');
-      el.classList.remove('hidden');
+    showSection();
+    window.logx?.('[MAP3D_UI]','show meta', meta);
+  };
 
-      // transición
-      requestAnimationFrame(() => {
-        el.classList.remove('map3d-hidden');
-        el.classList.add('map3d-showing');
+  window.MAP3D_UI.hide = function(){
+    hideSection();
+
+    const m = main();
+    if(m) m.classList.remove('hidden');
+
+    const r = results();
+    if(r) r.classList.add('hidden'); // resultados se muestran hasta que escriba
+
+    window.logx?.('[MAP3D_UI]','restoreUI', { mainUI: !!m, results: !!r });
+  };
+
+  window.MAP3D_UI.openFromSearch = function(payload){
+    try{
+      const ref = String(payload?.referencia || '').trim();
+      const nombre = String(payload?.nombre || '').trim();
+      const fabricante = String(payload?.fabricante || '').trim();
+      const ubi = String(payload?.ubi || '').trim();
+
+      window.filtroReferenciaGlobal = ref || null;
+
+      const inRef = document.getElementById('inRef');
+      const inUbi = document.getElementById('inUbi');
+      if(inRef) inRef.value = ref;
+      if(inUbi) inUbi.value = ubi;
+
+      const uiRef = document.getElementById('uiProdRef');
+      const uiNom = document.getElementById('uiProdNombre');
+      const uiFab = document.getElementById('uiProdFabricante');
+      const hudTarget = document.getElementById('hudTarget');
+
+      if(uiRef) uiRef.textContent = ref || '—';
+      if(uiNom) uiNom.textContent = nombre || '—';
+      if(uiFab) uiFab.textContent = fabricante || '—';
+      if(hudTarget) hudTarget.textContent = ubi || '—';
+
+      window.MAP3D_UI.show({ ref, ubi });
+
+      // contrato consistente
+      if(window.MAP3D && typeof window.MAP3D.setTarget === 'function'){
+        try{ window.MAP3D.setTarget({ referencia: ref, ubi }); }catch(_){}
+      }
+
+    }catch(err){
+      window.logx?.('❌[MAP3D_UI]','openFromSearch error', { err: String(err?.message||err) });
+    }
+  };
+})();
+
+// ✅ SOL_REACTIVO (COMPLETO) — inventario ACTUAL vs OBJETIVO por UNIDAD
+// - Objetivo: tabla dotaciones (unidad, referencia, cantidad)
+// - Actual: tabla historicos (unidad_medica, referencia, columnas 10/25)
+// - Rayos = UNIDADES • Largo = % cumplimiento • Color = critic/low/ok
+window.SOL_REACTIVO = window.SOL_REACTIVO || {};
+
+(function(){
+  const TAG = '[SOL_REACTIVO]';
+
+  // ✅ Key unificada (usa la que ya tengas en tu app)
+  const SB_KEY  = window.API_KEY || window.SUPABASE_ANON_KEY;
+  const SB_REST = 'https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1';
+
+  const elSvg    = () => document.getElementById('solReactivo');
+  const elMeta   = () => document.getElementById('uiSolInvMeta');
+  const tip      = () => document.getElementById('solReactivoTooltip');
+  const tipTitle = () => document.getElementById('solReactivoTipTitle');
+  const tipSub   = () => document.getElementById('solReactivoTipSub');
+
+  const log = (lvl, msg, meta={}) => {
+    try{
+      if (typeof window.logx === 'function') window.logx(TAG, msg, meta);
+      else (lvl === 'error' ? console.error : console.log)(TAG, msg, meta);
+    }catch(_){/* noop */}
+  };
+
+  function showTip(x, y, title, sub){
+    const t = tip();
+    if(!t) return;
+    const wrap = t.parentElement;
+    const r = wrap?.getBoundingClientRect?.();
+
+    if(tipTitle()) tipTitle().textContent = title || '—';
+    if(tipSub()) tipSub().textContent = sub || '—';
+
+    t.classList.remove('hidden');
+
+    if(r){
+      const px = Math.max(8, Math.min((x - r.left) + 12, r.width - 180));
+      const py = Math.max(8, Math.min((y - r.top)  + 12, r.height - 70));
+      t.style.left = px + 'px';
+      t.style.top  = py + 'px';
+    }
+  }
+
+  function hideTip(){
+    const t = tip();
+    if(!t) return;
+    t.classList.add('hidden');
+  }
+
+  function svgNS(tag){
+    return document.createElementNS('http://www.w3.org/2000/svg', tag);
+  }
+
+  function clearSvg(svg){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+  }
+
+  function toNum(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  // =============================
+  // ✅ Columnas candidatas (clamp al schema real de historicos)
+  // =============================
+  function buildInventarioColsFromToday(opts = {}){
+    const today = opts.today ? new Date(opts.today) : new Date();
+
+    // 🔒 AJUSTA si tu tabla cambia:
+    // Tu schema visible inicia en 25_10_2024
+    const MIN_Y = Number.isFinite(opts.minYear)  ? Number(opts.minYear)  : 2024;
+    const MIN_M = Number.isFinite(opts.minMonth) ? Number(opts.minMonth) : 10;
+
+    const maxMonthsBack = Number.isFinite(opts.maxMonthsBack)
+      ? Math.max(1, Number(opts.maxMonthsBack))
+      : 36;
+
+    let y = today.getFullYear();
+    let m = today.getMonth() + 1; // 1-12
+
+    const cols = [];
+    cols.push(`10_${m}_${y}`); // primero el 10 del mes actual (tu regla)
+
+    const geMin = (yy, mm) => (yy > MIN_Y) || (yy === MIN_Y && mm >= MIN_M);
+
+    let mm = m;
+    let yy = y;
+
+    for(let i=0; i<maxMonthsBack; i++){
+      mm -= 1;
+      if(mm <= 0){ mm = 12; yy -= 1; }
+      if(!geMin(yy, mm)) break;
+
+      cols.push(`25_${mm}_${yy}`);
+      cols.push(`10_${mm}_${yy}`);
+    }
+
+    return Array.from(new Set(cols));
+  }
+
+  function pickLatestInventario(row, cols){
+    for(const c of cols){
+      if(row && row[c] != null && row[c] !== ''){
+        const n = Number(row[c]);
+        if(Number.isFinite(n)) return { value: n, col: c };
+        return { value: 0, col: c };
+      }
+    }
+    return { value: 0, col: null };
+  }
+
+  async function supaGetJson(url){
+    const r = await fetch(url, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    });
+    if(!r.ok){
+      const txt = await r.text().catch(()=> '');
+      log('error', 'HTTP not ok', { url, status: r.status, body: txt.slice(0, 300) });
+      const err = new Error(`HTTP ${r.status}`);
+      err.status = r.status;
+      err.body = txt;
+      throw err;
+    }
+    return await r.json();
+  }
+
+  // =============================
+  // Objetivo por unidad (dotaciones)
+  // =============================
+  async function fetchObjetivoPorUnidad(referencia){
+    const url =
+      `${SB_REST}/dotaciones` +
+      `?select=unidad,cantidad` +
+      `&referencia=eq.${encodeURIComponent(referencia)}`;
+
+    log('info', 'dotaciones fetch', { referencia });
+
+    const rows = await supaGetJson(url);
+    const map = new Map();
+
+    for(const r of (rows || [])){
+      const u = String(r.unidad || '').trim();
+      if(!u) continue;
+      map.set(u, (map.get(u) || 0) + toNum(r.cantidad));
+    }
+
+    return map;
+  }
+
+  // =============================
+  // Actual por unidad (historicos)
+  // =============================
+  async function fetchActualPorUnidad(referencia, cols){
+    // PostgREST requiere comillas si el nombre de columna empieza con dígito
+    const quoteIfNeeded = (c) => (/^\d/.test(c) ? `"${c}"` : c);
+
+    const tryRequest = async (selectRaw) => {
+      const url =
+        `${SB_REST}/historicos` +
+        `?select=${encodeURIComponent(selectRaw)}` +
+        `&referencia=eq.${encodeURIComponent(referencia)}`;
+
+      log('info', 'historicos fetch', {
+        referencia,
+        selectPreview: selectRaw.slice(0, 120) + (selectRaw.length > 120 ? '…' : '')
       });
 
-      try{ el.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(_){ }
-      window.logx?.('[MAP3D_UI]','show', { id: 'mapa3dDemo' });
+      return await supaGetJson(url);
+    };
+
+    const selectCols = ['unidad_medica', ...cols.map(quoteIfNeeded)].join(',');
+
+    let rows;
+    try{
+      rows = await tryRequest(selectCols);
+    }catch(err){
+      if(err?.status === 400){
+        log('info', 'Fallback a select=* por 400', { referencia });
+        rows = await tryRequest('*');
+      }else{
+        throw err;
+      }
     }
 
-    function hideSection(){
-      const el = sec();
-      if(!el) return;
+    const map = new Map();
+    for(const r of (rows || [])){
+      const u = String(r.unidad_medica || '').trim();
+      if(!u) continue;
+      const pick = pickLatestInventario(r, cols);
+      map.set(u, { actual: toNum(pick.value), colUsada: pick.col });
+    }
+    return map;
+  }
 
-      // prepara salida
-      el.setAttribute('aria-hidden','true');
-      el.classList.add('map3d-hidden');
-      el.classList.remove('map3d-showing');
+  // =============================
+  // Items para render (unidades)
+  // =============================
+  async function fetchItemsPorUnidad(referencia){
+    const cols = buildInventarioColsFromToday({ maxMonthsBack: 36 });
 
-      const onEnd = (ev) => {
-        if(ev.target !== el) return;
-        el.removeEventListener('transitionend', onEnd);
-        el.classList.add('hidden');
-        window.logx?.('[MAP3D_UI]','hidden', { id: 'mapa3dDemo' });
+    const [objetivos, actuales] = await Promise.all([
+      fetchObjetivoPorUnidad(referencia),
+      fetchActualPorUnidad(referencia, cols)
+    ]);
+
+    const unidades = new Set([...objetivos.keys(), ...actuales.keys()]);
+    const items = [];
+
+    for(const unidad of unidades){
+      const objetivo = toNum(objetivos.get(unidad));
+      const act = actuales.get(unidad);
+      const actual = toNum(act?.actual);
+      const colUsada = act?.colUsada || null;
+
+      const ratio = (objetivo > 0) ? (actual / objetivo) : (actual > 0 ? 999 : 0);
+
+      items.push({
+        rep: unidad,
+        stock: actual,
+        objetivo,
+        ratio,
+        colUsada
+      });
+    }
+
+    items.sort((a,b) => (a.ratio - b.ratio) || (b.objetivo - a.objetivo) || a.rep.localeCompare(b.rep));
+    return items;
+  }
+
+  // =============================
+  // Render
+  // =============================
+  function renderSolar(svg, items){
+    clearSvg(svg);
+
+    const W = 420, H = 420;
+    const cx = W/2, cy = H/2;
+    const r0 = 48;
+    const rMin = 78;
+    const rMax = 178;
+
+    const ring1 = svgNS('circle');
+    ring1.setAttribute('class','ring');
+    ring1.setAttribute('cx', cx);
+    ring1.setAttribute('cy', cy);
+    ring1.setAttribute('r', 118);
+    svg.appendChild(ring1);
+
+    const ring2 = svgNS('circle');
+    ring2.setAttribute('class','ring');
+    ring2.setAttribute('cx', cx);
+    ring2.setAttribute('cy', cy);
+    ring2.setAttribute('r', 156);
+    svg.appendChild(ring2);
+
+    const core = svgNS('circle');
+    core.setAttribute('class','core');
+    core.setAttribute('cx', cx);
+    core.setAttribute('cy', cy);
+    core.setAttribute('r', r0);
+    svg.appendChild(core);
+
+    const coreText = svgNS('text');
+    coreText.setAttribute('x', cx);
+    coreText.setAttribute('y', cy + 5);
+    coreText.setAttribute('text-anchor','middle');
+    coreText.setAttribute('font-size','12');
+    coreText.setAttribute('fill','rgba(255,255,255,.75)');
+    coreText.setAttribute('class','mono');
+    coreText.textContent = 'OBJ';
+    svg.appendChild(coreText);
+
+    if(!items.length){
+      const msg = svgNS('text');
+      msg.setAttribute('x', cx);
+      msg.setAttribute('y', cy + 78);
+      msg.setAttribute('text-anchor','middle');
+      msg.setAttribute('font-size','12');
+      msg.setAttribute('fill','rgba(255,255,255,.55)');
+      msg.textContent = 'Sin datos por unidad';
+      svg.appendChild(msg);
+      return;
+    }
+
+    const n = items.length;
+    const ang0 = -Math.PI/2;
+
+    items.forEach((it, i) => {
+      const a = ang0 + (i * 2*Math.PI / n);
+
+      const tRaw = (it.objetivo > 0) ? (it.stock / it.objetivo) : (it.stock > 0 ? 1 : 0);
+      const t = Math.max(0, Math.min(tRaw, 1.35));
+      const len = rMin + (rMax - rMin) * Math.pow(t / 1.35, 0.85);
+
+      const x1 = cx + Math.cos(a) * rMin;
+      const y1 = cy + Math.sin(a) * rMin;
+      const x2 = cx + Math.cos(a) * len;
+      const y2 = cy + Math.sin(a) * len;
+
+      const line = svgNS('line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+
+      const pct = (it.objetivo > 0) ? (it.stock / it.objetivo) * 100 : (it.stock > 0 ? 999 : 0);
+      let cls = 'ray';
+      if(pct < 30) cls += ' crit';
+      else if(pct < 70) cls += ' low';
+
+      line.setAttribute('class', cls);
+      line.setAttribute('stroke-width', String(4 + 5 * Math.min(t, 1)));
+      line.style.cursor = 'default';
+
+      line.addEventListener('mousemove', (ev) => {
+        const pctTxt = (it.objetivo > 0)
+          ? `${Math.round((it.stock / it.objetivo) * 100)}%`
+          : (it.stock > 0 ? '∞' : '0%');
+
+        const sub =
+          `Actual: ${Math.round(it.stock)} • Obj: ${Math.round(it.objetivo)} • ${pctTxt}` +
+          (it.colUsada ? ` • ${it.colUsada}` : '');
+
+        showTip(ev.clientX, ev.clientY, it.rep, sub);
+      });
+      line.addEventListener('mouseleave', hideTip);
+
+      svg.appendChild(line);
+
+      const label = svgNS('text');
+      const lx = cx + Math.cos(a) * (len + 14);
+      const ly = cy + Math.sin(a) * (len + 14);
+      label.setAttribute('x', lx);
+      label.setAttribute('y', ly);
+      label.setAttribute('text-anchor','middle');
+      label.setAttribute('font-size','10');
+      label.setAttribute('fill','rgba(255,255,255,.55)');
+      label.textContent = (it.rep || '—').slice(0, 7);
+      svg.appendChild(label);
+    });
+
+    svg.addEventListener('mouseleave', hideTip);
+  }
+
+  // =============================
+  // ✅ Layout guard
+  // =============================
+  function waitForLayout(el, { timeoutMs=2500 } = {}){
+    return new Promise((resolve, reject) => {
+      const t0 = performance.now();
+      const tick = () => {
+        if(!el) return reject(new Error('Elemento null'));
+        const w = el.clientWidth || 0;
+        const h = el.clientHeight || 0;
+        if(w > 0 && h > 0) return resolve({ w, h });
+        if((performance.now() - t0) > timeoutMs) return reject(new Error(`Timeout layout: ${w}x${h}`));
+        requestAnimationFrame(tick);
       };
-      el.addEventListener('transitionend', onEnd);
+      tick();
+    });
+  }
+
+  function hardMessage(svg, text){
+    try{
+      if(!svg) return;
+      clearSvg(svg);
+      const t = svgNS('text');
+      t.setAttribute('x', '210');
+      t.setAttribute('y', '210');
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '12');
+      t.setAttribute('fill', 'rgba(255,255,255,.70)');
+      t.textContent = text;
+      svg.appendChild(t);
+
+      const meta = elMeta();
+      if(meta && text) meta.textContent = text;
+    }catch(_){/* noop */}
+  }
+
+  // =============================
+  // API pública
+  // =============================
+  window.SOL_REACTIVO.render = async function(referencia){
+    const svg = elSvg();
+    const ref = String(referencia || '').trim();
+
+    // ✅ SIEMPRE deja rastro
+    if(!svg){
+      log('error', 'render abort (no svg)', { referencia: ref });
+      return;
+    }
+    if(!ref){
+      hardMessage(svg, 'Sin referencia (payload vacío)');
+      log('error', 'render abort (ref vacío)', { referencia });
+      return;
     }
 
-    // API
-    window.MAP3D_UI.show = function(){
-      // 🔻 Cuando se muestra el MAPA3D, ocultamos el panel principal
-      const m = main();
-      if(m) m.classList.add('hidden');
+    hardMessage(svg, 'Cargando inventario…');
 
-      // 🔻 Ocultamos resultados (para que no queden duplicados)
-      const r = results();
-      if(r){
-        r.innerHTML = '';
-        r.classList.add('hidden');
-      }
+    try{
+      hideTip();
 
-      showSection();
-    };
-
-    window.MAP3D_UI.hide = function(){
-      hideSection();
-
-      // 🔺 Restaurar panel principal
-      const m = main();
-      if(m) m.classList.remove('hidden');
-
-      // 🔺 Mantén resultados ocultos hasta que el usuario vuelva a escribir
-      const r = results();
-      if(r) r.classList.remove('hidden');
-
-      window.logx?.('[MAP3D_UI]','restoreUI', { mainUI: !!m, results: !!r });
-    };
-
-    window.MAP3D_UI.openFromSearch = function(payload){
-      try{
-        const ref = String(payload?.referencia || '').trim();
-        const nombre = String(payload?.nombre || '').trim();
-        const fabricante = String(payload?.fabricante || '').trim();
-        const ubi = String(payload?.ubi || '').trim();
-
-        // guarda referencia global (la usas en Movimientos/otros)
-        window.filtroReferenciaGlobal = ref || null;
-
-        // inputs ocultos
-        const inRef = document.getElementById('inRef');
-        const inUbi = document.getElementById('inUbi');
-        if(inRef) inRef.value = ref;
-        if(inUbi) inUbi.value = ubi;
-
-        // UI del rail
-        const uiRef = document.getElementById('uiProdRef');
-        const uiNom = document.getElementById('uiProdNombre');
-        const uiFab = document.getElementById('uiProdFabricante');
-        const hudTarget = document.getElementById('hudTarget');
-
-        if(uiRef) uiRef.textContent = ref || '—';
-        if(uiNom) uiNom.textContent = nombre || '—';
-        if(uiFab) uiFab.textContent = fabricante || '—';
-        if(hudTarget) hudTarget.textContent = ubi || '—';
-
-        window.logx?.('[MAP3D_UI]','openFromSearch', { ref, nombre, fabricante, ubi });
-
-        // ✅ Oculta coincidencias + panel principal, muestra MAPA3D
-        window.MAP3D_UI.show();
-        // ✅ Render: inventario por representación (sol mini)
+      // ✅ espera layout real
+      const wrap = svg.parentElement;
+      if(wrap){
         try{
-          if (window.SOL_REACTIVO && typeof window.SOL_REACTIVO.render === 'function') {
-            window.SOL_REACTIVO.render(ref);
+          await waitForLayout(wrap, { timeoutMs: 3800 });
+          if(svg.clientWidth === 0 || svg.clientHeight === 0){
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
           }
-        }catch(err){
-          window.logx?.('❌[SOL_REACTIVO]','render error', err);
+        }catch(errLayout){
+          if(svg.clientWidth === 0 || svg.clientHeight === 0){
+            hardMessage(svg, 'Layout 0x0 (sol oculto)');
+          }
+          log('error', 'layout wait failed', { referencia: ref, err: String(errLayout?.message || errLayout) });
         }
-        // opcional: enfocar target si existe
-        if(window.MAP3D && typeof window.MAP3D.setTarget === 'function'){
-          try{ window.MAP3D.setTarget(ubi || ref); }catch(_){ }
-        }
-      }catch(err){
-        window.logx?.('❌[MAP3D_UI]','openFromSearch error', err);
       }
+
+      const items = await fetchItemsPorUnidad(ref);
+
+      const totalAct = items.reduce((s,x)=> s + (x.stock||0), 0);
+      const totalObj = items.reduce((s,x)=> s + (x.objetivo||0), 0);
+      const pct = totalObj > 0 ? Math.round((totalAct/totalObj)*100) : 0;
+
+      const meta = elMeta();
+      if(meta) meta.textContent = `${items.length} uds • ${Math.round(totalAct)}/${Math.round(totalObj)} • ${pct}%`;
+
+      renderSolar(svg, items);
+
+      log('info', 'render ok', {
+        referencia: ref,
+        unidades: items.length,
+        totalAct: Math.round(totalAct),
+        totalObj: Math.round(totalObj),
+        pct
+      });
+
+    }catch(err){
+      const meta = elMeta();
+      if(meta) meta.textContent = 'error';
+      clearSvg(svg);
+
+      const msg = svgNS('text');
+      msg.setAttribute('x', '210');
+      msg.setAttribute('y', '210');
+      msg.setAttribute('text-anchor','middle');
+      msg.setAttribute('font-size','12');
+      msg.setAttribute('fill','rgba(244,63,94,.85)');
+      msg.textContent = 'Error cargando inventario/objetivo';
+      svg.appendChild(msg);
+
+      log('error', 'render failed', { referencia: ref, err: String(err?.message || err) });
+    }
+  };
+
+  window.SOL_REACTIVO.hideTip = hideTip;
+
+  // =============================
+  // ✅ Auto-hook: render resiliente (sin consola)
+  // =============================
+  function resolveRef(meta){
+    const fromMeta = String(meta?.ref || meta?.referencia || '').trim();
+
+    // Inputs/labels del HUD (cuando payload viene vacío)
+    const fromInRef = String(document.getElementById('inRef')?.value || '').trim();
+    const fromUiRef = String(document.getElementById('uiProdRef')?.textContent || '').trim();
+
+    // Globales posibles
+    const fromWindow = String(window.filtroReferenciaGlobal || window.REF_GLOBAL || '').trim();
+
+    return (fromMeta || fromInRef || fromUiRef || fromWindow || '').trim();
+  }
+
+  function scheduleRender(metaOrRef, why = 'schedule'){
+    const ref = (typeof metaOrRef === 'string')
+      ? String(metaOrRef).trim()
+      : resolveRef(metaOrRef);
+
+    const svg = elSvg();
+    if(svg){
+      hardMessage(svg, ref ? 'Cargando inventario…' : 'Sin referencia (payload vacío)');
+    }
+
+    if(!ref){
+      log('error', 'no ref for render', { why, meta: metaOrRef });
+      return;
+    }
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      setTimeout(() => {
+        try{
+          log('info', 'auto-render', { why, ref });
+          window.SOL_REACTIVO.render(ref);
+        }catch(err){
+          log('error', 'auto-render failed', { why, ref, err: String(err?.message || err) });
+        }
+      }, 90);
+    }));
+  }
+
+  // Parchea openFromSearch
+  if(window.MAP3D_UI && typeof window.MAP3D_UI.openFromSearch === 'function' && !window.MAP3D_UI.__solReactivoPatchedOpen){
+    const original = window.MAP3D_UI.openFromSearch;
+    window.MAP3D_UI.openFromSearch = function(payload){
+      const out = original.apply(this, arguments);
+      try{ scheduleRender(payload, 'openFromSearch'); }
+      catch(err){ log('error', 'openFromSearch hook failed', { err: String(err?.message || err) }); }
+      return out;
     };
-  })();
+    window.MAP3D_UI.__solReactivoPatchedOpen = true;
+    log('info', 'MAP3D_UI.openFromSearch hook ✅');
+  }
+
+  // Parchea show
+  if(window.MAP3D_UI && typeof window.MAP3D_UI.show === 'function' && !window.MAP3D_UI.__solReactivoPatchedShow){
+    const original = window.MAP3D_UI.show;
+    window.MAP3D_UI.show = function(meta = {}){
+      const out = original.apply(this, arguments);
+      try{ scheduleRender(meta, 'show'); }
+      catch(err){ log('error', 'show hook failed', { err: String(err?.message || err) }); }
+      return out;
+    };
+    window.MAP3D_UI.__solReactivoPatchedShow = true;
+    log('info', 'MAP3D_UI.show hook ✅');
+  }
+
+  // Respaldo si abren el HUD sin pasar por MAP3D_UI
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const ref = resolveRef({});
+      if(ref) scheduleRender(ref, 'domcontentloaded');
+    }, 300);
+  });
+})();
 </script>
 
 
@@ -2194,326 +2873,7 @@ if (anioSelect) {
   }
 }
 
-// =============================
-// MAPA3D UI: show/hide elegante
-// =============================
-window.MAP3D_UI = window.MAP3D_UI || {};
 
-window.MAP3D_UI.show = function(opts = {}){
-  const sec = document.getElementById("mapa3dDemo");
-  if(!sec) return;
-
-  if (!sec.classList.contains("hidden") && !sec.classList.contains("map3d-hidden")) {
-    // ya está visible
-    return;
-  }
-
-  sec.classList.remove("hidden");
-  sec.setAttribute("aria-hidden", "false");
-
-  sec.classList.add("map3d-hidden");
-  sec.classList.remove("map3d-showing");
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      sec.classList.add("map3d-showing");
-      sec.classList.remove("map3d-hidden");
-      try{ sec.scrollIntoView({ behavior:"smooth", block:"start" }); } catch(_){ sec.scrollIntoView(); }
-
-      window.logx?.("[MAP3D_UI]", "Mostrando módulo", opts);
-    });
-  });
-};
-
-window.MAP3D_UI.hide = function(){
-  const sec = document.getElementById("mapa3dDemo");
-  if(!sec) return;
-
-  sec.classList.remove("map3d-showing");
-  sec.classList.add("map3d-hidden");
-  sec.setAttribute("aria-hidden", "true");
-
-  const end = (ev) => {
-    if (ev && ev.target !== sec) return;
-    sec.classList.add("hidden");
-    sec.removeEventListener("transitionend", end);
-    window.logx?.("[MAP3D_UI]", "Ocultando módulo");
-  };
-  sec.addEventListener("transitionend", end);
-
-  setTimeout(() => { if(!sec.classList.contains("hidden")) sec.classList.add("hidden"); }, 450);
-};
-// =============================
-// SOL_REACTIVO: inventario por representación (mini)
-// - Rayos = almacenes/representaciones
-// - Largo = stock (suma)
-// - Tooltip on hover
-// =============================
-window.SOL_REACTIVO = window.SOL_REACTIVO || {};
-
-(function(){
-  const TAG = '[SOL_REACTIVO]';
-
-  const elSvg = () => document.getElementById('solReactivo');
-  const elMeta = () => document.getElementById('uiSolInvMeta');
-  const tip = () => document.getElementById('solReactivoTooltip');
-  const tipTitle = () => document.getElementById('solReactivoTipTitle');
-  const tipSub = () => document.getElementById('solReactivoTipSub');
-
-  function showTip(x, y, title, sub){
-    const t = tip();
-    if(!t) return;
-    const wrap = t.parentElement;
-    const r = wrap?.getBoundingClientRect?.();
-
-    if(tipTitle()) tipTitle().textContent = title || '—';
-    if(tipSub()) tipSub().textContent = sub || '—';
-
-    t.classList.remove('hidden');
-
-    if(r){
-      const px = Math.max(8, Math.min((x - r.left) + 12, r.width - 180));
-      const py = Math.max(8, Math.min((y - r.top) + 12, r.height - 70));
-      t.style.left = px + 'px';
-      t.style.top = py + 'px';
-    }
-  }
-
-  function hideTip(){
-    const t = tip();
-    if(!t) return;
-    t.classList.add('hidden');
-  }
-
-  function svgNS(tag){
-    return document.createElementNS('http://www.w3.org/2000/svg', tag);
-  }
-
-  function clearSvg(svg){
-    while(svg.firstChild) svg.removeChild(svg.firstChild);
-  }
-
-  function pick(o, keys){
-    for(const k of keys){
-      if(o && o[k] != null && o[k] !== '') return o[k];
-    }
-    return null;
-  }
-
-  // Heurística: intenta detectar campo de representación/almacén
-  function getRep(row){
-    const v = pick(row, ['almacen','representacion','rep','ubi','ubicacion','unidad','lab_id','sucursal']);
-    return String(v ?? '—').trim() || '—';
-  }
-
-  function getQty(row){
-    const v = pick(row, ['cantidad','stock','existencia','qty','cant','unidades']);
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  async function fetchStockByRep(referencia){
-    // ✅ Defensivo: usa productos porque ya tienes referencia/cantidad.
-    // Si tu inventario por representación vive en otra tabla, lo cambiamos en 2 mins.
-    const url = `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/productos?select=*&referencia=eq.${encodeURIComponent(referencia)}`;
-
-    window.logx?.(TAG, 'fetch', { referencia, url });
-
-    const r = await fetch(url, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
-    });
-
-    if(!r.ok){
-      throw new Error(`Supabase productos -> ${r.status}`);
-    }
-
-    const rows = await r.json();
-    const map = new Map();
-
-    for(const row of (rows || [])){
-      const rep = getRep(row);
-      const qty = getQty(row);
-      map.set(rep, (map.get(rep) || 0) + qty);
-    }
-
-    return Array.from(map.entries())
-      .map(([rep, stock]) => ({ rep, stock }))
-      .sort((a,b) => b.stock - a.stock);
-  }
-
-  function renderSolar(svg, items){
-    clearSvg(svg);
-
-    const W = 420, H = 420;
-    const cx = W/2, cy = H/2;
-    const r0 = 48;     // núcleo
-    const rMin = 78;   // inicio rayos
-    const rMax = 178;  // fin rayos
-
-    const max = Math.max(1, ...items.map(x => x.stock));
-
-    // rings
-    const ring1 = svgNS('circle');
-    ring1.setAttribute('class','ring');
-    ring1.setAttribute('cx', cx);
-    ring1.setAttribute('cy', cy);
-    ring1.setAttribute('r', 118);
-    svg.appendChild(ring1);
-
-    const ring2 = svgNS('circle');
-    ring2.setAttribute('class','ring');
-    ring2.setAttribute('cx', cx);
-    ring2.setAttribute('cy', cy);
-    ring2.setAttribute('r', 156);
-    svg.appendChild(ring2);
-
-    // core
-    const core = svgNS('circle');
-    core.setAttribute('class','core');
-    core.setAttribute('cx', cx);
-    core.setAttribute('cy', cy);
-    core.setAttribute('r', r0);
-    svg.appendChild(core);
-
-    const coreText = svgNS('text');
-    coreText.setAttribute('x', cx);
-    coreText.setAttribute('y', cy + 5);
-    coreText.setAttribute('text-anchor','middle');
-    coreText.setAttribute('font-size','12');
-    coreText.setAttribute('fill','rgba(255,255,255,.75)');
-    coreText.setAttribute('class','mono');
-    coreText.textContent = 'STOCK';
-    svg.appendChild(coreText);
-
-    if(!items.length){
-      const msg = svgNS('text');
-      msg.setAttribute('x', cx);
-      msg.setAttribute('y', cy + 78);
-      msg.setAttribute('text-anchor','middle');
-      msg.setAttribute('font-size','12');
-      msg.setAttribute('fill','rgba(255,255,255,.55)');
-      msg.textContent = 'Sin datos por representación';
-      svg.appendChild(msg);
-      return;
-    }
-
-    const n = items.length;
-    const ang0 = -Math.PI/2;
-
-    items.forEach((it, i) => {
-      const a = ang0 + (i * 2*Math.PI / n);
-      const t = it.stock / max;
-      const len = rMin + (rMax - rMin) * Math.pow(t, 0.85);
-
-      const x1 = cx + Math.cos(a) * rMin;
-      const y1 = cy + Math.sin(a) * rMin;
-      const x2 = cx + Math.cos(a) * len;
-      const y2 = cy + Math.sin(a) * len;
-
-      const line = svgNS('line');
-      line.setAttribute('x1', x1);
-      line.setAttribute('y1', y1);
-      line.setAttribute('x2', x2);
-      line.setAttribute('y2', y2);
-
-      let cls = 'ray';
-      if(it.stock <= 0) cls += ' crit';
-      else if(it.stock <= max * 0.05) cls += ' low';
-
-      line.setAttribute('class', cls);
-      line.setAttribute('stroke-width', String(4 + 6*t));
-      line.style.cursor = 'default';
-
-      line.addEventListener('mousemove', (ev) => {
-        showTip(ev.clientX, ev.clientY, it.rep, `Stock: ${Math.round(it.stock)}`);
-      });
-      line.addEventListener('mouseleave', hideTip);
-
-      svg.appendChild(line);
-
-      const label = svgNS('text');
-      const lx = cx + Math.cos(a) * (len + 14);
-      const ly = cy + Math.sin(a) * (len + 14);
-      label.setAttribute('x', lx);
-      label.setAttribute('y', ly);
-      label.setAttribute('text-anchor','middle');
-      label.setAttribute('font-size','10');
-      label.setAttribute('fill','rgba(255,255,255,.55)');
-      label.textContent = (it.rep || '—').slice(0, 7);
-      svg.appendChild(label);
-    });
-
-    svg.addEventListener('mouseleave', hideTip);
-  }
-
-  window.SOL_REACTIVO.render = async function(referencia){
-    const svg = elSvg();
-    if(!svg) return;
-
-    const meta = elMeta();
-    if(meta) meta.textContent = '…';
-
-    try{
-      hideTip();
-      const items = await fetchStockByRep(referencia);
-      const total = items.reduce((s,x)=> s + (x.stock||0), 0);
-      if(meta) meta.textContent = `${items.length} reps • ${Math.round(total)} u`;
-
-      renderSolar(svg, items);
-      window.logx?.(TAG, 'render ok', { referencia, reps: items.length, total });
-    }catch(err){
-      if(meta) meta.textContent = 'error';
-      clearSvg(svg);
-
-      const msg = svgNS('text');
-      msg.setAttribute('x', 210);
-      msg.setAttribute('y', 210);
-      msg.setAttribute('text-anchor','middle');
-      msg.setAttribute('font-size','12');
-      msg.setAttribute('fill','rgba(244,63,94,.85)');
-      msg.textContent = 'Error cargando inventario';
-      svg.appendChild(msg);
-
-      window.logx?.('❌'+TAG, 'render failed', { referencia, err: String(err?.message || err) });
-    }
-  };
-
-  window.SOL_REACTIVO.hideTip = hideTip;
-})();
-// ✅ Entrada única: mostrar MAPA3D cuando se selecciona una referencia
-window.abrirMapa3DDesdeReferencia = function(referencia, ubi = ""){
-  if(!referencia) return;
-
-  window.filtroReferenciaGlobal = referencia;
-
-  // inputs ocultos (por si tu motor 3D los lee)
-  const inRef = document.getElementById("inRef");
-  const inUbi = document.getElementById("inUbi");
-  if(inRef) inRef.value = referencia;
-  if(inUbi) inUbi.value = ubi || "";
-
-  // HUD mínimo inmediato
-  const uiRef = document.getElementById("uiProdRef");
-  if(uiRef) uiRef.textContent = referencia;
-  const hudTarget = document.getElementById("hudTarget");
-  if(hudTarget) hudTarget.textContent = ubi || "—";
-
-  window.MAP3D_UI.show({ referencia, ubi });
-
-  // intenta avisar a tu engine si ya existe (sin romper si no)
-  try{
-    if(window.MAP3D && typeof window.MAP3D.setTarget === "function"){
-      window.MAP3D.setTarget({ referencia, ubi });
-    }
-    if(window.MAP3D && typeof window.MAP3D.loadProducto === "function"){
-      window.MAP3D.loadProducto(referencia);
-    }
-  }catch(err){
-    window.logx?.("❌[MAP3D]", "Error al cargar producto en MAP3D", err);
-  }
-
-  window.logx?.("✅[MAP3D]", "Referencia seleccionada → módulo MAPA3D", { referencia, ubi });
-};
 //#endregion Constanes==============================================================================================================
 
 //#region funciones auxiliares =====================================================================================================
