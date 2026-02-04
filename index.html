@@ -123,12 +123,13 @@
     html,
     body {
       height: 100%;
+      overscroll-behavior-y: none;
+      /* Bloquea pull-to-refresh en Android (Chrome/Samsung) */
     }
 
     body {
       touch-action: pan-x pan-y;
-      overscroll-behavior-y: contain;
-      /* Bloquea pull-to-refresh en Android */
+      /* overflow-y: hidden;  <-- Opcional si el scroll lo maneja un div interno */
     }
 
     .dial {
