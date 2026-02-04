@@ -690,7 +690,7 @@
       <div class="text-white/80 flex-1 min-w-0">
         <div class="fuente-magma tracking-widest text-lg">PROCESANDO</div>
 
-        <div id="loaderStatus" class="text-xs text-white/60 inline-block w-[28ch] whitespace-nowrap font-mono">
+        <div id="loaderStatus" class="text-xs text-white/60 block font-mono break-words leading-tight">
           Ejecutando operación…
         </div>
 
@@ -933,7 +933,7 @@
     </div>
   </div>
   <!-- Modal caducidad -->
-  <div id="modalCaducidad" class="fixed inset-0 hidden z-[900] items-center justify-center space-modal-backdrop">
+  <div id="modalCaducidad" class="fixed inset-0 hidden flex z-[900] items-center justify-center space-modal-backdrop">
     <div class="space-panel w-[95%] max-w-5xl relative max-h-[80vh] overflow-y-auto p-6">
       <button onclick="cerrarModalCaducidad()"
         class="absolute top-3 right-4 text-red-900 text-2xl font-bold hover:text-red-600">×</button>
@@ -1432,7 +1432,8 @@
             <!-- Toggle Modo -->
             <div class="flex items-center gap-2 pl-2 border-r border-white/10 pr-4 shrink-0">
               <span id="modoTexto"
-                class="font-bold text-xs uppercase tracking-wide text-emerald-300 w-[70px] text-center">Inventario</span>
+                class="font-bold text-xs uppercase tracking-wide text-emerald-300 w-[70px] text-center"
+                style="text-shadow: 1px 0 0 rgba(255, 255, 255, 0.8), 0 1px 0 rgba(255, 255, 255, 0.8), -1px 0 0 rgba(255, 255, 255, 0.8), 0 -1px 0 rgba(255, 255, 255, 0.8);">Inventario</span>
               <label for="modoToggle" class="inline-flex items-center cursor-pointer relative">
                 <input type="checkbox" id="modoToggle" class="sr-only peer" onchange="actualizarModoCaptura()" />
                 <div
@@ -1501,7 +1502,7 @@
 
             <!-- Botón Agregar -->
             <button id="btnAgregarCaptura" onclick="agregarFilaCaptura?.()"
-              class="space-btn shrink-0 py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-sm shadow-lg hover:shadow-cyan-900/40">
+              class="shrink-0 py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-sm shadow-lg shadow-emerald-900/40 bg-gradient-to-r from-emerald-900 to-teal-700 hover:from-emerald-700 hover:to-teal-500 text-white transition-all transform hover:scale-[1.02] active:scale-[0.98]">
               <span>Agregar</span>
               <span class="text-lg leading-none">+</span>
             </button>
@@ -1514,13 +1515,20 @@
 
           <!-- Grupo: Fecha + Archivo -->
           <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
+            <!-- Toggle Tipo (Inicial vs Validacion) -->
+            <div class="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1 border border-white/10">
+              <input type="checkbox" id="toggleTipoCaptura" class="hidden" onchange="actualizarTextoTipoCaptura?.()">
+              <label for="toggleTipoCaptura"
+                class="cursor-pointer text-xs font-semibold text-white/70 hover:text-white transition-colors uppercase tracking-wider"
+                id="textoTipoCaptura">
+                Inicial
+              </label>
+              <!-- Indicador visual simple -->
+              <!-- Indicador visual simple -->
+              <div id="indicadorTipoCaptura" class="w-2 h-2 rounded-full bg-teal-600 transition-colors duration-300">
+              </div>
+            </div>
             <div class="flex items-center bg-white/5 rounded-lg border border-white/10 px-3 py-1.5 gap-2">
-              <svg class="text-white/40" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
               <select id="mesCaptura" class="bg-transparent outline-none font-semibold text-white/90"></select>
               <span class="text-white/20">/</span>
               <select id="anioCaptura" class="bg-transparent outline-none font-semibold text-white/90"></select>
@@ -1530,8 +1538,8 @@
               <input type="file" id="archivoCaptura" accept=".csv, .xlsx, .xls" class="hidden"
                 onchange="precargarArchivoCaptura()" />
               <label for="archivoCaptura"
-                class="cursor-pointer text-teal-400 hover:text-teal-300 font-semibold flex items-center gap-1 transition-colors">
-                <span class="underline decoration-teal-500/30 underline-offset-4">Precargar Archivo</span>
+                class="cursor-pointer text-rose-700 hover:text-rose-300 font-semibold flex items-center gap-1 transition-colors">
+                <span class="underline decoration-rose-500/30 underline-offset-4">Precargar Archivo</span>
                 <span id="archivoCapturaNombre"
                   class="text-white/40 font-normal no-underline max-w-[100px] truncate block"></span>
               </label>
@@ -1549,20 +1557,10 @@
               Ocultar completados
             </label>
 
-            <!-- Toggle Tipo (Inicial vs Validacion) -->
-            <div class="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1 border border-white/10">
-              <input type="checkbox" id="toggleTipoCaptura" class="hidden" onchange="actualizarTextoTipoCaptura?.()">
-              <label for="toggleTipoCaptura"
-                class="cursor-pointer text-xs font-semibold text-white/70 hover:text-white transition-colors uppercase tracking-wider"
-                id="textoTipoCaptura">
-                Inicial
-              </label>
-              <!-- Indicador visual simple -->
-              <div class="w-2 h-2 rounded-full bg-teal-500"></div>
-            </div>
+
 
             <button id="btnEnviarCaptura" onclick="enviarCapturaBase?.()"
-              class="space-btn !py-2 !px-5 rounded-lg text-sm font-bold shadow-lg shadow-blue-900/20 active:translate-y-0.5 transform transition-all">
+              class="!py-2 !px-5 rounded-lg text-sm font-bold shadow-lg shadow-blue-500/30 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-500 hover:to-blue-500 text-white active:translate-y-0.5 transform transition-all tracking-wide border border-white/10 uppercase">
               ENVIAR DATOS ➔
             </button>
           </div>
@@ -1769,7 +1767,20 @@
       //#endregion Constanes==============================================================================================================
 
       //#region funciones auxiliares =====================================================================================================
-      function mostrarLoader(show = true) { const el = document.getElementById("loaderOverlay"); if (!el) return; el.classList.toggle("hidden", !show); }
+      function mostrarLoader(show = true, msg = null) {
+        const el = document.getElementById("loaderOverlay");
+        const status = document.getElementById("loaderStatus");
+        if (!el) return;
+
+        if (show) {
+          if (status) {
+            status.textContent = msg || "Ejecutando operación…";
+          }
+          el.classList.remove("hidden");
+        } else {
+          el.classList.add("hidden");
+        }
+      }
       function ocultarLoader() { const o = document.getElementById("loaderOverlay"); o && o.classList.add("hidden"); document.body.style.overflow = ""; window.removeEventListener("keydown", bloquearTeclas, true); window.removeEventListener("mousedown", bloquearClicks, true); }
       function bloquearTeclas(e) { if (!(e.key === "F5" || e.key === "Escape")) { e.stopPropagation(); e.preventDefault(); } }
       function bloquearClicks(e) { e.stopPropagation(); e.preventDefault(); }
@@ -4838,6 +4849,27 @@
           }
         });
         referenciasCache = await res.json();
+      }
+
+      let catalogoUnidadesMap = {};
+      async function cargarCatalogoUnidades() {
+        try {
+          const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/representaciones?select=unidad_medica,unidad_nombre", {
+            headers: {
+              "apikey": API_KEY,
+              "Authorization": `Bearer ${API_KEY}`
+            }
+          });
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            data.forEach(item => {
+              catalogoUnidadesMap[item.unidad_medica] = item.unidad_nombre;
+            });
+            console.log("✅ Catálogo de unidades cargado:", Object.keys(catalogoUnidadesMap).length);
+          }
+        } catch (e) {
+          console.error("❌ Error cargando catálogo de unidades:", e);
+        }
       }
 
 
@@ -8650,7 +8682,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
       }
 
       async function validarNIP() {
-        mostrarLoader(true);
+        mostrarLoader(true, "Validando NIP y cargando unidades…");
         try {
           const nip = document.getElementById("nipInput").value.trim();
           const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_nip", {
@@ -8667,6 +8699,9 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
 
           usuarioActivo = data.nombre;
           unidadesAsignadas = typeof data.unidades === "string" ? data.unidades.split(",").map(u => u.trim()) : [];
+
+          // 🔥 Cargar catálogo de nombres de unidades dinámicamente
+          await cargarCatalogoUnidades();
 
           document.getElementById("modalNIP").classList.add("hidden");
           cargarUnidades();
@@ -8706,8 +8741,14 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         }
 
         unidadSelect.innerHTML =
-          `<option value="">Selecciona unidad…</option>` +
-          unidadesAsignadas.map(u => `<option value="${u}">${u}</option>`).join("");
+          `<option value=""> - </option>` +
+          unidadesAsignadas.map(u => {
+            const nombre = (typeof catalogoUnidadesMap !== 'undefined' && catalogoUnidadesMap[u]) ||
+              (typeof unidadesDestino !== 'undefined' && unidadesDestino[u]) ||
+              (typeof unidadesFijas !== 'undefined' && unidadesFijas[u]) ||
+              u;
+            return `<option value="${u}">${nombre}</option>`;
+          }).join("");
 
         console.log("✅ cargarUnidades(): OK", unidadesAsignadas);
       }
@@ -8850,50 +8891,69 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         const nuevoModo = toggle.checked ? "pruebas_facturadas" : "inventario";
         document.getElementById("modoCaptura").value = nuevoModo;
 
-        // Texto e ícono del modo
-        texto.textContent = toggle.checked ? "🔴 Pruebas facturadas" : "🟢 Inventario";
-        texto.className = toggle.checked ? "font-bold text-sm text-rose-900" : "font-bold text-sm text-emerald-900";
+        const isPruebas = toggle.checked;
 
-        // Botón
-        const btn = document.getElementById("btnEnviarCaptura");
-        btn.textContent = toggle.checked ? "📤 Enviar" : "📤 Enviar";
-        btn.classList.remove("bg-emerald-900", "hover:bg-emerald-800", "bg-rose-900", "hover:bg-rose-800");
-        if (toggle.checked) {
-          btn.classList.add("bg-rose-900", "hover:bg-rose-800");
-        } else {
-          btn.classList.add("bg-emerald-900", "hover:bg-emerald-800");
-        }
+        // 1. Texto e ícono del modo
+        texto.textContent = isPruebas ? "Pbas. fact." : "Inventario";
+        texto.className = isPruebas
+          ? "font-bold text-xs uppercase tracking-wide text-rose-900 w-[70px] text-center"
+          : "font-bold text-xs uppercase tracking-wide text-emerald-900 w-[70px] text-center";
 
-        // Botón Agregar
+        // Definir los grupos de colores
+        const clasesInventario = ["from-teal-900", "to-emerald-800", "hover:from-teal-700", "hover:to-emerald-600", "shadow-emerald-900/40"];
+        const clasesPruebas = ["from-rose-900", "to-red-800", "hover:from-rose-700", "hover:to-red-600", "shadow-rose-900/40"];
+        // Clases a limpiar (union de ambos grupos + posibles residuos anteriores)
+        const clasesLimpiar = [
+          ...clasesInventario, ...clasesPruebas,
+          "from-emerald-900", "to-teal-700", "hover:from-emerald-700", "hover:to-teal-500", // HTML Base
+          "from-emerald-600", "to-teal-500", "hover:from-emerald-500", "hover:to-teal-400", // Old Vibrant Green
+          "from-rose-600", "to-red-500", "hover:from-rose-500", "hover:to-red-400", // Old Vibrant Red
+          "from-cyan-600", "to-blue-600", "hover:from-cyan-500", "hover:to-blue-500", "shadow-blue-500/30", // Old Blue
+          "from-teal-600", "to-blue-600", "hover:from-teal-500", "hover:to-blue-500", "shadow-blue-500/30", // 👈 Added: Current HTML state from user edit
+          "shadow-rose-500/30", "to-orange-600", "hover:to-orange-500", "to-red-700", "hover:to-red-600" // Old Orange/Red variants
+        ];
+
+        // 2. Botón Agregar
         const btnAgregar = document.getElementById("btnAgregarCaptura");
-        btnAgregar.classList.remove("bg-emerald-900", "hover:bg-emerald-800", "bg-rose-900", "hover:bg-rose-800");
+        btnAgregar.classList.remove(...clasesLimpiar);
 
-        if (toggle.checked) {
-          btnAgregar.classList.add("bg-rose-900", "hover:bg-rose-800");
+        if (isPruebas) {
+          btnAgregar.classList.add(...clasesPruebas);
         } else {
-          btnAgregar.classList.add("bg-emerald-900", "hover:bg-emerald-800");
+          btnAgregar.classList.add(...clasesInventario);
         }
 
-        // Encabezado de tabla
-        const encabezado = document.getElementById("tablaEncabezado");
-        encabezado.classList.remove("bg-emerald-900", "bg-rose-900");
+        // 3. Botón Enviar
+        const btnEnviar = document.getElementById("btnEnviarCaptura");
+        btnEnviar.classList.remove(...clasesLimpiar);
 
-        if (toggle.checked) {
+        if (isPruebas) {
+          btnEnviar.textContent = "ENVIAR DATOS ➔";
+          btnEnviar.classList.add(...clasesPruebas);
+        } else {
+          btnEnviar.textContent = "ENVIAR DATOS ➔";
+          btnEnviar.classList.add(...clasesInventario);
+        }
+
+        // 4. Encabezado de tabla
+        const encabezado = document.getElementById("tablaEncabezado");
+        encabezado.classList.remove("bg-emerald-900", "bg-rose-900", "bg-[#06161d]");
+
+        if (isPruebas) {
           encabezado.classList.add("bg-rose-900");
         } else {
-          encabezado.classList.add("bg-emerald-900");
+          encabezado.classList.add("bg-[#06161d]");
         }
 
-        // Mostrar/Ocultar precarga de archivo (solo pruebas facturadas)
+        // 5. Mostrar/Ocultar precarga de archivo (solo pruebas facturadas)
         const divArchivo = document.getElementById("divPrecargarArchivo");
         if (divArchivo) {
-          if (toggle.checked) {
+          if (isPruebas) {
             divArchivo.classList.remove("hidden");
           } else {
             divArchivo.classList.add("hidden");
           }
         }
-
       }
       function mostrarModalCaptura() {
         document.getElementById("modalCaptura").classList.remove("hidden");
@@ -9409,6 +9469,8 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         // Construir nombre de columna, ej. "10_6_2025"
         const columna = `${tipoCorte}_${mes}_${anio}`;
 
+        mostrarLoader(true, "Enviando datos al servidor…");
+
         try {
           const payload = {
             unidad,
@@ -9438,6 +9500,8 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         } catch (err) {
           console.error("❌ Error de conexión:", err);
           mostrarModal("❌ Error de conexión al enviar.", "#B00042");
+        } finally {
+          mostrarLoader(false);
         }
       }
 
@@ -10371,21 +10435,22 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
       function actualizarTextoTipoCaptura() {
         const toggle = document.getElementById("toggleTipoCaptura");
         const texto = document.getElementById("textoTipoCaptura");
-        const fondo = document.getElementById("fondoToggleTipo");
-        const circulo = document.getElementById("circuloToggleTipo");
-        const modo = document.getElementById("modoCaptura").value;
+        const indicador = document.getElementById("indicadorTipoCaptura");
 
-        texto.textContent = toggle.checked ? "Corte" : "Inicial";
+        const isCorte = toggle.checked;
 
-        // Actualizar colores según modo
-        if (modo === "inventario") {
-          fondo.className = "w-14 h-7 rounded-full transition-colors duration-300 " + (toggle.checked ? "bg-emerald-900" : "bg-gray-300");
-        } else {
-          fondo.className = "w-14 h-7 rounded-full transition-colors duration-300 " + (toggle.checked ? "bg-rose-900" : "bg-gray-300");
+        // Actualizar Texto
+        texto.textContent = isCorte ? "Corte" : "Inicial";
+
+        // Actualizar Color del Indicador
+        if (indicador) {
+          indicador.classList.remove("bg-teal-600", "bg-rose-700");
+          if (isCorte) {
+            indicador.classList.add("bg-rose-700");
+          } else {
+            indicador.classList.add("bg-teal-600");
+          }
         }
-
-        // Mover el círculo
-        circulo.className = "absolute left-0.5 top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300" + (toggle.checked ? " translate-x-7" : "");
       }
       async function verificarExistenciaYConfirmarEnvio() {
         const unidad = document.getElementById("unidadCaptura").value;
