@@ -199,11 +199,15 @@
     .space-card {
       position: relative;
       border-radius: 18px;
+      /* Borde sutil y premium */
+      border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: var(--shadow-soft);
+      /* Fondo base semitransparente unificado */
+      background: rgba(8, 26, 34, 0.4);
       overflow: hidden;
+      transition: all 0.3s ease;
 
-      /* CLAVE */
-      /* ✅ No recortar glows de SVG */
+      /* CLAVE: Overrides de overflow */
       .space-card--ov-visible {
         overflow: visible !important;
       }
@@ -226,28 +230,17 @@
       position: absolute;
       inset: 0;
       z-index: 0;
+      border-radius: inherit;
+      /* ✅ Heredar borde redondeado para casos con overflow: visible */
 
-      background: rgba(0, 43, 62, 0.2);
+      /* ✅ Blur unificado para elegancia (sin cortes ni máscaras raras) */
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
 
-      /* 🔥 blur real SOLO al fondo */
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-
-      /* 🔥 gradiente: blur arriba / limpio centro / blur abajo */
-      mask-image: linear-gradient(to bottom,
-          rgb(1, 166, 255) 0%,
-          rgb(1, 166, 255) 0%,
-          transparent 40%,
-          transparent 60%,
-          rgb(1, 225, 255) 0%,
-          rgb(1, 225, 255) 0%);
-      -webkit-mask-image: linear-gradient(to bottom,
-          rgb(1, 166, 255) 0%,
-          rgb(1, 166, 255) 22%,
-          transparent 40%,
-          transparent 60%,
-          rgb(1, 225, 255) 78%,
-          rgb(1, 225, 255) 100%);
+      /* Sutil gradiente de luz superior */
+      background: linear-gradient(180deg,
+          rgba(255, 255, 255, 0.04) 0%,
+          rgba(255, 255, 255, 0.0) 60%);
     }
 
     .space-card::after {
@@ -256,13 +249,18 @@
       inset: 0;
       z-index: 1;
       pointer-events: none;
+      border-radius: inherit;
 
-      background:
-        linear-gradient(to bottom,
-          rgba(0, 131, 163, 0.4),
-          transparent 35%,
-          transparent 65%,
-          rgba(0, 131, 163, 0.4));
+      /* Atmósfera cian/azul sutil en extremos */
+      background: linear-gradient(to bottom,
+          rgba(23, 162, 166, 0.1) 0%,
+          transparent 30%,
+          transparent 70%,
+          rgba(30, 64, 175, 0.1) 100%);
+
+      /* Brillo interno borde superior (glass edge) */
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+        inset 0 0 20px rgba(23, 162, 166, 0.05);
     }
 
     .space-card>* {
@@ -415,9 +413,9 @@
    Backdrops / Modals
 ========================= */
     .space-modal-backdrop {
-      background: rgba(0, 0, 0, .72);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, .52);
+      -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(5px);
     }
 
     /* Modal system (el que estás usando ya) */
@@ -1152,10 +1150,11 @@
 
         <div class="flex flex-wrap justify-center gap-3 mt-2">
           <button onclick="solicitarNIP()" class="fuente-magma text-lg space-btn px-5 py-3 rounded-2xl btn-wrap">
-             <span class="btn-text">Capturar Datos</span>
+            <span class="btn-text">Capturar Datos</span>
           </button>
-          <button onclick="abrirModalReporteMensual()" class="fuente-magma text-lg space-btn px-5 py-3 rounded-2xl btn-wrap">
-             <span class="btn-text">Generar <wbr>reporte</span>
+          <button onclick="abrirModalReporteMensual()"
+            class="fuente-magma text-lg space-btn px-5 py-3 rounded-2xl btn-wrap">
+            <span class="btn-text">Generar <wbr>reporte</span>
           </button>
         </div>
 
@@ -1238,12 +1237,12 @@
           <button id="btnAlertasCaducidad" class="space-btn px-5 py-3 rounded-2xl">
             Próximos a caducar
           </button>
-            <button id="btnQC" type="button" onclick="abrirModalQC()" class="space-btn px-5 py-3 rounded-2xl">
-              Centro de Mando QC
-            </button>
-            <button type="button" onclick="abrirModalHipotesis()" class="space-btn px-5 py-3 rounded-2xl">
-              Hipótesis
-            </button>
+          <button id="btnQC" type="button" onclick="abrirModalQC()" class="space-btn px-5 py-3 rounded-2xl">
+            Centro de Mando QC
+          </button>
+          <button type="button" onclick="abrirModalHipotesis()" class="space-btn px-5 py-3 rounded-2xl">
+            Hipótesis
+          </button>
 
 
         </div>
@@ -1416,155 +1415,185 @@
 
     <!-- MODAL CAPTURA -->
     <!-- ================= MODAL CAPTURA (COMPLETO) ================= -->
-    <div id="modalCaptura" class="fixed inset-0 hidden z-50 items-center justify-center blur-fondo">
-      <div class="space-panel rounded-3xl p-6 w-[95%] max-w-6xl max-h-[95vh] overflow-auto shadow-2xl">
+    <div id="modalCaptura" class="fixed inset-0 hidden flex z-50 items-center justify-center blur-fondo">
+      <div class="space-panel rounded-3xl p-4 md:p-6 w-[95%] max-w-6xl max-h-[95vh] overflow-auto shadow-2xl">
 
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold text-white/90">📋 Captura de Inventario / Pruebas Facturadas</h2>
-          <button onclick="cerrarModalCaptura()" class="text-red-900 font-bold text-2xl hover:text-red-600"
-            aria-label="Cerrar">×</button>
+        <!-- HEADER COMPACTO: Título + Controles Contexto -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
+          <div class="flex items-center justify-between w-full md:w-auto">
+            <h2 class="text-xl font-bold text-white/90">📋 Captura de Inventario</h2>
+            <button onclick="cerrarModalCaptura()" class="md:hidden text-red-900 font-bold text-2xl px-2">×</button>
+          </div>
+
+          <!-- Controles de Contexto: Modo + Unidad -->
+          <div
+            class="flex items-center gap-4 bg-white/5 rounded-2xl p-2 md:pr-4 border border-white/10 w-full md:w-auto overflow-x-auto">
+
+            <!-- Toggle Modo -->
+            <div class="flex items-center gap-2 pl-2 border-r border-white/10 pr-4 shrink-0">
+              <span id="modoTexto"
+                class="font-bold text-xs uppercase tracking-wide text-emerald-300 w-[70px] text-center">Inventario</span>
+              <label for="modoToggle" class="inline-flex items-center cursor-pointer relative">
+                <input type="checkbox" id="modoToggle" class="sr-only peer" onchange="actualizarModoCaptura()" />
+                <div
+                  class="w-10 h-6 bg-emerald-500/60 rounded-full peer-checked:bg-rose-500/60 transition-colors border border-white/20">
+                </div>
+                <div
+                  class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4">
+                </div>
+              </label>
+              <input type="hidden" id="modoCaptura" value="inventario">
+            </div>
+
+            <!-- Selector Unidad -->
+            <div class="flex items-center gap-2 shrink-0">
+              <label for="unidadCaptura" class="text-xs font-semibold text-white/60 uppercase">Unidad:</label>
+              <select id="unidadCaptura"
+                class="bg-transparent text-sm font-bold text-white outline-none border-b border-transparent focus:border-teal-500 transition-colors min-w-[100px]"
+                onchange="mostrarReferenciasUnidad()">
+              </select>
+            </div>
+          </div>
+
+          <button onclick="cerrarModalCaptura()"
+            class="hidden md:block text-red-900 font-bold text-2xl hover:text-red-500 transition-colors">×</button>
         </div>
 
         <!-- GRID PRINCIPAL -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 w-full">
+        <!-- INPUT ROW UNIFICADO -->
+        <div
+          class="space-card space-card--ov-visible p-4 rounded-2xl border border-white/10 bg-white/5 relative z-20 mt-4"
+          style="overflow: visible !important;">
+          <label class="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-widest">Nueva Entrada</label>
 
-          <!-- Modo -->
-          <div class="w-full space-card p-4 rounded-2xl border border-white/10 bg-white/5">
-            <label class="block font-semibold mb-2 text-white/80">Modo:</label>
+          <div class="flex flex-col md:flex-row items-stretch md:items-end gap-3">
 
-            <div class="flex items-center justify-between gap-2">
-              <span id="modoTexto" class="font-bold text-sm text-emerald-200">🟢 Inventario</span>
-
-              <label for="modoToggle" class="inline-flex items-center cursor-pointer" title="Modo captura">
-                <input type="checkbox" id="modoToggle" class="sr-only peer" onchange="actualizarModoCaptura()"
-                  aria-label="Cambiar modo de captura" />
-                <div
-                  class="w-14 h-7 bg-emerald-900/80 rounded-full peer-checked:bg-rose-900/80 relative transition border border-white/10">
-                  <div
-                    class="w-6 h-6 bg-white rounded-full absolute top-0.5 left-0.5 peer-checked:translate-x-full transition-transform">
-                  </div>
+            <!-- Referencia (Grow) -->
+            <div class="relative flex-grow group">
+              <div class="flex gap-2">
+                <div class="relative w-full">
+                  <input id="inputReferencia"
+                    class="space-input w-full pl-3 pr-10 py-3 text-lg font-mono tracking-wide placeholder:font-sans placeholder:text-base placeholder:text-white/30 !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60 transition-all rounded-xl"
+                    placeholder="Escribe referencia..." oninput="buscarReferenciaCaptura()"
+                    onkeydown="if(event.key==='Enter'){ document.getElementById('inputCantidad').focus(); }"
+                    autocomplete="off" />
                 </div>
-              </label>
 
-              <input type="hidden" id="modoCaptura" value="inventario">
-            </div>
-          </div>
+                <button type="button" id="btnQrInventario" onclick="abrirModalQRInventario?.()"
+                  class="shrink-0 w-12 rounded-xl border border-white/10 bg-white/5 hover:bg-teal-500/20 hover:border-teal-500/40 hover:text-teal-400 transition-all grid place-items-center text-xl"
+                  title="Escanear (Cámara)">
+                  📷
+                </button>
+              </div>
 
-          <!-- Unidad -->
-          <div class="w-full">
-            <label for="unidadCaptura" class="block font-semibold mb-1 text-white/80">Unidad asignada:</label>
-            <select id="unidadCaptura" class="space-input w-full" onchange="mostrarReferenciasUnidad()">
-            </select>
-          </div>
-
-          <!-- Referencia -->
-          <div class="w-full relative">
-            <label for="inputReferencia" class="block font-semibold mb-1 text-white/80">Referencia:</label>
-
-            <div class="flex gap-2">
-              <input id="inputReferencia" class="space-input w-full" placeholder="Ej. 368171 o MD-VE-C22"
-                oninput="buscarReferenciaCaptura()" onkeydown="if(event.key==='Enter'){ agregarFilaCaptura?.(); }"
-                autocomplete="off" />
-
-              <button type="button" id="btnQrInventario" onclick="abrirModalQRInventario?.()"
-                class="inline-flex items-center justify-center px-3 py-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-xl"
-                title="Escanear etiqueta con cámara (modo inventario)" aria-label="Escanear con cámara">
-                📷
-              </button>
+              <!-- Sugerencias (Dropdown Absolute) -->
+              <div id="sugerenciasReferencia"
+                class="absolute left-0 right-0 top-full mt-2 hidden rounded-xl border border-white/10 bg-[#0f151a] shadow-2xl z-[100] max-h-60 overflow-y-auto">
+              </div>
             </div>
 
-            <div id="sugerenciasReferencia"
-              class="absolute z-50 mt-2 w-full hidden rounded-2xl border border-white/10 bg-black/70 backdrop-blur-xl shadow-2xl overflow-hidden">
+            <!-- Cantidad (Small) -->
+            <div class="w-full md:w-32 shrink-0">
+              <input id="inputCantidad" type="number" step="0.1" min="0" max="999.9" inputmode="decimal"
+                class="cantidad-input input-cantidad !w-full !text-center !text-lg !py-3 !rounded-xl !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60"
+                placeholder="Cant." onkeydown="if(event.key==='Enter'){ agregarFilaCaptura(); }" />
             </div>
-          </div>
 
-          <!-- Cantidad -->
-          <div class="w-full">
-            <label for="inputCantidad" class="block font-semibold mb-1 text-white/80">Cantidad:</label>
-            <input id="inputCantidad" type="number" step="0.1" min="0" max="999.9" inputmode="decimal"
-              class="cantidad-input input-cantidad" placeholder="0.0"
-              onkeydown="if(event.key==='Enter'){ agregarFilaCaptura(); }" />
-          </div>
-
-          <!-- Botón agregar -->
-          <div class="w-full flex items-end">
-            <button id="btnAgregarCaptura" onclick="agregarFilaCaptura?.()" class="space-btn w-full py-3 rounded-2xl">
-              Agregar
+            <!-- Botón Agregar -->
+            <button id="btnAgregarCaptura" onclick="agregarFilaCaptura?.()"
+              class="space-btn shrink-0 py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-sm shadow-lg hover:shadow-cyan-900/40">
+              <span>Agregar</span>
+              <span class="text-lg leading-none">+</span>
             </button>
           </div>
         </div>
 
-        <!-- FILA CONFIG -->
-        <div class="flex flex-wrap md:flex-nowrap items-center justify-between mt-5 w-full gap-4">
+        <!-- TOOLBAR: Filtros y Acciones Secundarias -->
+        <div
+          class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm mt-auto border-t border-white/10 pt-4">
 
-          <div class="flex items-center gap-2 flex-shrink-0">
-            <input type="checkbox" onchange="toggleFilasCompletadas?.(this.checked)" id="checkboxFilas"
-              class="accent-teal-500" />
-            <label for="checkboxFilas" class="text-sm text-white/80">Ocultar filas completadas</label>
-          </div>
-
-          <div class="flex items-center gap-2 flex-wrap md:flex-nowrap flex-grow justify-start">
-            <div class="min-w-[120px]">
-              <label for="mesCaptura" class="text-sm font-semibold text-white/80">Mes:</label>
-              <select id="mesCaptura" name="mesCaptura" title="Mes de captura"
-                class="space-input w-full !py-2 text-sm"></select>
+          <!-- Grupo: Fecha + Archivo -->
+          <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
+            <div class="flex items-center bg-white/5 rounded-lg border border-white/10 px-3 py-1.5 gap-2">
+              <svg class="text-white/40" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <select id="mesCaptura" class="bg-transparent outline-none font-semibold text-white/90"></select>
+              <span class="text-white/20">/</span>
+              <select id="anioCaptura" class="bg-transparent outline-none font-semibold text-white/90"></select>
             </div>
-            <div class="min-w-[120px]">
-              <label for="anioCaptura" class="text-sm font-semibold text-white/80">Año:</label>
-              <select id="anioCaptura" name="anioCaptura" title="Año de captura"
-                class="space-input w-full !py-2 text-sm"></select>
-            </div>
-          </div>
 
-          <div class="min-w-[220px]">
-            <label class="text-sm font-semibold text-white/80 text-center block">📄 Precargar archivo:</label>
-
-            <div class="mt-1 flex items-center gap-2">
-              <input type="file" id="archivoCaptura"
-                accept=".csv, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                class="hidden" onchange="precargarArchivoCaptura()" />
-              <label for="archivoCaptura" class="space-btn px-4 py-2 rounded-2xl cursor-pointer">Elegir archivo</label>
-              <span id="archivoCapturaNombre" class="text-xs text-white/70 truncate max-w-[180px]">Ningún archivo</span>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2 flex-shrink-0">
-            <label for="toggleTipoCaptura" class="text-sm font-semibold text-white/80">Tipo:</label>
-            <div class="flex items-center gap-2">
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="toggleTipoCaptura" class="sr-only" onchange="actualizarTextoTipoCaptura?.()">
-                <div id="fondoToggleTipo"
-                  class="w-14 h-7 bg-white/10 rounded-full transition-colors duration-300 border border-white/10"></div>
-                <div
-                  class="absolute left-0.5 top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300"
-                  id="circuloToggleTipo"></div>
+            <div id="divPrecargarArchivo" class="relative hidden">
+              <input type="file" id="archivoCaptura" accept=".csv, .xlsx, .xls" class="hidden"
+                onchange="precargarArchivoCaptura()" />
+              <label for="archivoCaptura"
+                class="cursor-pointer text-teal-400 hover:text-teal-300 font-semibold flex items-center gap-1 transition-colors">
+                <span class="underline decoration-teal-500/30 underline-offset-4">Precargar Archivo</span>
+                <span id="archivoCapturaNombre"
+                  class="text-white/40 font-normal no-underline max-w-[100px] truncate block"></span>
               </label>
-              <span id="textoTipoCaptura" class="text-sm font-semibold text-white/80">Inicial</span>
             </div>
           </div>
 
-          <div class="flex-shrink-0">
+          <!-- Grupo: Config + Enviar -->
+          <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+            <!-- Toggle Ocultar Completadas -->
+            <label
+              class="flex items-center gap-2 cursor-pointer text-white/60 hover:text-white transition-colors text-xs select-none">
+              <input type="checkbox" id="checkboxFilas"
+                class="accent-teal-500 w-4 h-4 rounded border-white/20 bg-white/5"
+                onchange="toggleFilasCompletadas?.(this.checked)" />
+              Ocultar completados
+            </label>
+
+            <!-- Toggle Tipo (Inicial vs Validacion) -->
+            <div class="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1 border border-white/10">
+              <input type="checkbox" id="toggleTipoCaptura" class="hidden" onchange="actualizarTextoTipoCaptura?.()">
+              <label for="toggleTipoCaptura"
+                class="cursor-pointer text-xs font-semibold text-white/70 hover:text-white transition-colors uppercase tracking-wider"
+                id="textoTipoCaptura">
+                Inicial
+              </label>
+              <!-- Indicador visual simple -->
+              <div class="w-2 h-2 rounded-full bg-teal-500"></div>
+            </div>
+
             <button id="btnEnviarCaptura" onclick="enviarCapturaBase?.()"
-              class="space-btn px-5 py-3 rounded-2xl whitespace-nowrap">
-              📤 Enviar
+              class="space-btn !py-2 !px-5 rounded-lg text-sm font-bold shadow-lg shadow-blue-900/20 active:translate-y-0.5 transform transition-all">
+              ENVIAR DATOS ➔
             </button>
           </div>
         </div>
 
-        <!-- TABLA CAPTURA -->
-        <div id="contenedorTabla" class="overflow-x-auto max-h-[75vh] overflow-y-auto hidden mt-5">
-          <div class="space-card rounded-2xl overflow-hidden border border-white/10">
-            <table class="w-full text-sm text-left" id="tablaCaptura">
-              <thead id="tablaEncabezado" class="bg-white/5 text-white/80">
-                <tr class="text-left">
-                  <th class="w-14 p-2">Cantidad</th>
-                  <th class="p-2">Nombre</th>
-                  <th class="w-32 p-2">Referencia</th>
-                  <th class="w-16 p-2">Eliminar</th>
-                </tr>
-              </thead>
-              <tbody class="text-white/85"></tbody>
-            </table>
+        <!-- TABLA RESULTADOS (Hidden by default, shown by JS) -->
+        <div id="contenedorTabla" class="hidden mt-2 w-full flex-grow overflow-hidden flex flex-col min-h-[120px]">
+          <div class="space-card rounded-xl overflow-hidden border border-white/10 flex-grow relative flex flex-col">
+            <div class="overflow-y-auto custom-scrollbar flex-grow max-h-[40vh]"> <!-- Scroll interno -->
+              <table class="w-full text-sm text-left" id="tablaCaptura">
+                <thead id="tablaEncabezado"
+                  class="sticky top-0 z-10 bg-[#06161d] shadow-sm text-white/60 text-xs uppercase tracking-wider backdrop-blur-sm">
+                  <tr>
+                    <th class="w-20 p-3 text-center border-b border-white/5">Cant.</th>
+                    <th class="p-3 border-b border-white/5">Nombre Producto</th>
+                    <th class="w-32 p-3 text-right border-b border-white/5">Ref.</th>
+                    <th class="w-12 p-3 text-center border-b border-white/5"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-white/90 font-medium"></tbody>
+              </table>
+            </div>
+
+            <!-- Empty State (visual placeholder si quieres) -->
+            <div id="tablaEmptyState"
+              class="hidden absolute inset-0 flex items-center justify-center text-white/20 pointer-events-none">
+              <div class="text-center">
+                <span class="text-4xl block mb-2">📥</span>
+                <span class="text-sm">Agrega items para comenzar</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1921,27 +1950,65 @@
 
       function seleccionarModoPreparacion() {
         modo = "preparacion";
+        modoSeleccionado = "preparacion";
+
+        // Cierra modal de selección de modo
+        const modalModo = document.getElementById("modalModo");
+        if (modalModo) modalModo.classList.add("hidden");
+        const menuDinamico = document.querySelector(".modal-modo");
+        if (menuDinamico) menuDinamico.remove();
 
         // UI label
         const modoLabel = document.getElementById("modoLabel");
         const usuarioActivoEl = document.getElementById("usuarioActivo");
         if (modoLabel) {
           modoLabel.textContent = "PREPARACIÓN";
-          modoLabel.className = "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-white/10 border border-white/10 text-sm";
+          modoLabel.className =
+            "inline-block font-bold px-3 py-1 rounded-2xl text-white bg-white/10 border border-white/10 text-sm";
         }
         if (usuarioActivoEl) usuarioActivoEl.textContent = "Modo preparación";
 
-        // Reusa tu flujo existente de NIP si existe
-        try { solicitarNIP?.(); } catch (e) { /* no pasa nada */ }
-        abrirModalPreparacion();
+        // === Configura modal PIN para PREPARACIÓN ===
+        const unidadGroup = document.getElementById("unidadDestinoGroup");
+        const remisionGroup = document.getElementById("remisionGroup");
+        const bloqueCargaRemision = document.getElementById("bloqueCargaRemision");
+
+        // En preparación NO se pide unidad
+        unidadGroup?.classList.add("hidden");
+
+        // En preparación SÍ se pide remisión
+        remisionGroup?.classList.remove("hidden");
+        bloqueCargaRemision?.classList.remove("hidden"); // si quieres permitir cargar Excel aquí también
+
+        // Limpia/ajusta inputs
+        const elUnidad = document.getElementById("inputUnidad");
+        if (elUnidad) {
+          elUnidad.value = "";
+          elUnidad.disabled = true;           // por si el input existe y alguien lo enfoca
+          elUnidad.classList.add("opacity-40");
+        }
+
+        const elRem = document.getElementById("inputRemision");
+        if (elRem) {
+          elRem.disabled = false;
+          elRem.classList.remove("opacity-40");
+        }
+
+        // Abre modal PIN/Remisión
+        const modalPin = document.getElementById("modalPinUnidad");
+        if (modalPin) {
+          modalPin.classList.remove("hidden");
+          modalPin.classList.add("flex");
+        }
+
+        // 🔥 CLAVE: NO ABRAS modalPreparacion aquí
+        // abrirModalPreparacion();
       }
 
       function abrirModalPreparacion() {
-
         const modalModo = document.getElementById("modalModo");
         if (modalModo) modalModo.classList.add("hidden");
 
-        // Cerrar menú dinámico si existe
         const menuDinamico = document.querySelector(".modal-modo");
         if (menuDinamico) menuDinamico.remove();
 
@@ -1953,8 +2020,10 @@
 
         const inpE = document.getElementById("inputEjecutivoPrep");
         const inpR = document.getElementById("inputRemisionPrep");
+
         const prevS = document.getElementById("slotKeyPreview");
         const prevR = document.getElementById("remisionPreview");
+
         const err = document.getElementById("prepError");
         const info = document.getElementById("prepInfo");
 
@@ -1963,15 +2032,25 @@
         if (prevS) prevS.textContent = "—";
         if (prevR) prevR.textContent = "—";
 
-        const updatePrev = () => {
-          if (prevS) prevS.textContent = normalizarSlotNombre(inpE?.value);
-          if (prevR) prevR.textContent = normalizarRemision(inpR?.value);
+        // 🔥 Fuente única de remisión para Excel + validarPinYUnidad
+        const inpRemGlobal = document.getElementById("inputRemision");
+
+        const syncRemision = () => {
+          const r = normalizarRemision(inpR?.value);
+          if (inpRemGlobal) inpRemGlobal.value = r;
+          if (prevR) prevR.textContent = r || "—";
         };
 
-        inpE?.addEventListener("input", updatePrev);
-        inpR?.addEventListener("input", updatePrev);
-        updatePrev();
+        const updatePrev = () => {
+          if (prevS) prevS.textContent = normalizarSlotNombre(inpE?.value) || "—";
+          syncRemision();
+        };
 
+        // evita listeners duplicados si abren/cerran varias veces
+        inpE?.addEventListener("input", updatePrev, { once: false });
+        inpR?.addEventListener("input", updatePrev, { once: false });
+
+        updatePrev();
         setTimeout(() => inpE?.focus(), 50);
       }
 
@@ -1988,7 +2067,7 @@
         const sb = window.getSB?.();
         if (!sb) return null;
 
-        const nip = String(usuario ?? "").trim();
+        const nip = String(window.usuarioNip ?? usuario ?? "").trim();
         if (!nip) return null;
 
         const { data, error } = await sb
@@ -2167,6 +2246,8 @@
       }
 
       //#endregion preparación
+
+
       //#region Modulo Hipotesis
       function abrirModalHipotesis() {
         console.log("🧪 [HIPOTESIS] abrirModalHipotesis()");
@@ -2582,7 +2663,7 @@
             }
           ).catch(err => {
             console.error("❌ Error al iniciar escáner:", err);
-            alert("Error al acceder a la cámara: " + err);
+            mostrarModal("Error al acceder a la cámara", "#b00042");
             scannerActivo = false;
             cerrarModalQR();
           });
@@ -2703,13 +2784,16 @@
         nipAdmin = nip;
 
         const unidad = (elUnidad?.value || "").trim().toUpperCase();
+
         const esSalida = (modoSeleccionado === "salida");
+        const esPreparacion = (modoSeleccionado === "preparacion");
+        const esRemisionMode = (esSalida || esPreparacion);
 
         const remisionRaw = (elRemision?.value || "").trim().toLowerCase();
         const unidadRaw = (elUnidad?.value || "").trim().toLowerCase();
         const esBasurero = (modoSeleccionado === "salida" && unidadRaw === "eliminar" && remisionRaw === "etiqueta");
 
-        console.log(`${TAG} iniciar`, { modoSeleccionado, esSalida, nipLen: nip.length, unidad, remisionRaw });
+        console.log(`${TAG} iniciar`, { modoSeleccionado, esSalida, esPreparacion, nipLen: nip.length, unidad, remisionRaw });
 
         // Limpia error visible
         if (elPinError) {
@@ -2724,9 +2808,8 @@
           usuario = "Basurero";
           unidadSeleccionada = "Eliminar";
           modo = "salida";
-          remisionActual = "Etiqueta"; // opcional para que todo quede consistente
+          remisionActual = "Etiqueta";
 
-          // cerrar modal bien
           if (modalPin) {
             modalPin.classList.add("hidden");
             modalPin.classList.remove("flex");
@@ -2735,16 +2818,15 @@
           const usuarioActivoEl = document.getElementById("usuarioActivo");
           if (usuarioActivoEl) {
             usuarioActivoEl.innerHTML = `
-        🕳️ <strong>MODO ELIMINACIÓN ACTIVADO</strong><br>
-        <strong>Eliminar</strong><br>
-        <strong>Etiqueta</strong>
-      `;
+              🕳️ <strong>MODO ELIMINACIÓN ACTIVADO</strong><br>
+              <strong>Eliminar</strong><br>
+              <strong>Etiqueta</strong>
+            `;
           }
 
           actualizarBotonModo("Salida", "bg-black", "🕳️");
           document.body.classList.add("modo-basurero");
 
-          // UI QR
           const contenedorQR = document.getElementById("contenedorQR");
           const btnEnviar = document.getElementById("btnEnviarSupabase");
           const inputQR = document.getElementById("inputQR");
@@ -2758,20 +2840,20 @@
             inputQR.focus();
           }
 
-          // botón cerrar sesión
           document.getElementById("btnCerrarSesion")?.classList.remove("hidden");
           return;
         }
 
-        // ========== VALIDACIONES PREVIAS (SALIDA) ==========
+        // ========== VALIDACIONES PREVIAS (SALIDA / PREPARACIÓN) ==========
         let remision = null;
 
-        if (esSalida) {
+        if (esRemisionMode) {
           remision = (elRemision?.value || "").trim();
-          console.log(`${TAG} salida -> remision`, remision);
+          console.log(`${TAG} remisionMode -> remision`, { modoSeleccionado, remision });
 
+          // ✅ Bloqueo puede aplicar también en PREPARACIÓN si está activo
           const bloqueoActivo = await consultarEstadoBloqueo();
-          console.log(`${TAG} bloqueoActivo`, bloqueoActivo);
+          console.log(`${TAG} bloqueoActivo`, { bloqueoActivo, modoSeleccionado });
 
           if (bloqueoActivo && !remision) {
             if (elPinError) {
@@ -2784,8 +2866,8 @@
 
         remisionActual = remision;
 
-        // ========== SI HAY REMISIÓN, INTENTA CARGAR PENDIENTE ==========
-        if (esSalida && remision) {
+        // ========== SI HAY REMISIÓN, INTENTA CARGAR PENDIENTE (SALIDA / PREPARACIÓN) ==========
+        if (esRemisionMode && remision) {
           try {
             console.log(`${TAG} buscando remisión pendiente`, remision);
 
@@ -2813,18 +2895,22 @@
             if (datosPendientes.length > 0) {
               avanceRemision = {};
 
+              const campoAvance = (modoSeleccionado === "preparacion") ? "cantidad_preparada" : "cantidad_escaneada";
+
               for (const item of datosPendientes) {
                 const clave = `${item.referencia}||${item.lote}`;
+                const esc = Number(item?.[campoAvance] ?? 0);
+
                 avanceRemision[clave] = {
                   ...item,
-                  escaneados: 0,
+                  escaneados: Number.isFinite(esc) ? esc : 0,
                   nombre: item.descripcion || ""
                 };
               }
 
               console.log(`${TAG} avanceRemision cargado`, avanceRemision);
               actualizarTablaRemisionSAP();
-              mostrarModal("📤 Remisión previa cargada automáticamente", "#0ea5e9");
+              mostrarModal("📤 Remisión cargada automáticamente", "#0ea5e9");
             }
           } catch (err) {
             console.error(`${TAG} error al cargar remisión previa`, err);
@@ -2850,6 +2936,7 @@
               ? data.unidades.map(u => String(u).trim().toUpperCase())
               : [];
 
+          // ✅ En SALIDA sí validas unidad; en PREPARACIÓN no dependes de unidad (tu regla real es representacion)
           const unidadValidaParaSalida = !esSalida || unidadesLista.includes(unidad);
 
           if (!data || !data.nombre || !unidadValidaParaSalida) {
@@ -2876,10 +2963,9 @@
             window.nombreAdmin = null;
           }
 
-          unidadSeleccionada = esSalida ? unidad : null;
+          unidadSeleccionada = esSalida ? unidad : null; // preparación no depende de unidad
           modo = modoSeleccionado;
 
-          // cerrar modal bien
           if (modalPin) {
             modalPin.classList.add("hidden");
             modalPin.classList.remove("flex");
@@ -2892,11 +2978,19 @@
           if (usuarioActivoEl) {
             if (modoSeleccionado === "entrada") {
               usuarioActivoEl.textContent = usuario;
+
             } else if (modoSeleccionado === "salida") {
               usuarioActivoEl.innerHTML = `
-          ${usuario} → ${unidad} ${nombreUnidad}<br>
-          No. de Remisión: <strong>${remisionActual || "—"}</strong>
-        `;
+                ${usuario} → ${unidad} ${nombreUnidad}<br>
+                No. de Remisión: <strong>${remisionActual || "—"}</strong>
+              `;
+
+            } else if (modoSeleccionado === "preparacion") {
+              usuarioActivoEl.innerHTML = `
+                ${usuario} → <strong>PREPARACIÓN</strong><br>
+                No. de Remisión: <strong>${remisionActual || "—"}</strong>
+              `;
+
             } else {
               usuarioActivoEl.textContent = "Selecciona un modo para iniciar";
             }
@@ -2907,14 +3001,17 @@
           if (modo === "entrada") btnInventario?.classList.remove("hidden");
           else btnInventario?.classList.add("hidden");
 
-          // Botón modo
+          // Botón modo (color/icono prep)
           const texto = modo;
           const color = (modo === "entrada") ? "bg-green-700"
             : (modo === "salida") ? "bg-red-900"
-              : "bg-gray-500";
+              : (modo === "preparacion") ? "bg-sky-900"
+                : "bg-gray-500";
+
           const icono = (modo === "entrada") ? "📥"
             : (modo === "salida") ? "📤"
-              : "🔒";
+              : (modo === "preparacion") ? "🧩"
+                : "🔒";
 
           actualizarBotonModo(texto.charAt(0).toUpperCase() + texto.slice(1), color, icono);
 
@@ -2929,13 +3026,11 @@
           }
           return;
         } finally {
-          // ========== UI QR + Botón enviar + Cerrar sesión (siempre consistente) ==========
           const contenedorQR = document.getElementById("contenedorQR");
           const btnEnviar = document.getElementById("btnEnviarSupabase");
           const btnCerrar = document.getElementById("btnCerrarSesion");
 
           const activo = !!modo && modo !== "inactivo";
-
           console.log(`${TAG} finally UI`, { activo, modo });
 
           if (!activo) {
@@ -2946,12 +3041,10 @@
             contenedorQR?.classList.remove("hidden");
             btnEnviar?.classList.remove("hidden");
             btnCerrar?.classList.remove("hidden");
-            // focus lector QR
             if (typeof enfocarInputQR === "function") enfocarInputQR();
           }
         }
       }
-
 
 
       function abrirModalPinDinamico() {
@@ -4104,12 +4197,15 @@
 
 
       async function validarContraRemision(referencia, lote, numeroRemision) {
-        const res = await fetch(`https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?referencia=eq.${referencia}&lote=eq.${lote}&numero_remision=eq.${numeroRemision}`, {
-          headers: {
-            "apikey": API_KEY,
-            "Authorization": `Bearer ${API_KEY}`
+        const res = await fetch(
+          `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?referencia=eq.${referencia}&lote=eq.${lote}&numero_remision=eq.${numeroRemision}`,
+          {
+            headers: {
+              "apikey": API_KEY,
+              "Authorization": `Bearer ${API_KEY}`
+            }
           }
-        });
+        );
 
         const data = await res.json();
 
@@ -4118,21 +4214,32 @@
           return false;
         }
 
-        const pendiente = data[0].cantidad_solicitada - data[0].cantidad_escaneada;
+        const campoAvance = (modoSeleccionado === "preparacion")
+          ? "cantidad_preparada"
+          : "cantidad_escaneada";
+
+        const actual = Number(data[0]?.[campoAvance] ?? 0);
+        const pendiente = Number(data[0].cantidad_solicitada) - (Number.isFinite(actual) ? actual : 0);
+
         if (pendiente <= 0) {
           mostrarModal("🚫 Cantidad ya completa para este producto", "#b00042");
           return false;
         }
 
-        await fetch(`https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?id=eq.${data[0].id}`, {
-          method: "PATCH",
-          headers: {
-            "apikey": API_KEY,
-            "Authorization": `Bearer ${API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ cantidad_escaneada: data[0].cantidad_escaneada + 1 })
-        });
+        await fetch(
+          `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?id=eq.${data[0].id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "apikey": API_KEY,
+              "Authorization": `Bearer ${API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              [campoAvance]: (Number.isFinite(actual) ? actual : 0) + 1
+            })
+          }
+        );
 
         return true;
       }
@@ -8077,7 +8184,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
 
         } catch (err) {
           console.error("Error al descargar reporte:", err);
-          alert("❌ Error al generar el reporte.");
+          mostrarModal("❌ Error al generar el reporte.", "#b00042");
         }
       }
       //#endregion 888888888888888888888888888888888888888888888888888888888888888888 FORECAST 88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
@@ -8543,27 +8650,38 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
       }
 
       async function validarNIP() {
-        const nip = document.getElementById("nipInput").value.trim();
-        const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_nip", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nip })
-        });
-        const data = await res.json();
-        if (!data?.nombre) {
-          document.getElementById("nipError").classList.remove("hidden");
-          return;
-        }
-        usuarioActivo = data.nombre;
-        unidadesAsignadas = typeof data.unidades === "string" ? data.unidades.split(",").map(u => u.trim()) : [];
-        document.getElementById("modalNIP").classList.add("hidden");
-        cargarUnidades();
+        mostrarLoader(true);
+        try {
+          const nip = document.getElementById("nipInput").value.trim();
+          const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_nip", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nip })
+          });
+          const data = await res.json();
 
-        // Cargar referencias y LUEGO intentar recuperar borrador (SOLO si no es modo preparación)
-        if (modo !== "preparacion") {
+          if (!data?.nombre) {
+            document.getElementById("nipError").classList.remove("hidden");
+            return;
+          }
+
+          usuarioActivo = data.nombre;
+          unidadesAsignadas = typeof data.unidades === "string" ? data.unidades.split(",").map(u => u.trim()) : [];
+
+          document.getElementById("modalNIP").classList.add("hidden");
+          cargarUnidades();
+
+          // Cargar referencias y LUEGO intentar recuperar borrador (SOLO si no es modo preparación)
+          // if (modo !== "preparacion") {
           await cargarReferencias();
           mostrarModalCaptura();
           recuperarBorradorCaptura();
+          // }
+        } catch (error) {
+          console.error("Error validando NIP:", error);
+          alert("Error de conexión al validar NIP");
+        } finally {
+          mostrarLoader(false);
         }
       }
 
@@ -8624,7 +8742,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           console.log("📋 Unidades distintas:", [...new Set(referenciasPorUnidad.map(r => r.unidad_medica))]);
         } catch (err) {
           console.error("❌ Error al cargar referencias:", err);
-          alert("❌ No se pudieron cargar las referencias. Verifica la conexión y credenciales.");
+          mostrarModal("❌ No se pudieron cargar las referencias. Verifica la conexión y credenciales.", "#b00042");
         }
       }
 
@@ -8766,9 +8884,20 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           encabezado.classList.add("bg-emerald-900");
         }
 
+        // Mostrar/Ocultar precarga de archivo (solo pruebas facturadas)
+        const divArchivo = document.getElementById("divPrecargarArchivo");
+        if (divArchivo) {
+          if (toggle.checked) {
+            divArchivo.classList.remove("hidden");
+          } else {
+            divArchivo.classList.add("hidden");
+          }
+        }
+
       }
       function mostrarModalCaptura() {
         document.getElementById("modalCaptura").classList.remove("hidden");
+        actualizarModoCaptura();
       }
 
       function cerrarModalCaptura() {
@@ -9167,7 +9296,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         const cantidad = parseFloat(cantInput.value);
 
         if (!ref || isNaN(cantidad)) {
-          alert("⚠️ Faltan datos");
+          mostrarModal("⚠️ Faltan datos", "#d99b00");
           return;
         }
 
@@ -9177,7 +9306,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           normalizarTexto(r.unidad_medica) === normalizarTexto(unidad)
         );
         if (!coincide) {
-          alert("❌ Esta referencia no está asignada a la unidad seleccionada.");
+          mostrarModal("❌ Esta referencia no está asignada a la unidad seleccionada.", "#b00042");
           return;
         }
 
@@ -9273,7 +9402,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         const tipoCorte = document.getElementById("toggleTipoCaptura").checked ? "25" : "10";
 
         if (!unidad || !usuario || !mes || !anio) {
-          alert("❌ Faltan datos necesarios (usuario, unidad, mes o año).");
+          mostrarModal("❌ Faltan datos necesarios (usuario, unidad, mes o año).", "#b00042");
           return;
         }
 
@@ -10309,36 +10438,44 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
       }
 
       async function cargarTablaRemisionSAP(numeroRemision) {
-        const res = await fetch(`https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?numero_remision=eq.${numeroRemision}`, {
-          headers: {
-            "apikey": API_KEY,
-            "Authorization": `Bearer ${API_KEY}`
+        const res = await fetch(
+          `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/remisiones_pendientes?numero_remision=eq.${numeroRemision}`,
+          {
+            headers: {
+              "apikey": API_KEY,
+              "Authorization": `Bearer ${API_KEY}`
+            }
           }
-        });
+        );
 
         const data = await res.json();
         const cuerpo = document.getElementById("bodyRemisionSAP");
         cuerpo.innerHTML = "";
 
-        avanceRemision = {}; // 👈 REINICIA AVANCE ACTUAL
+        avanceRemision = {};
+
+        const campoAvance = (modoSeleccionado === "preparacion")
+          ? "cantidad_preparada"
+          : "cantidad_escaneada";
 
         data.forEach(item => {
           const clave = `${item.referencia}||${item.lote}`;
+          const esc = Number(item?.[campoAvance] ?? 0);
+
           avanceRemision[clave] = {
-            nombre: item.descripcion || '',
-            escaneados: item.cantidad_escaneada
+            nombre: item.descripcion || "",
+            escaneados: Number.isFinite(esc) ? esc : 0
           };
 
           const fila = document.createElement("tr");
           fila.innerHTML = `
-      <td class="p-2">${item.referencia}</td>
-      <td class="p-2">${item.descripcion || ''}</td>
-      <td class="p-2">${item.lote || ''}</td>
-      <td class="p-2 text-center">${item.cantidad_escaneada}</td>
-    `;
+            <td class="p-2">${item.referencia}</td>
+            <td class="p-2">${item.descripcion || ""}</td>
+            <td class="p-2">${item.lote || ""}</td>
+            <td class="p-2 text-center">${Number(item?.[campoAvance] ?? 0)}</td>
+          `;
           cuerpo.appendChild(fila);
         });
-
 
         document.getElementById("tablaRemisionSAP").classList.remove("hidden");
       }
