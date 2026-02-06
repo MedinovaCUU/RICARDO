@@ -1171,7 +1171,8 @@
             class="space-input w-full text-center"
             oninput="document.getElementById('resultadoBusqueda')?.classList.remove('hidden'); buscarReferencia(this.value)"
             autocomplete="off" />
-          <div id="resultadoBusqueda" class="text-sm text-white/80 mt-3"></div>
+          <div id="resultadoBusqueda" class="text-sm text-white/80 mt-3 max-h-[50vh] overflow-y-auto custom-scrollbar">
+          </div>
         </div>
 
         <div id="estadoUsuario" onclick="mostrarMenuModo()"
@@ -1560,9 +1561,16 @@
             <label
               class="flex items-center gap-2 cursor-pointer text-white/60 hover:text-white transition-colors text-xs select-none">
               <input type="checkbox" id="checkboxFilas"
-                class="accent-teal-500 w-4 h-4 rounded border-white/20 bg-white/5"
-                onchange="toggleFilasCompletadas?.(this.checked)" />
-              Ocultar completados
+                class="accent-teal-500 w-4 h-4 rounded border-white/20 bg-white/5" onchange="aplicarFiltrosTabla()" />
+              Ocultar Cant.
+            </label>
+
+            <!-- Toggle Ocultar Completos (Cant + Lote) -->
+            <label
+              class="flex items-center gap-2 cursor-pointer text-white/60 hover:text-white transition-colors text-xs select-none ml-4">
+              <input type="checkbox" id="checkboxFilasLote"
+                class="accent-teal-500 w-4 h-4 rounded border-white/20 bg-white/5" onchange="aplicarFiltrosTabla()" />
+              Ocultar Cant.+Lote
             </label>
 
 
@@ -1582,10 +1590,12 @@
                 <thead id="tablaEncabezado"
                   class="sticky top-0 z-10 bg-[#06161d] shadow-sm text-white/60 text-xs uppercase tracking-wider backdrop-blur-sm">
                   <tr>
+                    <th class="w-12 p-3 text-center border-b border-white/5"></th> <!-- (+) -->
                     <th class="w-20 p-3 text-center border-b border-white/5">Cant.</th>
-                    <th class="p-3 border-b border-white/5">Nombre Producto</th>
+                    <th id="thLote" class="hidden w-24 p-3 border-b border-white/5">Lote</th>
                     <th class="w-32 p-3 text-right border-b border-white/5">Ref.</th>
-                    <th class="w-12 p-3 text-center border-b border-white/5"></th>
+                    <th class="p-3 border-b border-white/5">Nombre Producto</th>
+                    <th class="w-12 p-3 text-center border-b border-white/5"></th> <!-- (x) -->
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5 text-white/90 font-medium"></tbody>
@@ -3178,7 +3188,7 @@
         const limpio = qr.trim().replace(/\s+/g, '');
         let partes = null;
 
-        // 📌 Formato Centrum: **{ref}//{lote}--{caducidad}|T:{timestamp}
+        // 📌 Formato solicitado: **{ref}//{lote}--{caducidad}|T:{timestamp}
         const nuevoFormato = /^\*\*\{(.+?)\}\/\/\{(.+?)\}--\{(.+?)\}\|T:(.+)$/;
         const matchNuevo = limpio.match(nuevoFormato);
         if (matchNuevo) {
@@ -8716,8 +8726,8 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
 
           // Cargar referencias y LUEGO intentar recuperar borrador (SOLO si no es modo preparación)
           // if (modo !== "preparacion") {
-          await cargarReferencias();
           mostrarModalCaptura();
+          setupModalCapturaElite();  // <- importante
           recuperarBorradorCaptura();
           // }
         } catch (error) {
@@ -8761,75 +8771,209 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         console.log("✅ cargarUnidades(): OK", unidadesAsignadas);
       }
 
+      // =====================
+      // ELITE: referencias por unidad (server-side + cache)
+      // =====================
 
-      async function cargarReferencias() {
-        const totalMaximo = 10000; // Límite máximo si se espera que la tabla crezca más
-        const batchSize = 1000;    // Tamaño de lote por petición
-        const todasReferencias = [];
+      // Debes tener esto definido en tu proyecto:
+      const SUPABASE_URL = "https://ldjrpfsbpcfninntffoj.supabase.co";
 
-        try {
-          for (let inicio = 0; inicio < totalMaximo; inicio += batchSize) {
-            const res = await fetch(`https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/historicos?select=unidad_medica,unidad_nombre,referencia,nombre`, {
-              headers: {
-                apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkanJwZnNicGNmbmlubnRmZm9qIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjQyNzE2NiwiZXhwIjoyMDYyMDAzMTY2fQ.jTu9cMjOgTsvHgNaW5V1mZQM6VqSE55kASVijuCsGaE",
-                Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkanJwZnNicGNmbmlubnRmZm9qIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjQyNzE2NiwiZXhwIjoyMDYyMDAzMTY2fQ.jTu9cMjOgTsvHgNaW5V1mZQM6VqSE55kASVijuCsGaE",
-                "Range-Unit": "items",
-                "Range": `${inicio}-${inicio + batchSize - 1}`
-              }
-            });
+      // Cache por unidad: Map<"C03129", Array<{referencia,nombre,unidad_medica,unidad_nombre}>>
+      let cacheRefsUnidad = new Map();
 
-            if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-            const datos = await res.json();
-            todasReferencias.push(...datos);
+      // Control para cancelar requests del typeahead
+      let typeaheadTimer = null;
+      let lastController = null;
 
-            // Si el lote que recibimos es menor que el batchSize, ya no hay más
-            if (datos.length < batchSize) break;
-          }
-
-          referenciasPorUnidad = todasReferencias;
-          console.log("✅ Total referencias cargadas:", referenciasPorUnidad.length);
-          console.log("📋 Unidades distintas:", [...new Set(referenciasPorUnidad.map(r => r.unidad_medica))]);
-        } catch (err) {
-          console.error("❌ Error al cargar referencias:", err);
-          mostrarModal("❌ No se pudieron cargar las referencias. Verifica la conexión y credenciales.", "#b00042");
-        }
+      function norm(v) {
+        return String(v || "").trim().toUpperCase();
       }
 
-
-      function buscarReferenciaCaptura() {
-        const texto = document.getElementById("inputReferencia").value.trim().toLowerCase();
-        const unidad = document.getElementById("unidadCaptura").value;
+      // (Opcional) limpiar sugerencias UI
+      function ocultarSugerencias() {
         const contenedor = document.getElementById("sugerenciasReferencia");
-        const unidadNorm = normalizarTexto(unidad);
-
-        const sugerencias = referenciasPorUnidad.filter(r =>
-          normalizarTexto(r.unidad_medica) === unidadNorm &&
-          (
-            (r.referencia || "").toLowerCase().includes(texto) ||
-            (r.nombre || "").toLowerCase().includes(texto)
-          )
-        );
-
+        if (!contenedor) return;
         contenedor.innerHTML = "";
-        if (!texto || sugerencias.length === 0) {
-          contenedor.classList.add("hidden");
+        contenedor.classList.add("hidden");
+      }
+
+      // =====================
+      // 1) Precargar SOLO la unidad seleccionada (opcional)
+      // =====================
+      async function precargarUnidadSiConviene(unidad) {
+        unidad = norm(unidad);
+        if (!unidad) return [];
+        if (cacheRefsUnidad.has(unidad)) return cacheRefsUnidad.get(unidad);
+
+        // Si prefieres NO precargar nada, comenta esta función completa
+        // y deja que el typeahead sea el único camino.
+
+        const batchSize = 5000;
+        const todas = [];
+        let inicio = 0;
+
+        while (true) {
+          const url =
+            `${SUPABASE_URL}/rest/v1/historicos` +
+            `?select=unidad_medica,unidad_nombre,referencia,nombre` +
+            `&unidad_medica=eq.${encodeURIComponent(unidad)}`;
+
+          const res = await fetch(url, {
+            headers: {
+              apikey: API_KEY,
+              Authorization: `Bearer ${API_KEY}`,
+              "Content-Type": "application/json",
+              "Range-Unit": "items",
+              "Range": `${inicio}-${inicio + batchSize - 1}`,
+            },
+          });
+
+          if (res.status === 416) break;
+
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            throw new Error(`HTTP ${res.status} - ${res.statusText} - ${txt}`);
+          }
+
+          const data = await res.json();
+          todas.push(...data);
+
+          if (data.length < batchSize) break;
+          inicio += batchSize;
+        }
+
+        cacheRefsUnidad.set(unidad, todas);
+        console.log(`✅ Unidad ${unidad} precargada:`, todas.length);
+        return todas;
+      }
+
+      // =====================
+      // 2) Typeahead server-side (lo más importante)
+      // =====================
+      async function buscarSugerenciasReferencia({ unidad, q, limit = 12 }) {
+        unidad = norm(unidad);
+        q = String(q || "").trim();
+
+        // UX: mínimo 2 caracteres para no spamear al servidor
+        if (!unidad || q.length < 2) return [];
+
+        // Cancela request anterior (evita resultados desfasados)
+        if (lastController) lastController.abort();
+        lastController = new AbortController();
+
+        const like = `%${q}%`;
+
+        const url =
+          `${SUPABASE_URL}/rest/v1/historicos` +
+          `?select=unidad_medica,unidad_nombre,referencia,nombre` +
+          `&unidad_medica=eq.${encodeURIComponent(unidad)}` +
+          `&or=(referencia.ilike.${encodeURIComponent(like)},nombre.ilike.${encodeURIComponent(like)})` +
+          `&limit=${limit}`;
+
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            apikey: API_KEY,
+            Authorization: `Bearer ${API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          signal: lastController.signal,
+        });
+
+        // Abort es normal, no es error real
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(`HTTP ${res.status} - ${res.statusText} - ${txt}`);
+        }
+
+        return await res.json();
+      }
+
+      // =====================
+      // 3) Conectar a tu ModalCaptura
+      // =====================
+
+      // Llama esto UNA VEZ al iniciar tu app o al abrir el modal
+      function setupModalCapturaElite() {
+        const inputRef = document.getElementById("inputReferencia");
+        const unidadEl = document.getElementById("unidadCaptura");
+        const contenedor = document.getElementById("sugerenciasReferencia");
+
+        if (!inputRef || !unidadEl || !contenedor) {
+          console.warn("⚠️ No se encontraron elementos del modal captura (inputReferencia/unidadCaptura/sugerenciasReferencia)");
           return;
         }
 
-        sugerencias.slice(0, 10).forEach(s => {
-          const div = document.createElement("div");
-          div.className = "px-4 py-2 hover:bg-white/10 cursor-pointer";
-          div.textContent = `${s.referencia} - ${s.nombre || ''}`;
-          div.onclick = () => {
-            document.getElementById("inputReferencia").value = s.referencia;
-            contenedor.classList.add("hidden");
-            document.getElementById("inputCantidad").focus();  // 👈 Autoenfoque al campo de cantidad
-          };
-          contenedor.appendChild(div);
+        // Cuando cambias unidad: limpia input y sugerencias + (opcional) precarga esa unidad
+        unidadEl.addEventListener("change", async () => {
+          try {
+            inputRef.value = "";
+            ocultarSugerencias();
+
+            const unidad = unidadEl.value;
+            if (!unidad) return;
+
+            // Opcional: precarga para navegar rápido si el usuario insiste en esa unidad
+            // Si NO quieres precarga, comenta la línea de abajo.
+            await precargarUnidadSiConviene(unidad);
+          } catch (e) {
+            console.error("❌ Error al preparar unidad:", e);
+            mostrarModal("❌ No se pudo preparar la unidad (referencias).", "#b00042");
+          }
         });
 
-        contenedor.classList.remove("hidden");
+        // Typeahead en el input de referencia
+        inputRef.addEventListener("input", () => {
+          clearTimeout(typeaheadTimer);
+
+          typeaheadTimer = setTimeout(async () => {
+            const unidad = unidadEl.value;
+            const texto = inputRef.value.trim();
+
+            // Si no hay texto, oculta
+            if (!texto) {
+              ocultarSugerencias();
+              return;
+            }
+
+            try {
+              // ⚡ Elite path: siempre server-side para exactitud y escala
+              const sugerencias = await buscarSugerenciasReferencia({ unidad, q: texto, limit: 12 });
+
+              contenedor.innerHTML = "";
+              if (sugerencias.length === 0) {
+                contenedor.classList.add("hidden");
+                return;
+              }
+
+              contenedor.classList.remove("hidden");
+
+              sugerencias.forEach((s) => {
+                const div = document.createElement("div");
+                div.className = "px-4 py-2 hover:bg-white/10 cursor-pointer";
+                div.textContent = `${s.referencia} - ${s.nombre || ""}`;
+                div.onclick = () => {
+                  inputRef.value = s.referencia;
+                  contenedor.classList.add("hidden");
+                  document.getElementById("inputCantidad")?.focus();
+                };
+                contenedor.appendChild(div);
+              });
+            } catch (e) {
+              // Abort es normal
+              if (String(e).includes("AbortError")) return;
+              console.error("❌ Typeahead error:", e);
+              contenedor.classList.add("hidden");
+            }
+          }, 180);
+        });
+
+        // UX: ocultar sugerencias al perder foco (opcional)
+        inputRef.addEventListener("blur", () => setTimeout(ocultarSugerencias, 120));
+
+        console.log("🚀 ModalCaptura Elite listo");
       }
+
       function extraerLoteCadDeLlaves(qr) {
         if (!qr) return { lote: null, caducidad: null };
 
@@ -8855,28 +8999,55 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         datosCaptura = [];
 
         filas.forEach(fila => {
-          // [0] = Cantidad (input)
-          // [1] = Nombre (texto)
-          // [2] = Referencia (texto)
-          const celdaCantidad = fila.children[0];
-          const celdaNombre = fila.children[1];
-          const celdaRef = fila.children[2];
+          // NEW ORDER:
+          // [0] = (+) button (td)
+          // [1] = Cantidad (td > input)
+          // [2] = Lote (td > input)
+          // [3] = Ref (td > text)
+          // [4] = Nombre (td > text)
+          // [5] = (x) button (td)
+
+          // Fallback logic in case indices shift or we are in another mode?
+          // Inventory mode has 6 columns.
+          // Other modes might differ? No, 'agregarFilaCapturaUI' is used generally but 'Lote' is hidden.
+          // BUT if 'Lote' is hidden, it's still in DOM? YES, updated logic uses 'hidden' class, not removal.
+          // So children indices should be consistent: 0, 1, 2, 3, 4, 5.
+
+          const celdaCantidad = fila.children[1];
+          const celdaLote = fila.children[2];
+          const celdaRef = fila.children[3];
+          const celdaNombre = fila.children[4];
 
           const inputCantidad = celdaCantidad ? celdaCantidad.querySelector("input") : null;
+          const inputLote = celdaLote ? celdaLote.querySelector("input") : null;
+          const inputTx = fila.querySelector(".row-timestamps"); // New hidden input
 
           const cantidad = parseFloat(inputCantidad?.value || "0");
           const nombre = celdaNombre?.textContent.trim() || "";
           const referencia = celdaRef?.textContent.trim() || "";
+          const lote = inputLote ? inputLote.value.trim().toUpperCase() : "";
+
+          // Parse saved timestamps
+          let timestamps = [];
+          try {
+            timestamps = inputTx ? JSON.parse(inputTx.value || "[]") : [];
+          } catch (e) { timestamps = []; }
 
           // Log para verificar
-          console.log("📦 fila → ref:", referencia, "| nombre:", nombre, "| cantidad:", cantidad);
+          console.log("📦 fila → ref:", referencia, "| nombre:", nombre, "| cantidad:", cantidad, "| lote:", lote);
 
-          if (referencia && !isNaN(cantidad)) {
+          if (referencia && Number.isFinite(cantidad)) {
+            const loteKey = lote && lote.length ? lote : "S/L";
+            const detalle_lotes = { [loteKey]: cantidad };
+
             datosCaptura.push({
               referencia,
               nombre,
               cantidad,
-              tipo: modo
+              lote,
+              timestamps,
+              tipo: modo,
+              detalle_lotes
             });
           }
         });
@@ -8902,7 +9073,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         const isPruebas = toggle.checked;
 
         // 1. Texto e ícono del modo
-        texto.textContent = isPruebas ? "Pbas. fact." : "Inventario";
+        texto.textContent = isPruebas ? "Pbas. fact." : "Inventario ";
         texto.className = isPruebas
           ? "font-bold text-xs uppercase tracking-wide text-rose-900 w-[70px] text-center"
           : "font-bold text-xs uppercase tracking-wide text-emerald-900 w-[70px] text-center";
@@ -8961,6 +9132,13 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           } else {
             divArchivo.classList.add("hidden");
           }
+        }
+
+        // 6. Toggle Lote column (NEW)
+        const thLote = document.getElementById("thLote");
+        if (thLote) {
+          if (isPruebas) thLote.classList.add("hidden");
+          else thLote.classList.remove("hidden"); // Visible in Inventory
         }
       }
       function mostrarModalCaptura() {
@@ -9055,38 +9233,56 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
 
 
 
-      function mostrarReferenciasUnidad() {
+      async function mostrarReferenciasUnidad() {
         const unidad = document.getElementById("unidadCaptura").value;
         const tabla = document.querySelector("#tablaCaptura tbody");
         const contenedorTabla = document.getElementById("contenedorTabla");
 
-        console.log("📌 Unidad seleccionada:", unidad, "→ Normalizada:", normalizarTexto(unidad));
-        console.log("🔢 Total referencias cargadas:", referenciasPorUnidad.length);
+        if (!unidad) {
+          mostrarModal("⚠️ Selecciona una unidad", "#d99b00");
+          return;
+        }
 
-        referenciasPorUnidad.forEach((r, i) => {
-          if (!r.unidad_medica) {
-            console.warn(`⚠️ Fila ${i} sin unidad_medica definida:`, r);
-          } else {
-            console.log(
-              `Ref ${i}: ${r.unidad_medica} (${normalizarTexto(r.unidad_medica)}) vs ${unidad} (${normalizarTexto(unidad)})`
-            );
-          }
-        });
+        try {
+          mostrarLoader(true, "Cargando referencias de la unidad…");
 
-        const referencias = referenciasPorUnidad.filter(
-          r => normalizarTexto(r.unidad_medica) === normalizarTexto(unidad)
-        );
+          // ✅ Trae SOLO esa unidad (paginado)
+          const referencias = await precargarUnidadSiConviene(unidad);
 
-        console.log("✅ Referencias encontradas para esta unidad:", referencias.length);
+          console.log("✅ Referencias encontradas para esta unidad:", referencias.length);
 
-        // Limpiar tabla actual y estado
-        tabla.innerHTML = "";
-        datosCaptura = [];
+          tabla.innerHTML = "";
+          datosCaptura = [];
 
-        // Crear filas: Cantidad | Nombre | Referencia | Eliminar
-        referencias.forEach(r => {
-          const fila = document.createElement("tr");
-          fila.innerHTML = `
+          const isInventario = (document.getElementById("modoCaptura").value === "inventario");
+          referencias.forEach(r => agregarFilaCapturaUI(tabla, r.referencia, r.nombre, isInventario));
+
+          contenedorTabla.classList.toggle("hidden", referencias.length === 0);
+
+        } catch (e) {
+          console.error("❌ Error mostrando referencias unidad:", e);
+          mostrarModal("❌ No se pudieron cargar referencias de la unidad.", "#b00042");
+        } finally {
+          mostrarLoader(false);
+        }
+      }
+
+      function agregarFilaCapturaUI(tabla, referencia, nombre, isInventario, loteVal = "") {
+        const fila = document.createElement("tr");
+        // Lote cell (hidden if not inventory)
+        const loteDisplay = isInventario ? "" : "hidden";
+
+        // NEW ORDER: (+) | Cantidad | Lote | Ref | Nombre | (x)
+        fila.innerHTML = `
+          <td class="p-2 text-center whitespace-nowrap">
+            ${isInventario ? `
+            <button onclick='agregarFilaExtra(this, "${referencia}", "${escapeHtml(nombre)}")' 
+                    class="mr-2 text-emerald-400 hover:text-emerald-300 font-bold" title="Agregar otro lote">
+              +
+            </button>
+            ` : ""}
+          </td>
+
           <td class="p-2 cantidad-td">
             <input
               type="number"
@@ -9099,16 +9295,77 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
               onchange="marcarComoCompletada(this)"
             />
           </td>
-          <td class="p-2 celda-nombre">${r.nombre || ""}</td>
-          <td class="p-2 celda-ref">${r.referencia}</td>
-          <td class="p-2 text-center">
-            <button onclick='this.closest("tr").remove(); actualizarDatosCaptura()' class='text-red-600'>✖</button>
+          
+          <td class="p-2 celda-lote ${loteDisplay}">
+             <input type="text" 
+                    class="input-lote w-full bg-black/20 border border-white/10 rounded px-1 py-1 text-xs text-white uppercase placeholder-white/30" 
+                    placeholder="Lote..."
+                    value="${loteVal}"
+             />
           </td>
-        `;
-          tabla.appendChild(fila);
-        });
 
-        contenedorTabla.classList.toggle("hidden", referencias.length === 0);
+          <td class="p-2 celda-ref text-right">${referencia}</td>
+          
+          <td class="p-2 celda-nombre">${nombre || ""}</td>
+          
+          <td class="p-2 text-center whitespace-nowrap">
+            <button onclick='this.closest("tr").remove(); actualizarDatosCaptura()' class='text-red-600 font-bold'>✖</button>
+          </td>
+          
+          <!-- Hidden storage for timestamps associated with this row -->
+          <input type="hidden" class="row-timestamps" value="[]" />
+        `;
+        tabla.appendChild(fila);
+      }
+
+      function agregarFilaExtra(btn, ref, nombre) {
+        const tr = btn.closest("tr");
+        // Insert after current row
+        const nuevaFila = document.createElement("tr");
+
+        // NEW ORDER: (+) | Cantidad | Lote | Ref | Nombre | (x)
+        nuevaFila.innerHTML = `
+          <td class="p-2 text-center whitespace-nowrap">
+            <button onclick='agregarFilaExtra(this, "${ref}", "${escapeHtml(nombre)}")' 
+                    class="mr-2 text-emerald-400 hover:text-emerald-300 font-bold" title="Agregar otro lote">
+              +
+            </button>
+          </td>
+
+          <td class="p-2 cantidad-td">
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="999.9"
+              inputmode="decimal"
+              placeholder="0.0"
+              class="cantidad-input input-cantidad"
+              onchange="marcarComoCompletada(this)"
+            />
+          </td>
+          
+          <td class="p-2 celda-lote">
+             <input type="text" 
+                    class="input-lote w-full bg-black/20 border border-white/10 rounded px-1 py-1 text-xs text-white uppercase placeholder-white/30" 
+                    placeholder="Lote..."
+             />
+          </td>
+
+          <td class="p-2 celda-ref text-right">${ref}</td>
+          
+          <td class="p-2 celda-nombre">${nombre || ""}</td>
+          
+          <td class="p-2 text-center whitespace-nowrap">
+            <button onclick='this.closest("tr").remove(); actualizarDatosCaptura()' class='text-red-600 font-bold'>✖</button>
+          </td>
+          
+          <!-- Hidden storage for timestamps associated with this row -->
+          <input type="hidden" class="row-timestamps" value="[]" />
+        `;
+
+        // Insert after Current
+        tr.after(nuevaFila);
       }
 
 
@@ -9241,12 +9498,83 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         // (Opcional) log para revisar qué se va guardando
         console.log("📊 Inventario detallado actualizado:", referencia, loteKey, cadKey, "→", inventarioDetallado[referencia][loteKey][cadKey]);
       }
-      function manejarEscaneoInventario(contenido) {
+      async function manejarEscaneoInventario(contenido) { // ASYNC NOW
         try {
           console.log("📥 manejarEscaneoInventario() contenido bruto:", contenido);
 
           const modo = document.getElementById("modoCaptura")?.value;
           const unidad = document.getElementById("unidadCaptura")?.value;
+          const timestamp = extraerTimestampPlano(contenido); // Extraemos timestamp si existe
+
+          // 1. Validar contra Set Local (duplicado en sesion actual)
+          if (timestamp && timestampsEscaneadosInventario.has(timestamp)) {
+            mostrarModal("⚠️ Este QR ya fue escaneado en esta sesión.", "#d97706");
+            sonidoError();
+            return; // Stop
+          }
+
+          // 2. Validar contra BD 
+          // Preparamos payload
+          const referenciaRaw = extraerReferenciaPlano(contenido);
+          if (!referenciaRaw) { mostrarModal("❌ No se detectó referencia válida.", "#B00042"); return; }
+          const referenciaNormalizada = referenciaRaw.toString().trim().toUpperCase();
+
+
+          let lote = null;
+          let caducidad = null;
+
+          const matchLote = contenido.match(/L[:>]\s*([A-Za-z0-9\-]+)/i);
+          lote = matchLote ? matchLote[1].trim() : null;
+
+          // Caducidad parsing
+          const matchCad = contenido.match(/C[:>]\s*(\d{4}-\d{2}-\d{2})/i); // Example regex
+          caducidad = matchCad ? matchCad[1] : null;
+
+          // Validation Call
+          mostrarLoader(true, "Validando QR...");
+          try {
+            // Construct payload for validating single item
+            const payloadVal = {
+              registros: [{
+                referencia: referenciaNormalizada,
+                lote: lote || "S/L",
+                timestamp: timestamp || Date.now(), // Fallback if no timestamp?
+                modo: "inventario" // Always 'entrada' for uniqueness check as agreed
+              }]
+            };
+
+            const respVal = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_qr", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": "Bearer " + API_KEY },
+              body: JSON.stringify(payloadVal)
+            });
+
+            const dataVal = await respVal.json();
+            ocultarLoader();
+
+            const resItem = dataVal.resultados?.[0]; // Get first result
+            if (resItem) {
+              if (resItem.status === "repetido") {
+                mostrarModal("❌ Este QR ya existe en el sistema (Repetido).", "#B00042");
+                sonidoError();
+                return;
+              }
+              if (resItem.status === "error") {
+                mostrarModal("❌ Error validando: " + (resItem.mensaje || "?"), "#B00042");
+                return;
+              }
+              // If status 'ok' or 'nuevo_producto' -> Proceed
+            }
+          } catch (e) {
+            console.error("Error validar_qr", e);
+            ocultarLoader();
+            mostrarModal("⚠️ Error conectando con validador. Se procederá localmente.", "#d97706");
+            // Fallback: Proceed? Or Block? Proceeding is risky but robust for offline.
+            // Taking risk to proceed.
+          }
+
+          // Proceed with local update logic...
+
 
           console.log("📌 modoCaptura:", modo, " | unidadCaptura:", unidad);
 
@@ -9264,10 +9592,10 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           const datos = extraerDatosQR(contenido) || {};
           console.log("🧩 extraerDatosQR() →", datos);
 
-          let referencia = datos.referencia || extraerReferenciaPlano(contenido);
-          let lote = datos.lote || null;
-          let caducidad = datos.caducidad || null;
-          let timestamp = datos.timestamp || extraerTimestampPlano(contenido);
+          referencia = datos.referencia || extraerReferenciaPlano(contenido);
+          lote = datos.lote || lote; // Use parsed lote if available, otherwise from datos
+          caducidad = datos.caducidad || caducidad; // Use parsed caducidad if available, otherwise from datos
+          // timestamp = datos.timestamp || extraerTimestampPlano(contenido); // Already extracted above
 
           console.log("🎯 referencia preliminar:", referencia, "| lote:", lote, "| caducidad:", caducidad, "| timestamp:", timestamp);
 
@@ -9288,7 +9616,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
             console.warn("⚠️ QR sin timestamp, no se puede validar duplicado por T:");
           }
 
-          const referenciaNormalizada = referencia.toString().trim().toUpperCase();
+          // const referenciaNormalizada = referencia.toString().trim().toUpperCase(); // Already calculated above
           console.log("🎯 referencia normalizada:", referenciaNormalizada);
 
           // 3) Buscar en la tabla de captura
@@ -9296,47 +9624,118 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           console.log("📊 Filas actuales en tablaCaptura:", filas.length);
 
           let encontrada = false;
-          const refsTabla = [];
+          let refExisteEnTabla = false;
+          let nombreAsociado = "";
 
-          filas.forEach((fila, idx) => {
-            const refFila = fila.children[2]?.textContent.trim();
+          const loteScanned = lote ? lote.toString().trim().toUpperCase() : "";
+
+          // Primero intentamos encontrar match exacto o "claimable"
+          for (const fila of filas) {
+            // NEW ORDER: (+) [0], Cant [1], Lote [2], Ref [3], Nombre [4], (x) [5]
+            const refFila = fila.children[3]?.textContent.trim();
             const refFilaNorm = (refFila ?? "").toString().trim().toUpperCase();
-            refsTabla.push(refFilaNorm);
-            console.log(`   • Fila ${idx}: "${refFilaNorm}" vs "${referenciaNormalizada}"`);
 
             if (refFilaNorm === referenciaNormalizada) {
-              const inputCantidad = fila.children[0]?.querySelector("input");
-              if (inputCantidad) {
-                const actual = parseFloat(inputCantidad.value) || 0;
-                const nueva = actual + 1;
-                inputCantidad.value = nueva.toString();
-                marcarComoCompletada(inputCantidad);
-                encontrada = true;
+              refExisteEnTabla = true;
+              nombreAsociado = fila.children[4]?.textContent.trim();
 
-                console.log("✅ Fila encontrada, cantidad actualizada a:", nueva);
+              const inputLote = fila.children[2]?.querySelector("input");
+              const loteFila = inputLote ? inputLote.value.trim().toUpperCase() : "";
 
-                // 🆕 Mover la fila al inicio porque proviene del escáner
-                moverFilaAlInicio(fila);
+              // MATCH LOGIC:
+              // 1. Exact match: Lote scan == Lote fila
+              // 2. Claim match: Lote scan exits AND Lote fila is empty
+              // 3. No-Lot match: Lote scan empty AND Lote fila empty
 
-                // Registrar inventario detallado
-                if (typeof actualizarInventarioDetallado === "function") {
-                  actualizarInventarioDetallado(referencia, lote, caducidad, 1);
+              const isExactMatch = (loteScanned === loteFila);
+              const isClaimable = (loteScanned !== "" && loteFila === "");
+
+              if (isExactMatch || isClaimable) {
+                const inputCantidad = fila.children[1]?.querySelector("input");
+                if (inputCantidad) {
+                  const actual = parseFloat(inputCantidad.value) || 0;
+                  const nueva = actual + 1;
+                  inputCantidad.value = nueva.toString();
+
+                  // If claimed, update lot
+                  if (isClaimable && inputLote) {
+                    inputLote.value = loteScanned;
+                  }
+
+                  marcarComoCompletada(inputCantidad);
+                  encontrada = true;
+                  moverFilaAlInicio(fila);
+
+                  // Add TS to row storage
+                  if (timestamp) {
+                    const inputTx = fila.querySelector(".row-timestamps");
+                    let txArr = [];
+                    try { txArr = JSON.parse(inputTx?.value || "[]"); } catch (e) { }
+                    txArr.push(timestamp);
+                    if (inputTx) inputTx.value = JSON.stringify(txArr);
+                    // Global set
+                    timestampsEscaneadosInventario.add(timestamp);
+                  }
+
+                  // Registrar inventario detallado ...
+                  if (typeof actualizarInventarioDetallado === "function") {
+                    actualizarInventarioDetallado(referencia, loteScanned || loteFila, caducidad, 1);
+                  }
+
+                  // Registrar timestamp
+                  // This is now handled by the block above
                 }
-
-                // Registrar timestamp
-                if (timestamp) {
-                  timestampsEscaneadosInventario.add(timestamp);
-                  console.log("⏱ timestamp registrado:", timestamp);
-                }
+                break; // Stop searching if found
               }
             }
-          });
+          }
 
           if (!encontrada) {
-            console.warn("⚠️ Referencia no encontrada en tablaCaptura. Unidad actual:", unidad);
-            console.log("📋 Referencias presentes en tablaCaptura:", refsTabla);
-            mostrarModal("❌ Esta referencia no está en la tabla de la unidad seleccionada.", "#B00042");
-            return;
+            if (refExisteEnTabla) {
+              // Existe la referencia pero con OTRO lote. Crear NUEVA fila para este lote.
+              const tbody = document.querySelector("#tablaCaptura tbody");
+
+              // Usamos la funcion que creamos (o inline logic si no esta disponible, pero asumimos que esta)
+              if (typeof agregarFilaCapturaUI === "function") {
+                agregarFilaCapturaUI(tbody, referencia, nombreAsociado, true, loteScanned);
+
+                // La fila se agrego al final, obtenemos la ultima
+                const nuevaFila = tbody.lastElementChild;
+
+                // Set cantidad to 1
+                const inputCantidad = nuevaFila.querySelector(".input-cantidad");
+                if (inputCantidad) {
+                  inputCantidad.value = "1";
+                  marcarComoCompletada(inputCantidad);
+                }
+
+                // Add TS to row storage
+                if (timestamp) {
+                  const inputTx = nuevaFila.querySelector(".row-timestamps");
+                  let txArr = [timestamp];
+                  if (inputTx) inputTx.value = JSON.stringify(txArr);
+                  timestampsEscaneadosInventario.add(timestamp);
+                }
+
+                moverFilaAlInicio(nuevaFila);
+                if (typeof actualizarInventarioDetallado === "function") {
+                  actualizarInventarioDetallado(referencia, loteScanned, caducidad, 1);
+                }
+                // This is now handled by the block above
+                // if (timestamp) timestampsEscaneadosInventario.add(timestamp);
+
+                console.log("✅ Nueva fila creada para Lote:", loteScanned);
+                encontrada = true; // Handled
+              } else {
+                console.error("❌ agregarFilaCapturaUI no definida");
+              }
+
+            } else {
+              // No existe la referencia en absoluto
+              console.warn("⚠️ Referencia no encontrada en tablaCaptura. Unidad actual:", unidad);
+              mostrarModal("❌ Esta referencia no está en la tabla de la unidad seleccionada.", "#B00042");
+              return;
+            }
           }
 
           // (Opcional) actualizar inputs visibles
@@ -9419,44 +9818,87 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           cerrarModalNIP();
         }
       });
+      function agruparCapturaPorReferencia(registros) {
+        const map = new Map();
 
-      function toggleFilasCompletadas(ocultar) {
-        document.querySelectorAll("#tablaCaptura tbody tr.completada").forEach(f => f.style.display = ocultar ? "none" : "");
-        localStorage.setItem("capturaPendiente", JSON.stringify(datosCaptura));
+        for (const r of registros) {
+          const ref = String(r.referencia || "").trim();
+          if (!ref) continue;
+
+          const entry = map.get(ref) || {
+            referencia: ref,
+            nombre: r.nombre || "",
+            cantidad: 0,
+            lote: "", // ya no importa como "principal"
+            timestamps: [],
+            tipo: r.tipo,
+            detalle_lotes: {}
+          };
+
+          entry.cantidad += Number(r.cantidad) || 0;
+
+          const dl = r.detalle_lotes || {};
+          for (const [lote, cant] of Object.entries(dl)) {
+            entry.detalle_lotes[lote] = (Number(entry.detalle_lotes[lote]) || 0) + (Number(cant) || 0);
+          }
+
+          if (Array.isArray(r.timestamps)) entry.timestamps.push(...r.timestamps);
+
+          map.set(ref, entry);
+        }
+
+        return Array.from(map.values());
+      }
+      function aplicarFiltrosTabla() {
+        const ocultarCompletados = document.getElementById("checkboxFilas")?.checked;
+        const ocultarLotes = document.getElementById("checkboxFilasLote")?.checked;
+
+        const filas = document.querySelectorAll("#tablaCaptura tbody tr");
+        filas.forEach(fila => {
+          let debeOcultar = false;
+
+          if (ocultarCompletados && fila.classList.contains("completada")) {
+            debeOcultar = true;
+          }
+
+          if (ocultarLotes && fila.classList.contains("lote-completo")) {
+            debeOcultar = true;
+          }
+
+          fila.style.display = debeOcultar ? "none" : "";
+        });
       }
 
       function marcarComoCompletada(input) {
         const fila = input.closest("tr");
-
-        // Nuevo orden: Cantidad | Nombre | Referencia
-        const nombre = fila.children[1]?.textContent.trim() || "";
-        const referencia = fila.children[2]?.textContent.trim() || "";
-
         const cantidad = parseFloat(input.value);
-        const tipo = document.getElementById("modoCaptura").value;
 
+        // Check Lote input
+        const inputLote = fila.querySelector(".input-lote"); // using class we added, or indices
+        const loteVal = inputLote ? inputLote.value.trim() : "";
+
+        // 1. Check Completada (Quantity > 0)
         if (!isNaN(cantidad) && cantidad > 0) {
           fila.classList.add("completada");
-
-          const ocultar = document.querySelector("input[type='checkbox'][onchange*='toggleFilasCompletadas']")?.checked;
-          if (ocultar) fila.style.display = "none";
         } else {
           fila.classList.remove("completada");
-          fila.style.display = "";
         }
 
-        // Actualizar o insertar en datosCaptura
-        const existente = datosCaptura.find(d => d.referencia === referencia);
-        if (existente) {
-          existente.cantidad = cantidad;
-          existente.tipo = tipo;
-          existente.nombre = nombre;
+        // 2. Check Lote Completo (Quantity > 0 AND Lote filled)
+        if (!isNaN(cantidad) && cantidad > 0 && loteVal.length > 0) {
+          fila.classList.add("lote-completo");
         } else {
-          // Solo guarda si hay referencia válida
-          if (referencia) datosCaptura.push({ referencia, nombre, cantidad, tipo });
+          fila.classList.remove("lote-completo");
         }
 
-        localStorage.setItem("capturaPendiente", JSON.stringify(datosCaptura));
+        // 3. Re-apply filters immediately
+        aplicarFiltrosTabla();
+
+        // 🔥 IMPORTANT: Use the centralized saver to ensure metadata (user, unit, etc) is saved correctly
+        // instead of manual/partial saving that breaks restoration.
+        if (typeof actualizarDatosCaptura === "function") {
+          actualizarDatosCaptura();
+        }
       }
 
       async function enviarCapturaBase() {
@@ -9478,18 +9920,18 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         const columna = `${tipoCorte}_${mes}_${anio}`;
 
         mostrarLoader(true, "Enviando datos al servidor…");
-
+        const registrosAgrupados = agruparCapturaPorReferencia(datosCaptura);
         try {
           const payload = {
             unidad,
             usuario,
-            registros: datosCaptura,
+            registros: registrosAgrupados,
             columna,
-            tabla: modo === "inventario" ? "consumos_mensuales" : modo
+            tabla: (modo === "inventario") ? "historicos" : "pruebas_facturadas"
           };
 
           console.log("📤 Enviando:", JSON.stringify(payload));
-
+          console.log("🧪 registros sample:", payload.registros.slice(0, 3));
           const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/guardar_captura", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -9754,19 +10196,13 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         cerrarModalReporteMensual();
         mostrarModal("⏳ Generando reporte...", "#0ea5e9");
 
-        const mesSeleccionado = `${anio}-${mes}`; // Formato "2024-08"
+        const mesSeleccionado = `${anio}-${mes}`; // "2026-02"
         const mesNum = parseInt(mes, 10);
         const anioNum = parseInt(anio, 10);
-        const mesAnterior = mesNum === 1 ? 12 : mesNum - 1;
-        const anioAnterior = mesNum === 1 ? anioNum - 1 : anioNum;
 
-        const colInventarioInicial = `25_${mesAnterior}_${anioAnterior}`;
-        const colInventarioCorte = `10_${mesNum}_${anioNum}`;
-        const colInventarioFinal = `25_${mesNum}_${anioNum}`;
-        const colPruebasFacturadas = `25_${mesNum}_${anioNum}`;
-
-        const colConsumoInicial = `10_${mesNum}_${anioNum}`;
-        const colConsumoCorte = `25_${mesNum}_${anioNum}`;
+        // Columnas (se mantienen como están)
+        const colInventarioCorte = `10_${mesNum}_${anioNum}`;       // inventario intermedio
+        const colPruebasFacturadas = `25_${mesNum}_${anioNum}`;     // pruebas del mes (corte 25)
 
         const proyectos = {
           "CHIH IMSS B.S.": ["C03126", "C03127", "C03128", "C03129", "C03130", "C03131", "C03132", "C03133", "C03134", "C03135"],
@@ -9780,55 +10216,142 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         try {
           const headers = { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` };
 
-          // --- NUEVA llamada adicional para traer consumos_mensuales ---
-          const [historicos, consumosMensuales, pruebasFacturadas] = await Promise.all([
-            fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/historicos?select=*", { headers }).then(r => r.json()),
-            fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/consumos_mensuales?select=*", { headers }).then(r => r.json()),
-            fetch("https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/pruebas_facturadas?select=*", { headers }).then(r => r.json())
-          ]);
+          // 1) Traer gasto mensual calculado (RPC)
+          const gastoRes = await fetch(
+            "https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/rpc/calcular_gasto_producto_mensual",
+            {
+              method: "POST",
+              headers: { ...headers, "Content-Type": "application/json" },
+              body: JSON.stringify({ p_mes: mesNum, p_anio: anioNum })
+            }
+          );
 
+          if (!gastoRes.ok) {
+            const t = await gastoRes.text();
+            throw new Error(`RPC gasto failed: ${gastoRes.status} ${t}`);
+          }
+
+          const gastoRows = await gastoRes.json();
+          console.log("📥 gastoRows:", gastoRows?.length);
+
+          // 2) Traer metadata de historicos (NO todo el histórico)
+          //    OJO: aquí traemos solo lo que usas en el excel + inventario del 10 del mes (intermedio)
+          //    Si no existe esa columna todavía, vendrá null y lo tratamos como 0.
+          const historicosRes = await fetch(
+            `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/historicos?select=unidad_medica,unidad_nombre,referencia,nombre,fabricante,presentacion,rendimiento,costo,inventario_objetivo,"${colInventarioCorte}"`,
+            { headers }
+          );
+
+          if (!historicosRes.ok) {
+            const t = await historicosRes.text();
+            throw new Error(`historicos fetch failed: ${historicosRes.status} ${t}`);
+          }
+
+          const historicosMeta = await historicosRes.json();
+          console.log("📥 historicosMeta:", historicosMeta?.length);
+
+          // 3) Traer pruebas facturadas (idealmente solo columna del 25 del mes)
+          const pruebasRes = await fetch(
+            `https://ldjrpfsbpcfninntffoj.supabase.co/rest/v1/pruebas_facturadas?select=unidad_medica,referencia,"${colPruebasFacturadas}"`,
+            { headers }
+          );
+
+          if (!pruebasRes.ok) {
+            const t = await pruebasRes.text();
+            throw new Error(`pruebas_facturadas fetch failed: ${pruebasRes.status} ${t}`);
+          }
+
+          const pruebasFacturadas = await pruebasRes.json();
+          console.log("📥 pruebasFacturadas:", pruebasFacturadas?.length);
+
+          // 4) Indexar para O(1) (no más .find() en loop)
+          const key = (u, r) => `${u}||${(r ?? "").toString().trim()}`;
+
+          const metaByKey = new Map();
+          for (const h of historicosMeta) {
+            metaByKey.set(key(h.unidad_medica, h.referencia), h);
+          }
+
+          const pruebasByKey = new Map();
+          for (const p of pruebasFacturadas) {
+            pruebasByKey.set(key(p.unidad_medica, p.referencia), p);
+          }
+
+          // 5) Construir filas desde gastoRows (que ya define el universo del reporte mensual)
           const filas = [];
 
-          for (const h of historicos) {
-            const proyecto = Object.entries(proyectos).find(([_, arr]) => arr.includes(h.unidad_medica))?.[0] || "";
-            const cliente = h.unidad_medica;
+          for (const g of gastoRows) {
+            const cliente = g.unidad_medica;
+            const ref = g.referencia;
+            const k = key(cliente, ref);
+
+            const h = metaByKey.get(k) || {};
+            const p = pruebasByKey.get(k) || {};
+
+            const proyecto = Object.entries(proyectos).find(([_, arr]) => arr.includes(cliente))?.[0] || "";
             const lineadenegocio = proyecto === "CHIH IMSS B.S." ? "BANCO SANGRE" : "LABORATORIO";
 
-            const inventarioInicial = parseFloat(h[colInventarioInicial] || 0);
-            const inventarioCorte = parseFloat(h[colInventarioCorte] || 0);
-            const inventarioFinal = parseFloat(h[colInventarioFinal] || 0);
-            const io = parseFloat(h.inventario_objetivo || 0);
-            const costoUnitario = parseFloat(h.costo || 0);
+            const inventarioInicial = Number(g.inv_inicial_25 || 0);
+            const inventarioCorte = Number(h[colInventarioCorte] || g.inv_intermedio_10 || 0); // preferimos historicos real del 10
+            const inventarioFinal = Number(g.inv_final_25 || 0);
+
+            const io = Number(h.inventario_objetivo || 0);
+            const costoUnitario = Number(h.costo || 0);
+
+            const entregadoInicial = Number(g.entregas_10 || 0); // entregas del 10 del mes
+            const entregadoCorte = Number(g.entregas_25 || 0);   // entregas del 25 del mes
+
             const productoSurtirInicial = io - inventarioInicial;
             const productoSurtirCorte = io - inventarioCorte;
 
-            // NUEVO cálculo de entregadoInicial y entregadoCorte desde consumos_mensuales:
-            const consumoMatch = consumosMensuales.find(c =>
-              c.referencia === h.referencia && c.unidad_medica === cliente
-            );
+            // Consumo INV 10 (periodo 25(prev)->10)
+            const consumoInv10 = Number(g.gasto_periodo_25a10 || 0);
 
-            const entregadoInicial = consumoMatch ? parseFloat(consumoMatch[colConsumoInicial] || 0) : 0;
-            const entregadoCorte = consumoMatch ? parseFloat(consumoMatch[colConsumoCorte] || 0) : 0;
+            // Producto consumido mensual (25(prev)->25(actual))
+            const productoConsumido = Number(g.gasto_mensual || 0);
 
-            // Las remisiones las dejamos vacías de momento
+            const costoConsumido = productoConsumido * costoUnitario;
+            const rendimiento = Number(h.rendimiento || 0);
+            const pruebasConsumidas = productoConsumido * rendimiento;
+
+            const pruebasFact = Number(p[colPruebasFacturadas] || 0);
+
+            // remisiones aún vacías (como lo tienes)
             const remisionInicial = "";
             const remisionCorte = "";
 
-            const consumoInv10 = inventarioInicial + entregadoInicial - inventarioCorte;
-            const productoConsumido = (inventarioInicial + entregadoInicial + entregadoCorte) - inventarioFinal;
-            const costoConsumido = productoConsumido * costoUnitario;
-            const pruebasConsumidas = productoConsumido * parseFloat(h.rendimiento || 0);
-            const pruebasFact = pruebasFacturadas.find(p => p.unidad_medica === cliente && p.referencia === h.referencia)?.[colPruebasFacturadas] || 0;
-
             filas.push([
-              proyecto, cliente, lineadenegocio, h.fabricante, h.unidad_nombre, h.referencia, h.nombre, h.presentacion, h.rendimiento,
-              costoUnitario, io, io * costoUnitario, inventarioInicial, productoSurtirInicial, entregadoInicial, remisionInicial,
-              inventarioCorte, consumoInv10, "", productoSurtirCorte, entregadoCorte, remisionCorte, inventarioFinal, productoConsumido,
-              costoConsumido, pruebasConsumidas, pruebasFact
+              proyecto,
+              cliente,
+              lineadenegocio,
+              h.fabricante || "",
+              h.unidad_nombre || "",
+              ref,
+              h.nombre || "",
+              h.presentacion || "",
+              h.rendimiento || "",
+              costoUnitario,
+              io,
+              io * costoUnitario,
+              inventarioInicial,
+              productoSurtirInicial,
+              entregadoInicial,
+              remisionInicial,
+              inventarioCorte,
+              consumoInv10,
+              "",
+              productoSurtirCorte,
+              entregadoCorte,
+              remisionCorte,
+              inventarioFinal,
+              productoConsumido,
+              costoConsumido,
+              pruebasConsumidas,
+              pruebasFact
             ]);
           }
 
-          // Generación real del Excel
+          // 6) Generación Excel
           const wb = XLSX.utils.book_new();
           const ws = XLSX.utils.aoa_to_sheet([
             ["Proyecto", "Cliente", "Lineadenegocio", "Proveedor", "Unidad Medica", "Clave de Producto", "Producto", "Unidad",
@@ -9840,7 +10363,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           ]);
           XLSX.utils.book_append_sheet(wb, ws, "Reporte");
 
-          const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
           const blob = new Blob([wbout], { type: "application/octet-stream" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -9852,8 +10375,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           URL.revokeObjectURL(url);
 
           mostrarModal("✅ Reporte descargado", "#16a34a");
-        }
-        catch (err) {
+        } catch (err) {
           console.error("❌ Error durante generación:", err);
           mostrarModal("❌ Error al generar el reporte", "#B00042");
         }
@@ -10270,8 +10792,12 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           const datos = Array.isArray(estado) ? estado : (estado.datos || []);
           const usuarioGuardado = estado.usuario || null;
 
-          // 1. Validar usuario (Seguridad)
-          if (usuarioGuardado && usuarioGuardado !== usuarioActivo) {
+          // 1. Validar usuario (Seguridad) - Case insensitive
+          const uGuardado = (usuarioGuardado || "").toUpperCase().trim();
+          const uActivo = (usuarioActivo || "").toUpperCase().trim();
+
+          if (uGuardado && uActivo && uGuardado !== uActivo) {
+            console.warn("⚠️ Borrador pertenece a otro usuario:", uGuardado, "vs", uActivo);
             return;
           }
 
@@ -10336,50 +10862,57 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         }
 
         // 3. Restaurar Datos (con espera un poco más larga y reintento)
-        // Aumentamos tiempo para asegurar que el DOM se pinte tras mostrarReferenciasUnidad
+        // Usamos una lógica más agresiva: Limpiar tabla y RECONSTRUIR TODO desde los datos guardados.
         setTimeout(() => {
           datosCaptura = datos;
-          const filas = document.querySelectorAll("#tablaCaptura tbody tr");
-          const mapaFilas = {};
 
-          // Indexar filas por referencia (normalizado)
-          filas.forEach(fila => {
-            // Asumiendo columna 2 es la referencia
-            const rawRef = fila.children[2]?.textContent || "";
-            const ref = rawRef.trim().toUpperCase();
-            if (ref) mapaFilas[ref] = fila;
-          });
-
-          console.log(`🔎 Filas en tabla encontradas: ${Object.keys(mapaFilas).length}`);
+          // Limpiar tabla actual para evitar dupes visuales si ya se pintó algo
+          const tabla = document.querySelector("#tablaCaptura tbody");
+          tabla.innerHTML = "";
 
           let recuperadosCount = 0;
-          datos.forEach(d => {
-            // Normalizar referencia del borrador también
-            const refBuscada = (d.referencia || "").trim().toUpperCase();
-            const fila = mapaFilas[refBuscada];
+          const isInventario = (modoGuardado === "inventario");
 
-            if (fila) {
-              const input = fila.querySelector("input");
-              if (input) {
-                input.value = d.cantidad;
-                marcarComoCompletada(input); // Actualiza visual y datos
-                recuperadosCount++;
+          datos.forEach(d => {
+            // Recrear fila usando la función UI
+            // agregarFilaCapturaUI(tabla, referencia, nombre, isInventario, loteVal="")
+            agregarFilaCapturaUI(tabla, d.referencia, d.nombre, isInventario, d.lote || "");
+
+            // Buscar la última fila agregada para setear cantidad y timestamps
+            const nuevaFila = tabla.lastElementChild;
+            if (nuevaFila) {
+              const inputCantidad = nuevaFila.querySelector(".input-cantidad");
+              if (inputCantidad) {
+                inputCantidad.value = d.cantidad;
+                marcarComoCompletada(inputCantidad);
               }
-            } else {
-              console.warn(`⚠️ No se encontró fila para referencia guardada: "${refBuscada}"`);
+
+              // Restore timestamps
+              const inputTx = nuevaFila.querySelector(".row-timestamps");
+              if (inputTx && Array.isArray(d.timestamps)) {
+                inputTx.value = JSON.stringify(d.timestamps);
+                // Add to global set too?
+                d.timestamps.forEach(ts => timestampsEscaneadosInventario.add(ts));
+              }
+
+              recuperadosCount++;
             }
           });
+
+          // Toggle empty state
+          const contenedorTabla = document.getElementById("contenedorTabla");
+          contenedorTabla.classList.toggle("hidden", recuperadosCount === 0);
 
           console.log(`✅ Recuperados final: ${recuperadosCount}`);
 
           if (recuperadosCount > 0) {
             document.getElementById("contenedorTabla").classList.remove("hidden");
-            mostrarModal(`✅ Sesión restaurada: ${recuperadosCount} registros recuperados.`, "#065f46");
+            mostrarModal(`✅ Sesión restaurada, registros recuperados.`, "#065f46");
           } else {
             mostrarModal("⚠️ No se pudieron vincular los datos guardados con la tabla actual.", "#d99b00");
           }
 
-        }, 500); // 500ms para dar tiempo al navegador de pintar la tabla masiva
+        }, 500); // 500ms wait
       }
 
       function mostrarModalConfirmacionRecuperacion(onConfirm, onCancel) {
@@ -10388,13 +10921,14 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         backdrop.className = "fixed inset-0 flex items-center justify-center z-[100] bg-black/80 backdrop-blur-sm transition-opacity duration-300 opacity-0";
 
         const card = document.createElement("div");
-        card.className = "bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl transform scale-95 transition-all duration-300 translate-y-4";
+        // Use space-card for consistency
+        card.className = "space-card border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl transform scale-95 transition-all duration-300 translate-y-4";
 
         card.innerHTML = `
             <div class="text-4xl mb-4 text-center">📂</div>
             <h3 class="text-xl font-bold text-white text-center mb-2">Recuperar trabajo</h3>
             <p class="text-sm text-white/70 text-center mb-6">
-                Hola <b>${usuarioActivo || "usuario"}</b>, encontramos datos pendientes de tu última sesión.<br>
+                Hola <b>${escapeHtml(usuarioActivo || "usuario")}</b>, encontramos datos pendientes de tu última sesión.<br>
                 ¿Deseas restaurarlos para continuar?
             </p>
             <div class="grid grid-cols-2 gap-3">
