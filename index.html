@@ -2707,7 +2707,15 @@
 
           qrScanner.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
+            {
+              fps: 10,
+              qrbox: (viewfinderWidth, viewfinderHeight) => {
+                // Calculate absolute square size
+                const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                const size = Math.floor(minEdge * 0.7); // 70% of the smaller edge
+                return { width: size, height: size };
+              }
+            },
             qrCodeMessage => {
               const ahora = Date.now();
               if (qrCodeMessage === ultimaLectura && ahora - tiempoUltimaLectura < 2000) {
