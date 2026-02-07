@@ -741,7 +741,8 @@
   <!-- =========================
       MODAL QR draggable (space)
       ========================= -->
-  <div id="modalQR" class="fixed top-5 right-4 z-[890] hidden cursor-move w-[280px] max-w-[90vw]">
+  <div id="modalQR"
+    class="fixed top-20 left-1/2 -translate-x-1/2 z-[890] hidden cursor-move w-[280px] max-w-[90vw] shadow-2xl rounded-2xl border border-white/10 bg-[#0f151a]">
     <div class="space-panel p-3" id="handleQR">
       <div class="flex items-center justify-between">
         <h2 class="text-center font-semibold text-sm text-white/80">Escanea un QR</h2>
@@ -2627,25 +2628,39 @@
 
         handle.onmousedown = function (e) {
           e.preventDefault();
+
+          // 1. Calculate current visual position before removing transform
+          const rect = el.getBoundingClientRect();
+
+          // 2. Remove transform (centering) and set absolute position
+          el.style.transform = "none";
+          el.style.left = rect.left + "px";
+          el.style.top = rect.top + "px";
+          el.style.right = "auto";
+          el.style.bottom = "auto";
+
+          // 3. Initialize drag offsets relative to the new absolute position
           mouseX = e.clientX;
           mouseY = e.clientY;
+
           document.onmouseup = detenerArrastre;
           document.onmousemove = moverElemento;
         };
 
         function moverElemento(e) {
           e.preventDefault();
-          offsetX = mouseX - e.clientX;
-          offsetY = mouseY - e.clientY;
+          // Calculate delta
+          const deltaX = e.clientX - mouseX;
+          const deltaY = e.clientY - mouseY;
+
+          // Update position
+          const rect = el.getBoundingClientRect();
+          el.style.left = (rect.left + deltaX) + "px";
+          el.style.top = (rect.top + deltaY) + "px";
+
+          // Update last mouse position
           mouseX = e.clientX;
           mouseY = e.clientY;
-
-          const rect = el.getBoundingClientRect();
-          el.style.top = (rect.top - offsetY) + "px";
-          el.style.left = (rect.left - offsetX) + "px";
-          el.style.bottom = "auto";
-          el.style.right = "auto";
-          el.style.position = "fixed";
         }
 
         function detenerArrastre() {
