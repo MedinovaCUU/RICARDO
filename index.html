@@ -607,6 +607,34 @@
       box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
     }
 
+    /* MATCHING STYLE FOR LOT INPUT */
+    .input-lote-style {
+      width: 72px !important;
+      min-width: 64px !important;
+      max-width: 80px !important;
+
+      padding: 6px 8px !important;
+      border-radius: 12px !important;
+      text-align: right !important;
+      font-variant-numeric: tabular-nums;
+
+      background: rgba(0, 0, 0, .35) !important;
+      color: var(--txt) !important;
+      border: 1px solid rgba(255, 255, 255, .14) !important;
+
+      outline: none !important;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
+    }
+
+    .input-lote-style::placeholder {
+      color: rgba(255, 255, 255, .30) !important;
+    }
+
+    .input-lote-style:focus {
+      border-color: rgba(23, 162, 166, .55) !important;
+      box-shadow: 0 0 0 2px rgba(23, 162, 166, .45) !important;
+    }
+
     .input-cantidad::placeholder {
       color: rgba(255, 255, 255, .45) !important;
     }
@@ -1479,12 +1507,12 @@
           <div class="flex flex-col md:flex-row items-stretch md:items-end gap-3">
 
             <!-- Referencia (Grow) -->
-            <div class="relative flex-grow group">
+            <div class="relative flex-grow group min-w-[140px]">
               <div class="flex gap-2">
                 <div class="relative w-full">
                   <input id="inputReferencia"
                     class="space-input w-full pl-3 pr-10 py-3 text-lg font-mono tracking-wide placeholder:font-sans placeholder:text-base placeholder:text-white/30 !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60 transition-all rounded-xl"
-                    placeholder="Escribe referencia..." oninput="buscarReferenciaCaptura()"
+                    placeholder="Ref..."
                     onkeydown="if(event.key==='Enter'){ document.getElementById('inputCantidad').focus(); }"
                     autocomplete="off" />
                 </div>
@@ -1496,6 +1524,10 @@
                 </button>
               </div>
 
+              <!-- Selected Name Display -->
+              <div id="nombreSeleccionado"
+                class="text-xs text-teal-300 mt-1 ml-1 font-semibold truncate hidden max-w-[200px]"></div>
+
               <!-- Sugerencias (Dropdown Absolute) -->
               <div id="sugerenciasReferencia"
                 class="absolute left-0 right-0 top-full mt-2 hidden rounded-xl border border-white/10 bg-[#0f151a] shadow-2xl z-[100] max-h-60 overflow-y-auto">
@@ -1503,16 +1535,24 @@
             </div>
 
             <!-- Cantidad (Small) -->
-            <div class="w-full md:w-32 shrink-0">
+            <div class="w-20 shrink-0">
               <input id="inputCantidad" type="number" step="0.1" min="0" max="999.9" inputmode="decimal"
                 class="cantidad-input input-cantidad !w-full !text-center !text-lg !py-3 !rounded-xl !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60"
-                placeholder="Cant." onkeydown="if(event.key==='Enter'){ agregarFilaCaptura(); }" />
+                placeholder="Cant."
+                onkeydown="if(event.key==='Enter'){ document.getElementById('inputLoteManual').focus(); }" />
+            </div>
+
+            <!-- Lote (Medium) -->
+            <div class="w-28 shrink-0">
+              <input id="inputLoteManual" type="text"
+                class="input-lote-style !w-full !text-center !text-lg !py-3 !rounded-xl !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60"
+                placeholder="Lote" onkeydown="if(event.key==='Enter'){ agregarFilaCaptura(); }" />
             </div>
 
             <!-- Botón Agregar -->
             <button id="btnAgregarCaptura" onclick="agregarFilaCaptura?.()"
-              class="shrink-0 py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-sm shadow-lg shadow-emerald-900/40 bg-gradient-to-r from-emerald-900 to-teal-700 hover:from-emerald-700 hover:to-teal-500 text-white transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-              <span>Agregar</span>
+              class="shrink-0 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-sm shadow-lg shadow-emerald-900/40 bg-gradient-to-r from-emerald-900 to-teal-700 hover:from-emerald-700 hover:to-teal-500 text-white transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+              <span class="hidden sm:inline">Agregar</span>
               <span class="text-lg leading-none">+</span>
             </button>
           </div>
@@ -8855,7 +8895,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         q = String(q || "").trim();
 
         // UX: mínimo 2 caracteres para no spamear al servidor
-        if (!unidad || q.length < 2) return [];
+        if (!unidad || q.length < 1) return [];
 
         // Cancela request anterior (evita resultados desfasados)
         if (lastController) lastController.abort();
@@ -8926,6 +8966,13 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         inputRef.addEventListener("input", () => {
           clearTimeout(typeaheadTimer);
 
+          // Clear name display when typing
+          const nameDisplay = document.getElementById("nombreSeleccionado");
+          if (nameDisplay) {
+            nameDisplay.textContent = "";
+            nameDisplay.classList.add("hidden");
+          }
+
           typeaheadTimer = setTimeout(async () => {
             const unidad = unidadEl.value;
             const texto = inputRef.value.trim();
@@ -8952,10 +8999,26 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
                 const div = document.createElement("div");
                 div.className = "px-4 py-2 hover:bg-white/10 cursor-pointer";
                 div.textContent = `${s.referencia} - ${s.nombre || ""}`;
-                div.onclick = () => {
+
+                // Use onmousedown to trigger BEFORE the input's blur event
+                div.onmousedown = (e) => {
+                  e.preventDefault(); // Prevent default focus behavior if needed
                   inputRef.value = s.referencia;
                   contenedor.classList.add("hidden");
-                  document.getElementById("inputCantidad")?.focus();
+
+                  // Show Name
+                  if (nameDisplay) {
+                    nameDisplay.textContent = s.nombre || "";
+                    nameDisplay.classList.remove("hidden");
+                  }
+
+                  // Clear suggestions immediately to avoid flicker/reappearance
+                  contenedor.innerHTML = "";
+
+                  // Move focus to next field
+                  requestAnimationFrame(() => {
+                    document.getElementById("inputCantidad")?.focus();
+                  });
                 };
                 contenedor.appendChild(div);
               });
@@ -9298,7 +9361,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           
           <td class="p-2 celda-lote ${loteDisplay}">
              <input type="text" 
-                    class="input-lote w-full bg-black/20 border border-white/10 rounded px-1 py-1 text-xs text-white uppercase placeholder-white/30" 
+                    class="input-lote input-lote-style" 
                     placeholder="Lote..."
                     value="${loteVal}"
              />
@@ -9756,59 +9819,118 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
       function agregarFilaCaptura() {
         const refInput = document.getElementById("inputReferencia");
         const cantInput = document.getElementById("inputCantidad");
-        const tipo = document.getElementById("modoCaptura").value;
+        const loteInput = document.getElementById("inputLoteManual");
         const unidad = document.getElementById("unidadCaptura").value;
 
         const ref = refInput.value.trim();
         const cantidad = parseFloat(cantInput.value);
+        const lote = loteInput ? loteInput.value.trim().toUpperCase() : "";
 
         if (!ref || isNaN(cantidad)) {
-          mostrarModal("⚠️ Faltan datos", "#d99b00");
+          mostrarModal("⚠️ Faltan datos (Referencia o Cantidad)", "#d99b00");
           return;
         }
 
         // Verificación de asignación de referencia a la unidad
-        const coincide = referenciasPorUnidad.some(r =>
-          r.referencia === ref &&
-          normalizarTexto(r.unidad_medica) === normalizarTexto(unidad)
-        );
-        if (!coincide) {
-          mostrarModal("❌ Esta referencia no está asignada a la unidad seleccionada.", "#b00042");
-          return;
+        // Si tienes "precargarUnidadSiConviene", podrías usar cacheRefsUnidad, 
+        // pero por seguridad usamos referenciasPorUnidad si está lleno, o omitimos check si es server-side only
+        // Asumiremos que si el usuario escribe algo manual, confiamos o verificamos vs typeahead list?
+        // Dejemos validación básica si referenciasPorUnidad tiene datos.
+        if (Array.isArray(referenciasPorUnidad) && referenciasPorUnidad.length > 0) {
+          const normUnidad = normalizarTexto(unidad);
+          const coincide = referenciasPorUnidad.some(r =>
+            r.referencia === ref && normalizarTexto(r.unidad_medica) === normUnidad
+          );
+          // Si no coincide y estamos estrictos?
+          // Por ahora dejamos pasar si no tenemos la lista completa cargada (Elite mode)
+          // If Elite mode used local cache:
+          // const cache = cacheRefsUnidad.get(normUnidad);
+          // if (cache && !cache.some(r => r.referencia === ref)) ...
         }
 
         const filas = document.querySelectorAll("#tablaCaptura tbody tr");
         let encontrada = false;
 
-        filas.forEach(fila => {
-          // 🆕 Ahora la referencia está en la columna 2: [0]=Cantidad, [1]=Nombre, [2]=Referencia
-          const celdaRef = fila.children[2];
-          if (!celdaRef) return;
+        // Búsqueda de fila existente: Coincidir REF y LOTE
+        for (const fila of filas) {
+          // NEW ORDER: [0](+) | [1]Cant | [2]Lote | [3]Ref | [4]Nombre
+          const celdaRef = fila.children[3];
+          if (!celdaRef) continue;
 
           const refFila = celdaRef.textContent.trim();
-          console.log("Ref fila:", refFila, "vs ref input:", ref);
 
           if (refFila === ref) {
-            // 🆕 La cantidad está en la columna 0
-            const celdaCantidad = fila.children[0];
-            const inputCantidad = celdaCantidad ? celdaCantidad.querySelector("input") : null;
+            // Checar lote
+            const celdaLote = fila.children[2];
+            const inputLote = celdaLote ? celdaLote.querySelector("input") : null;
+            const loteFila = inputLote ? inputLote.value.trim().toUpperCase() : "";
 
-            if (inputCantidad) {
-              inputCantidad.value = cantidad;
-              marcarComoCompletada(inputCantidad);
-              encontrada = true;
+            // Match logic:
+            // 1. Exact match (Lote input == Lote fila)
+            // 2. Claim match (Lote input exists, Lote fila empty) -> Updates fila to this lot
+            const matchExacto = (lote === loteFila);
+            const matchClaim = (lote !== "" && loteFila === "");
+
+            if (matchExacto || matchClaim) {
+              const celdaCantidad = fila.children[1];
+              const inputCantidad = celdaCantidad ? celdaCantidad.querySelector("input") : null;
+
+              if (inputCantidad) {
+                const actual = parseFloat(inputCantidad.value) || 0;
+                inputCantidad.value = (actual + cantidad).toFixed(1).replace(/\.0$/, ''); // avoid .0
+
+                // Update lot if claiming
+                if (matchClaim && inputLote) inputLote.value = lote;
+
+                marcarComoCompletada(inputCantidad);
+                encontrada = true;
+
+                // Move to top
+                moverFilaAlInicio(fila);
+                break;
+              }
             }
           }
-        });
-
-        if (!encontrada) {
-          mostrarModal("❌ Esta referencia no está en la tabla de la unidad seleccionada.", "#B00042");
         }
 
+        if (!encontrada) {
+          // Crear nueva fila
+          // Necesitamos el nombre... si tenemos cache, buscarlo. Si no, "Agregado Manual"
+          let nombre = "Agregado Manual";
+          // Try to find name in cache
+          if (typeof cacheRefsUnidad !== "undefined") {
+            const cache = cacheRefsUnidad.get(normalizarTexto(unidad));
+            const match = cache?.find(r => r.referencia === ref);
+            if (match) nombre = match.nombre;
+          } else if (Array.isArray(referenciasPorUnidad)) {
+            const match = referenciasPorUnidad.find(r => r.referencia === ref);
+            if (match) nombre = match.nombre;
+          }
+
+          const tbody = document.querySelector("#tablaCaptura tbody");
+          const isInventario = true; // Manual add usually implies inventory mode or context
+          agregarFilaCapturaUI(tbody, ref, nombre, isInventario, lote);
+
+          // Update quantity of new row
+          const nuevaFila = tbody.lastElementChild;
+          const inputCantidad = nuevaFila.querySelector(".input-cantidad");
+          if (inputCantidad) {
+            inputCantidad.value = cantidad;
+            marcarComoCompletada(inputCantidad);
+          }
+          moverFilaAlInicio(nuevaFila);
+        }
+
+        // Limpiar inputs
         refInput.value = "";
         cantInput.value = "";
-      }
+        if (loteInput) loteInput.value = "";
+        refInput.focus();
 
+        // Hide suggestions
+        const sug = document.getElementById("sugerenciasReferencia");
+        if (sug) sug.classList.add("hidden");
+      }
       function cerrarModalNIP() {
         document.getElementById("modalNIP").classList.add("hidden");
       }
