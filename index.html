@@ -748,9 +748,6 @@
         <button onclick="cerrarModalQR()" class="text-red-900 hover:text-red-600 font-bold text-xl px-2">×</button>
       </div>
       <div id="qr-reader" class="w-full mt-2"></div>
-      <div class="mt-3 flex justify-end">
-        <button onclick="cerrarModalQR()" class="space-btn-ghost text-sm">Cerrar</button>
-      </div>
     </div>
   </div>
 
@@ -2710,7 +2707,7 @@
 
           qrScanner.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: 220 },
+            { fps: 10, qrbox: 200, aspectRatio: 1.0 },
             qrCodeMessage => {
               const ahora = Date.now();
               if (qrCodeMessage === ultimaLectura && ahora - tiempoUltimaLectura < 2000) {
