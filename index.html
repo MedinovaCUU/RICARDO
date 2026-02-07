@@ -1534,27 +1534,31 @@
               </div>
             </div>
 
-            <!-- Cantidad (Small) -->
-            <div class="w-20 shrink-0">
-              <input id="inputCantidad" type="number" step="0.1" min="0" max="999.9" inputmode="decimal"
-                class="cantidad-input input-cantidad !w-full !text-center !text-lg !py-3 !rounded-xl !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60"
-                placeholder="Cant."
-                onkeydown="if(event.key==='Enter'){ document.getElementById('inputLoteManual').focus(); }" />
-            </div>
+            <!-- Controls Row (Qty + Lot + Btn) -->
+            <div class="flex flex-row items-end gap-2 w-full md:w-auto justify-between md:justify-start">
 
-            <!-- Lote (Medium) -->
-            <div class="w-28 shrink-0">
-              <input id="inputLoteManual" type="text"
-                class="input-lote-style !w-full !text-center !text-lg !py-3 !rounded-xl !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60"
-                placeholder="Lote" onkeydown="if(event.key==='Enter'){ agregarFilaCaptura(); }" />
-            </div>
+              <!-- Cantidad (Small) -->
+              <div class="w-20 shrink-0">
+                <input id="inputCantidad" type="number" step="0.1" min="0" max="999.9" inputmode="decimal"
+                  class="cantidad-input input-cantidad !w-full !text-center !text-lg !py-3 !rounded-xl !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60"
+                  placeholder="Cant."
+                  onkeydown="if(event.key==='Enter'){ document.getElementById('inputLoteManual').focus(); }" />
+              </div>
 
-            <!-- Botón Agregar -->
-            <button id="btnAgregarCaptura" onclick="agregarFilaCaptura?.()"
-              class="shrink-0 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-sm shadow-lg shadow-emerald-900/40 bg-gradient-to-r from-emerald-900 to-teal-700 hover:from-emerald-700 hover:to-teal-500 text-white transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-              <span class="hidden sm:inline">Agregar</span>
-              <span class="text-lg leading-none">+</span>
-            </button>
+              <!-- Lote (Flexible on mobile) -->
+              <div class="flex-grow md:w-28 md:flex-none min-w-[80px]">
+                <input id="inputLoteManual" type="text"
+                  class="input-lote-style !w-full !text-center !text-lg !py-3 !rounded-xl !bg-black/40 !border-white/10 focus:!border-teal-500/50 focus:!bg-black/60"
+                  placeholder="Lote" onkeydown="if(event.key==='Enter'){ agregarFilaCaptura(); }" />
+              </div>
+
+              <!-- Botón Agregar -->
+              <button id="btnAgregarCaptura" onclick="agregarFilaCaptura?.()"
+                class="shrink-0 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-sm shadow-lg shadow-emerald-900/40 bg-gradient-to-r from-emerald-900 to-teal-700 hover:from-emerald-700 hover:to-teal-500 text-white transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                <span class="hidden sm:inline">Agregar</span>
+                <span class="text-lg leading-none">+</span>
+              </button>
+            </div>
           </div>
         </div>
 
