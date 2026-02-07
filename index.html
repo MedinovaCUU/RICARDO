@@ -2707,7 +2707,7 @@
 
           qrScanner.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: 200, aspectRatio: 1.0 },
+            { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
             qrCodeMessage => {
               const ahora = Date.now();
               if (qrCodeMessage === ultimaLectura && ahora - tiempoUltimaLectura < 2000) {
