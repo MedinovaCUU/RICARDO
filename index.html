@@ -2887,6 +2887,7 @@
         const modalPin = document.getElementById("modalPinUnidad");
 
         const nip = (elNip?.value || "").trim();
+        window.usuarioNip = nip; // ✅ Guardar NIP crudo INMEDIATAMENTE
         nipAdmin = nip;
 
         const unidad = (elUnidad?.value || "").trim().toUpperCase();
@@ -3057,6 +3058,7 @@
           // Set globals
           usuario = data.nombre;
           window.usuario = usuario;
+          window.usuarioNip = nip; // ✅ Guardamos el NIP validado para usarlo después
 
           esAdmin = data.es_admin;
           usuarioAdmin = (esAdmin === true);
@@ -8749,20 +8751,62 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
               console.log("📧 [PREP] Generando evidencia de preparación...");
               const sb = window.getSB?.();
 
-              // Recuperamos meta del usuario actual para el NIP
-              const meta = await getUsuarioMetaActual();
+              // Intentamos recuperar meta, pero usamos fallback si falla
+              const meta = await getUsuarioMetaActual().catch(e => null);
 
-              if (sb && meta?.nip) {
+              // Fallback robusto para NIP
+              const nipInputVal = document.getElementById("inputNIP")?.value || "";
+              const nipInputVal2 = document.getElementById("nipInput")?.value || ""; // ✅ Checar ambos inputs
+
+              const nipToSend = nipInputVal.trim()
+                || nipInputVal2.trim()
+                || meta?.nip
+                || window.usuarioNip
+                || window.usuario
+                || window.usuarioActivo
+                || "DESCONOCIDO";
+
+              console.log(`📧 [PREP] Identificador usado: ${nipToSend}`);
+              // DEBUG VISUAL PARA EL USUARIO
+              mostrarModal(`📧 DEBUG NIP: ${nipToSend}`, "#555");
+
+              if (sb) {
                 // Normalizamos remisión
                 const remisionNorm = normalizarRemision(remisionActual);
+
+                // Helper local para sanitizar (por si el global fue borrado)
+                const sanitize = (str) => {
+                  if (!str) return "";
+                  return String(str)
+                    .replace(/≤/g, "<=")
+                    .replace(/≥/g, ">=")
+                    .replace(/≠/g, "!=")
+                    .replace(/[‘’]/g, "'")
+                    .replace(/[“”]/g, '"')
+                    .replace(/–/g, "-")
+                    .replace(/—/g, "-")
+                    .replace(/…/g, "...")
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                };
+
+                // Preparamos líneas manuales si no hay pedido
+                const lineasManuales = registros.map(r => ({
+                  referencia: sanitize(r.referencia),
+                  descripcion: sanitize(r.nombre || r.descripcion),
+                  cantidad: Number(r.cantidad) || 0,
+                  lote: sanitize(r.lote),
+                  caducidad: r.caducidad
+                }));
 
                 const { data, error } = await sb.functions.invoke("generar_evidencia", {
                   body: {
                     modulo: "preparacion",
-                    nip: meta.nip,
+                    nip: nipToSend,
                     extra: {
                       numero_remision: remisionNorm,
-                      pedido_id: window.prepPedidoActual?.id
+                      pedido_id: window.prepPedidoActual?.id,
+                      usuario_nombre: window.usuario, // Debug extra
+                      lineas_manuales: lineasManuales // ✅ Enviamos lo escaneado para armar el PDF
                     }
                   }
                 });
@@ -8774,7 +8818,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
                   mostrarModal("📧 Evidencia enviada por correo", "#0ea5e9");
                 }
               } else {
-                console.warn("⚠️ [PREP] No se pudo generar evidencia (Falta SB o NIP)");
+                console.warn("⚠️ [PREP] No se pudo generar evidencia (Falta SB client)");
               }
             } catch (eviErr) {
               console.error("❌ [PREP] Excepción generando evidencia:", eviErr);
@@ -8841,6 +8885,8 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         mostrarLoader(true, "Validando NIP y cargando unidades…");
         try {
           const nip = document.getElementById("nipInput").value.trim();
+          window.usuarioNip = nip; // ✅ Guardar NIP globalmente también aquí
+
           const res = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_nip", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -9200,7 +9246,8 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           console.log("📦 fila → ref:", referencia, "| nombre:", nombre, "| cantidad:", cantidad, "| lote:", loteKey, "| ts:", timestamps.length);
 
           if (!referencia) return;
-          if (!Number.isFinite(cantidad) || cantidad <= 0) return;
+          // PERMITIR 0 si el usuario requiere resetear/corregir
+          if (!Number.isFinite(cantidad) || cantidad < 0) return;
 
           // detalle_lotes: tu estructura actual (por fila = 1 lote)
           const detalle_lotes = { [loteKey]: cantidad };
@@ -10085,6 +10132,26 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
       }
 
       async function enviarCapturaBase() {
+        // ✅ 1. PRE-LENADO DE VALORES VACÍOS EN TABLA
+        // Para que se manden como 0 o S/L explícitamente y el usuario lo vea
+        const filas = document.querySelectorAll("#tablaCaptura tbody tr");
+        filas.forEach(fila => {
+          const inputCantidad = fila.children[1]?.querySelector("input");
+          const inputLote = fila.children[2]?.querySelector("input");
+
+          if (inputCantidad && inputCantidad.value.trim() === "") {
+            inputCantidad.value = "0";
+          }
+          if (inputLote && inputLote.value.trim() === "") {
+            inputLote.value = "S/L";
+          }
+        });
+
+        // ✅ 2. ACTUALIZAR ESTADO (leer tabla recién llenada)
+        if (typeof actualizarDatosCaptura === "function") {
+          actualizarDatosCaptura();
+        }
+
         if (!datosCaptura.length) return alert("No hay datos que enviar.");
 
         const unidad = document.getElementById("unidadCaptura").value;
@@ -10137,7 +10204,15 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
                   const meta = await getUsuarioMetaActual().catch(e => null);
 
                   // Fallback para nip
-                  const nipToSend = meta?.nip
+                  // 1. Input directo (lo que acaba de usar para loguearse/validar)
+                  // 2. Meta (si ya lo tenemos)
+                  // 3. Global (si se guardó)
+                  const nipInputVal = document.getElementById("inputNIP")?.value || "";
+                  const nipInputVal2 = document.getElementById("nipInput")?.value || ""; // ✅ Checar ambos inputs
+
+                  const nipToSend = nipInputVal.trim()
+                    || nipInputVal2.trim()
+                    || meta?.nip
                     || window.usuarioNip
                     || usuario
                     || window.usuarioActivo
@@ -10147,7 +10222,17 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
                   const colFecha = columna;         // ej. "10_6_2025" o "25_6_2025"
                   const colLotes = `L_${columna}`;  // ej. "L_10_6_2025"
 
-                  console.log(`📧 [INV] Identificador usado: ${nipToSend}`);
+                  // console.log(`📧 [INV] Identificador usado: ${nipToSend}`);
+                  // DEBUG VISUAL PARA EL USUARIO
+                  // mostrarModal(`📧 DEBUG NIP: ${nipToSend}`, "#555");
+                  console.log(`📧 [INV] Payload evidencia:`, {
+                    modulo: "inventario",
+                    nip: nipToSend,
+                    unidad_medica: unidad,
+                    col_fecha: colFecha,
+                    col_lotes: colLotes,
+                    extra: { usuario_nombre: usuario }
+                  });
 
                   if (sb) {
                     const { data, error } = await sb.functions.invoke("generar_evidencia", {
@@ -10156,12 +10241,28 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
                         nip: nipToSend,
                         unidad_medica: unidad, // Variable local de la función
                         col_fecha: colFecha,
-                        col_lotes: colLotes
+                        col_lotes: colLotes,
+                        extra: {
+                          usuario_nombre: usuario
+                        }
                       }
                     });
 
-                    if (error) console.error("❌ [INV] Error evidencia:", error);
-                    else {
+                    if (error) {
+                      console.error("❌ [INV] Error evidencia (Obj):", error);
+                      console.error("❌ [INV] Error msg:", error.message);
+
+                      // Intentar leer el cuerpo de la respuesta para ver el error real del backend
+                      if (error.context && typeof error.context.json === "function") {
+                        error.context.json().then(serverErr => {
+                          console.error("❌ [INV] Server Error Body:", serverErr);
+                        }).catch(() => {
+                          error.context.text().then(serverTxt => {
+                            console.error("❌ [INV] Server Error Text:", serverTxt);
+                          });
+                        });
+                      }
+                    } else {
                       console.log("✅ [INV] Evidencia generada:", data);
                       mostrarModal("📧 Evidencia enviada por correo", "#0ea5e9");
                     }
