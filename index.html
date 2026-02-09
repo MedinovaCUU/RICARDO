@@ -742,7 +742,7 @@
       MODAL QR draggable (space)
       ========================= -->
   <div id="modalQR"
-    class="fixed top-5 left-1/2 -translate-x-1/2 z-[890] hidden cursor-move w-[280px] max-w-[90vw] shadow-2xl rounded-2xl border border-white/10 bg-[#0f151a]">
+    class="fixed top-20 left-1/2 -translate-x-1/2 z-[890] hidden cursor-move w-[280px] max-w-[90vw] shadow-2xl rounded-2xl border border-white/10 bg-[#0f151a]">
     <div class="space-panel p-3" id="handleQR">
       <div class="flex items-center justify-between">
         <h2 class="text-center font-semibold text-sm text-white/80">Escanea un QR</h2>
@@ -1243,27 +1243,39 @@
             </table>
           </div>
         </div>
-        <button id="btnEnviarSupabase" onclick="enviarSupabase()"
-          class="hidden mt-4 w-full bg-teal-900 text-white py-2 rounded-2xl">
-          Enviar a Base de Datos
-        </button>
+        <div id="contenedorBotonEnviar" class="hidden mt-8 transition-all duration-500">
+          <button id="btnEnviarSupabase" onclick="enviarSupabase()"
+            class="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-600 p-[1px] shadow-lg shadow-teal-500/40 transition-all hover:scale-[1.02] hover:shadow-teal-400/60 focus:outline-none focus:ring-4 focus:ring-teal-500/30">
+            <div
+              class="relative flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-700 px-6 py-4 transition-all group-hover:bg-opacity-0">
+              <span class="text-2xl animate-bounce">☁️</span>
+              <div class="text-left">
+                <div class="text-lg font-bold text-white shadow-black drop-shadow-md">Finalizar y Guardar</div>
+                <div class="text-[10px] font-medium text-teal-100 uppercase tracking-wider">Subir Datos</div>
+              </div>
+            </div>
+          </button>
+          <p class="mt-3 text-center text-xs text-white/50">
+            Al finalizar, asegúrate de tener conexión a internet.
+          </p>
+        </div>
 
 
         <div id="resumenEscaneos" class="hidden mt-6 space-card p-3 rounded-2xl text-sm text-white/85"></div>
 
-        <div id="tablaContenedora" class="hidden opacity-0 transition-opacity duration-300 mt-4">
-          <div class="space-card rounded-2xl overflow-hidden border border-white/10">
-            <table class="min-w-full text-sm text-left" id="tablaRegistros">
-              <thead>
-                <tr class="bg-white/5 text-white/80">
-                  <th class="p-2">Referencia</th>
-                  <th class="p-2">Lote</th>
-                  <th class="p-2">Estado</th>
-                  <th class="p-2 text-center">Eliminar</th>
-                </tr>
-              </thead>
-              <tbody id="tablaRegistrosBody"></tbody>
-            </table>
+        <div id="tablaContenedora" class="hidden opacity-0 transition-all duration-500 mt-6">
+          <div class="space-card rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/20">
+            <div class="px-4 py-3 border-b border-white/5 bg-white/5 flex items-center justify-between">
+              <span class="text-sm font-bold text-white/90 uppercase tracking-wider">Registros en Cola</span>
+              <span id="badgeCount"
+                class="bg-teal-900/40 text-white/90 text-xs px-2 py-0.5 rounded-full border border-teal-500/30">0</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left" id="tablaRegistros">
+                <!-- Header will be injected by JS -->
+                <tbody id="tablaRegistrosBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -2075,7 +2087,7 @@
         // 🔥 CLAVE: NO ABRAS modalPreparacion aquí
         // abrirModalPreparacion();
       }
-
+      let prepListenersReady = false;
       function abrirModalPreparacion() {
         const modalModo = document.getElementById("modalModo");
         if (modalModo) modalModo.classList.add("hidden");
@@ -2117,12 +2129,12 @@
           syncRemision();
         };
 
-        // evita listeners duplicados si abren/cerran varias veces
-        inpE?.addEventListener("input", updatePrev, { once: false });
-        inpR?.addEventListener("input", updatePrev, { once: false });
-
+        if (!prepListenersReady) {
+          inpE?.addEventListener("input", updatePrev);
+          inpR?.addEventListener("input", updatePrev);
+          prepListenersReady = true;
+        }
         updatePrev();
-        setTimeout(() => inpE?.focus(), 50);
       }
 
       function cerrarModalPreparacion() {
@@ -3121,7 +3133,8 @@
           return;
         } finally {
           const contenedorQR = document.getElementById("contenedorQR");
-          const btnEnviar = document.getElementById("btnEnviarSupabase");
+          // CAMBIO: Toggleamos el contenedor
+          const contenedorBtn = document.getElementById("contenedorBotonEnviar");
           const btnCerrar = document.getElementById("btnCerrarSesion");
 
           const activo = !!modo && modo !== "inactivo";
@@ -3129,11 +3142,17 @@
 
           if (!activo) {
             contenedorQR?.classList.add("hidden");
-            btnEnviar?.classList.add("hidden");
+            contenedorBtn?.classList.add("hidden");
             btnCerrar?.classList.add("hidden");
           } else {
             contenedorQR?.classList.remove("hidden");
-            btnEnviar?.classList.remove("hidden");
+            // Nota: En modo basurero lo forzamos arriba, pero aqui lo dejamos general
+            // Ojo: Tal vez queramos que solo se muestre si hay registros? 
+            // El comportamiento original era mostrarlo siempre que hubiera modo activo?
+            // Revisando el codigo original: `btnEnviar?.classList.remove("hidden");` al activar modo.
+            // Asi que sí, lo mostramos.
+            contenedorBtn?.classList.remove("hidden");
+
             btnCerrar?.classList.remove("hidden");
             if (typeof enfocarInputQR === "function") enfocarInputQR();
           }
@@ -3535,32 +3554,39 @@
         modal.style.boxSizing = "border-box";
 
         const contenido = document.createElement("div");
-        contenido.style.backgroundColor = "white";
-        contenido.style.padding = "1.5rem";
-        contenido.style.borderRadius = "1rem";
-        contenido.style.boxShadow = "0 0 20px rgba(0,0,0,0.3)";
-        contenido.style.width = "100%";
-        contenido.style.maxWidth = "500px";
+        // Usamos space-card para el estilo
+        contenido.className = "space-card p-6 w-full max-w-[500px] mx-4 shadow-2xl";
         contenido.style.boxSizing = "border-box";
         contenido.innerHTML = `
-    <h2 style="font-size: 1.25rem; font-weight: bold; text-align: center; color: #B00042; margin-bottom: 1rem;">🧪 Muestreo de Calidad</h2>
-    <p style="margin-bottom: 0.5rem; color: #B00042; font-weight: bold;">
+    <h2 class="text-xl font-bold text-center text-rose-700 mb-4">🧪 Muestreo de Calidad</h2>
+    <p class="mb-4 text-rose-600 font-semibold text-sm text-center">
       ⚠️ <b>IMPORTANTE:</b> NO uses la etiqueta. 
-      Ingresa los datos impresos directamente en el envase o empaque original del producto.
+      Ingresa los datos impresos directamente en el envase o empaque original.
     </p>
-    <label style="color: black;"><b>Referencia:</b> Escribe la clave o número como aparece en el empaque.</label>
-    <input id="input_ref_validar" type="text" placeholder="Ej: 547321" style="width: 100%; color: black; padding: 0.5rem; margin-bottom: 0.5rem;">
-    <label style="color: black;"><b>Lote:</b> Captura el lote visible en el producto (no en la etiqueta).</label>
-    <input id="input_lote_validar" type="text" placeholder="Ej: A23B56" style="width: 100%; color: black; padding: 0.5rem; margin-bottom: 0.5rem;">
-    <label style="color: black;"><b>Caducidad:</b> Ingresa la fecha como viene impresa, o marca "Sin caducidad" si aplica.</label>
-    <input id="input_cad_validar" type="date" style="width: 100%; color: black; padding: 0.5rem; margin-bottom: 0.5rem;">
-    <div style="display:flex; align-items:center; margin-bottom: 1rem;">
-      <input id="cad_no_aplica" type="checkbox" style="margin-right: 0.5rem;" onchange="toggleCaducidadInput(this)">
-      <label for="cad_no_aplica" style="color:black; margin:0;">Sin caducidad / No aplica</label>
+
+    <label class="block text-white/80 text-sm mb-1 font-medium">Referencia (Empaque)</label>
+    <input id="input_ref_validar" type="text" placeholder="Ej: 547321" class="space-input mb-3">
+
+    <label class="block text-white/80 text-sm mb-1 font-medium">Lote (Producto)</label>
+    <input id="input_lote_validar" type="text" placeholder="Ej: A23B56" class="space-input mb-3">
+
+    <label class="block text-white/80 text-sm mb-1 font-medium">Caducidad</label>
+    <input id="input_cad_validar" type="date" class="space-input mb-3">
+
+    <div class="flex items-center mb-6">
+      <input id="cad_no_aplica" type="checkbox" class="w-5 h-5 accent-emerald-500 mr-2" onchange="toggleCaducidadInput(this)">
+      <label for="cad_no_aplica" class="text-white/80 text-sm select-none">Sin caducidad / No aplica</label>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-      <button onclick="validarMuestreo('${producto.referencia}','${producto.lote}','${producto.caducidad}')" style="padding: 0.5rem; background-color: #15803d; color: white; font-weight: bold; border: none; border-radius: 5rem;">Validar</button>
-      <button onclick="cancelarMuestreo()" style="padding: 0.5rem; background-color: #B00042; color: white; font-weight: bold; border: none; border-radius: 5rem;">Omitir</button>
+
+    <div class="flex flex-col gap-3">
+      <button onclick="validarMuestreo('${producto.referencia}','${producto.lote}','${producto.caducidad}')" 
+        class="w-full py-3 bg-emerald-900 hover:bg-emerald-800 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-900/40">
+        Validar
+      </button>
+      <button onclick="cancelarMuestreo()" 
+        class="w-full py-3 bg-rose-900/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-200 font-bold rounded-xl transition">
+        Omitir
+      </button>
     </div>
   `;
 
@@ -8445,33 +8471,39 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           setTimeout(() => contenedor.classList.add("hidden"), 500);
         }
 
-        // Encabezado con columna extra de Timestamp
-        tabla.innerHTML = `
-    <thead>
+        // Encabezado con estilo "Space"
+        const thead = `
+    <thead class="bg-white/5 text-xs uppercase text-white/50 font-medium tracking-wider">
       <tr>
-        <th class="p-1">Referencia</th>
-        <th class="p-1">Lote</th>
-        <th class="p-1">Timestamp</th>
-        <th class="p-1 text-center">Eliminar</th>
+        <th class="px-4 py-3">Referencia</th>
+        <th class="px-4 py-3">Lote</th>
+        <th class="px-4 py-3">Timestamp</th>
+        <th class="px-4 py-3 text-right">Acción</th>
       </tr>
     </thead>
   `;
 
-        // Filas de la tabla contenedora
+        let rowsHTML = "";
         qrsPendientes.forEach((qr, index) => {
-          const fila = document.createElement("tr");
-          fila.dataset.index = index;
-          fila.innerHTML = `
-      <td class="p-1">${qr.referencia}</td>
-      <td class="p-1">${qr.lote}</td>
-      <td class="p-1">${qr.timestamp || ""}</td>
+          let hora = qr.timestamp ? (qr.timestamp.split(" ")[1] || qr.timestamp) : "--:--";
 
-      <td class="p-1 text-center">
-        <button onclick="eliminarFila(this)" class="bg-red-600 hover:bg-red-900 text-white px-2 rounded-xl">X</button>
-      </td>
-    `;
-          tabla.appendChild(fila);
+          rowsHTML += `
+      <tr class="hover:bg-white/5 transition-colors group border-b border-white/5 last:border-0" data-index="${index}">
+        <td class="px-4 py-3 font-medium text-white/90">${qr.referencia}</td>
+        <td class="px-4 py-3 text-white/90">${qr.lote}</td>
+        <td class="px-4 py-3 text-white/40 text-xs font-mono">${hora}</td>
+        <td class="px-4 py-3 text-right">
+          <button onclick="eliminarFila(this)" 
+            class="p-2 rounded-lg text-rose-400 hover:text-white hover:bg-rose-500/20 transition-all opacity-60 group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-rose-500/40">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </td>
+      </tr>`;
         });
+
+        tabla.innerHTML = thead + `<tbody class="divide-y divide-white/5">${rowsHTML}</tbody>`;
 
         // === Generar resumen como tabla ===
         if (resumenDiv) {
@@ -8482,36 +8514,38 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
               conteo[clave] = (conteo[clave] || 0) + 1;
             });
 
-            let html = `
-      <strong>Resumen:</strong>
-      <table class="w-full mt-2 border border-gray-300 text-sm text-center bg-white/80 rounded-xl overflow-hidden">
-        <thead class="bg-teal-900 text-white">
-          <tr>
-            <th class="p-1">Referencia</th>
-            <th class="p-1">Lote</th>
-            <th class="p-1">Cantidad</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
+            const entries = Object.entries(conteo);
 
-            for (const clave in conteo) {
-              const [ref, lote] = clave.split("||");
-              html += `
-        <tr>
-          <td class="p-1">${ref}</td>
-          <td class="p-1">${lote}</td>
-          <td class="p-1 font-bold">${conteo[clave]}</td>
-        </tr>
-      `;
-            }
+            let resumenHTML = `
+            <div class="px-1 mb-2 text-xs font-bold text-white/90 uppercase tracking-wider flex items-center gap-2">
+               Resumen de Lotes
+            </div>
+            <div class="border border-white/10 rounded-xl overflow-hidden bg-black/20">
+              <table class="w-full text-sm">
+                <thead class="bg-white/5 text-white/50 text-xs uppercase">
+                  <tr>
+                    <th class="px-3 py-2 text-left font-medium">Ref</th>
+                    <th class="px-3 py-2 text-left font-medium">Lote</th>
+                    <th class="px-3 py-2 text-center font-medium">Cant.</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+            `;
 
-            html += `
-        </tbody>
-      </table>
-    `;
+            entries.forEach(([key, quantity]) => {
+              const [ref, lot] = key.split("||");
+              resumenHTML += `
+                  <tr class="text-white/80">
+                    <td class="px-3 py-2 font-medium text-white/90">${ref}</td>
+                    <td class="px-3 py-2">${lot}</td>
+                    <td class="px-3 py-2 text-center font-bold text-white">${quantity}</td>
+                  </tr>
+                `;
+            });
 
-            resumenDiv.innerHTML = html;
+            resumenHTML += `</tbody></table></div>`;
+
+            resumenDiv.innerHTML = resumenHTML;
             resumenDiv.classList.remove("hidden");
           } else {
             resumenDiv.classList.add("hidden");
@@ -8708,6 +8742,45 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
 
           mostrarModal("📦 Productos enviados correctamente", "#22c55e");
           console.log("🎉 [SUPABASE] TODOS los productos enviados correctamente.");
+
+          // === GENERACIÓN DE EVIDENCIA (PREPARACIÓN) ===
+          if (modo === "preparacion") {
+            try {
+              console.log("📧 [PREP] Generando evidencia de preparación...");
+              const sb = window.getSB?.();
+
+              // Recuperamos meta del usuario actual para el NIP
+              const meta = await getUsuarioMetaActual();
+
+              if (sb && meta?.nip) {
+                // Normalizamos remisión
+                const remisionNorm = normalizarRemision(remisionActual);
+
+                const { data, error } = await sb.functions.invoke("generar_evidencia", {
+                  body: {
+                    modulo: "preparacion",
+                    nip: meta.nip,
+                    extra: {
+                      numero_remision: remisionNorm,
+                      pedido_id: window.prepPedidoActual?.id
+                    }
+                  }
+                });
+
+                if (error) {
+                  console.error("❌ [PREP] Error al generar evidencia:", error);
+                } else {
+                  console.log("✅ [PREP] Evidencia generada correctamente:", data);
+                  mostrarModal("📧 Evidencia enviada por correo", "#0ea5e9");
+                }
+              } else {
+                console.warn("⚠️ [PREP] No se pudo generar evidencia (Falta SB o NIP)");
+              }
+            } catch (eviErr) {
+              console.error("❌ [PREP] Excepción generando evidencia:", eviErr);
+            }
+          }
+
           qrsPendientes = [];
           actualizarTablaRegistros();
           window.pinAutorizadoPor = null;
@@ -9087,64 +9160,71 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         datosCaptura = [];
 
         filas.forEach(fila => {
-          // NEW ORDER:
-          // [0] = (+) button (td)
-          // [1] = Cantidad (td > input)
-          // [2] = Lote (td > input)
-          // [3] = Ref (td > text)
-          // [4] = Nombre (td > text)
-          // [5] = (x) button (td)
-
-          // Fallback logic in case indices shift or we are in another mode?
-          // Inventory mode has 6 columns.
-          // Other modes might differ? No, 'agregarFilaCapturaUI' is used generally but 'Lote' is hidden.
-          // BUT if 'Lote' is hidden, it's still in DOM? YES, updated logic uses 'hidden' class, not removal.
-          // So children indices should be consistent: 0, 1, 2, 3, 4, 5.
+          // Orden columnas (inventario):
+          // [0] (+) | [1] Cantidad | [2] Lote | [3] Ref | [4] Nombre | [5] (x)
 
           const celdaCantidad = fila.children[1];
           const celdaLote = fila.children[2];
           const celdaRef = fila.children[3];
           const celdaNombre = fila.children[4];
 
-          const inputCantidad = celdaCantidad ? celdaCantidad.querySelector("input") : null;
-          const inputLote = celdaLote ? celdaLote.querySelector("input") : null;
-          const inputTx = fila.querySelector(".row-timestamps"); // New hidden input
+          const inputCantidad = celdaCantidad?.querySelector("input") || null;
+          const inputLote = celdaLote?.querySelector("input") || null;
+
+          // Hidden input que guarda JSON con timestamps escaneados para ESA fila
+          const inputTx = fila.querySelector(".row-timestamps");
 
           const cantidad = parseFloat(inputCantidad?.value || "0");
           const nombre = celdaNombre?.textContent.trim() || "";
           const referencia = celdaRef?.textContent.trim() || "";
-          const lote = inputLote ? inputLote.value.trim().toUpperCase() : "";
+          const loteRaw = inputLote ? inputLote.value.trim().toUpperCase() : "";
+          const loteKey = (loteRaw && loteRaw.length) ? loteRaw : "S/L";
 
-          // Parse saved timestamps
+          // Parse timestamps guardados en fila
           let timestamps = [];
           try {
             timestamps = inputTx ? JSON.parse(inputTx.value || "[]") : [];
-          } catch (e) { timestamps = []; }
+            if (!Array.isArray(timestamps)) timestamps = [];
+          } catch (e) {
+            timestamps = [];
+          }
+
+          // Limpieza: solo números finitos, dedupe
+          timestamps = [...new Set(
+            timestamps
+              .map(x => Number(x))
+              .filter(x => Number.isFinite(x))
+          )];
 
           // Log para verificar
-          console.log("📦 fila → ref:", referencia, "| nombre:", nombre, "| cantidad:", cantidad, "| lote:", lote);
+          console.log("📦 fila → ref:", referencia, "| nombre:", nombre, "| cantidad:", cantidad, "| lote:", loteKey, "| ts:", timestamps.length);
 
-          if (referencia && Number.isFinite(cantidad)) {
-            const loteKey = lote && lote.length ? lote : "S/L";
-            const detalle_lotes = { [loteKey]: cantidad };
+          if (!referencia) return;
+          if (!Number.isFinite(cantidad) || cantidad <= 0) return;
 
-            datosCaptura.push({
-              referencia,
-              nombre,
-              cantidad,
-              lote,
-              timestamps,
-              tipo: modo,
-              detalle_lotes
-            });
-          }
+          // detalle_lotes: tu estructura actual (por fila = 1 lote)
+          const detalle_lotes = { [loteKey]: cantidad };
+
+          // ✅ NUEVO: timestamps_por_lote (lo que el backend necesita)
+          const timestamps_por_lote = { [loteKey]: timestamps };
+
+          datosCaptura.push({
+            referencia,
+            nombre,
+            cantidad,
+            lote: loteKey,                // normalizado (ya no vacío)
+            timestamps,                   // debug/compat
+            timestamps_por_lote,          // ✅ clave para protección FIFO
+            tipo: modo,                   // lo dejo así para no romper tu flujo
+            detalle_lotes
+          });
         });
 
         // Guardar estado completo con metadatos
         const estado = {
           usuario: usuarioActivo,
-          unidad: document.getElementById("unidadCaptura").value,
-          modo: document.getElementById("modoCaptura").value,
+          unidad: document.getElementById("unidadCaptura")?.value || "",
+          modo: document.getElementById("modoCaptura")?.value || modo,
           datos: datosCaptura,
           timestamp: Date.now()
         };
@@ -9152,6 +9232,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
 
         console.log("📝 datosCaptura guardados (con metadatos):", estado);
       }
+
       function actualizarModoCaptura() {
         const toggle = document.getElementById("modoToggle");
         const texto = document.getElementById("modoTexto");
@@ -9389,6 +9470,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
                     class="input-lote input-lote-style" 
                     placeholder="Lote..."
                     value="${loteVal}"
+                    onchange="marcarComoCompletada(this)"
              />
           </td>
 
@@ -9437,6 +9519,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
              <input type="text" 
                     class="input-lote w-full bg-black/20 border border-white/10 rounded px-1 py-1 text-xs text-white uppercase placeholder-white/30" 
                     placeholder="Lote..."
+                    onchange="marcarComoCompletada(this)"
              />
           </td>
 
@@ -9586,241 +9669,191 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
         // (Opcional) log para revisar qué se va guardando
         console.log("📊 Inventario detallado actualizado:", referencia, loteKey, cadKey, "→", inventarioDetallado[referencia][loteKey][cadKey]);
       }
-      async function manejarEscaneoInventario(contenido) { // ASYNC NOW
+
+      async function manejarEscaneoInventario(contenido) {
         try {
-          console.log("📥 manejarEscaneoInventario() contenido bruto:", contenido);
+          console.log("📥 [INV] manejarEscaneoInventario() contenido bruto:", contenido);
 
           const modo = document.getElementById("modoCaptura")?.value;
           const unidad = document.getElementById("unidadCaptura")?.value;
-          const timestamp = extraerTimestampPlano(contenido); // Extraemos timestamp si existe
-
-          // 1. Validar contra Set Local (duplicado en sesion actual)
-          if (timestamp && timestampsEscaneadosInventario.has(timestamp)) {
-            mostrarModal("⚠️ Este QR ya fue escaneado en esta sesión.", "#d97706");
-            sonidoError();
-            return; // Stop
-          }
-
-          // 2. Validar contra BD 
-          // Preparamos payload
-          const referenciaRaw = extraerReferenciaPlano(contenido);
-          if (!referenciaRaw) { mostrarModal("❌ No se detectó referencia válida.", "#B00042"); return; }
-          const referenciaNormalizada = referenciaRaw.toString().trim().toUpperCase();
-
-
-          let lote = null;
-          let caducidad = null;
-
-          const matchLote = contenido.match(/L[:>]\s*([A-Za-z0-9\-]+)/i);
-          lote = matchLote ? matchLote[1].trim() : null;
-
-          // Caducidad parsing
-          const matchCad = contenido.match(/C[:>]\s*(\d{4}-\d{2}-\d{2})/i); // Example regex
-          caducidad = matchCad ? matchCad[1] : null;
-
-          // Validation Call
-          mostrarLoader(true, "Validando QR...");
-          try {
-            // Construct payload for validating single item
-            const payloadVal = {
-              registros: [{
-                referencia: referenciaNormalizada,
-                lote: lote || "S/L",
-                timestamp: timestamp || Date.now(), // Fallback if no timestamp?
-                modo: "inventario" // Always 'entrada' for uniqueness check as agreed
-              }]
-            };
-
-            const respVal = await fetch("https://ldjrpfsbpcfninntffoj.supabase.co/functions/v1/validar_qr", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": "Bearer " + API_KEY },
-              body: JSON.stringify(payloadVal)
-            });
-
-            const dataVal = await respVal.json();
-            ocultarLoader();
-
-            const resItem = dataVal.resultados?.[0]; // Get first result
-            if (resItem) {
-              if (resItem.status === "repetido") {
-                mostrarModal("❌ Este QR ya existe en el sistema (Repetido).", "#B00042");
-                sonidoError();
-                return;
-              }
-              if (resItem.status === "error") {
-                mostrarModal("❌ Error validando: " + (resItem.mensaje || "?"), "#B00042");
-                return;
-              }
-              // If status 'ok' or 'nuevo_producto' -> Proceed
-            }
-          } catch (e) {
-            console.error("Error validar_qr", e);
-            ocultarLoader();
-            mostrarModal("⚠️ Error conectando con validador. Se procederá localmente.", "#d97706");
-            // Fallback: Proceed? Or Block? Proceeding is risky but robust for offline.
-            // Taking risk to proceed.
-          }
-
-          // Proceed with local update logic...
-
-
-          console.log("📌 modoCaptura:", modo, " | unidadCaptura:", unidad);
 
           if (modo !== "inventario") {
             mostrarModal("⚠️ Cambia a modo INVENTARIO para usar el lector QR de inventario.", "#d99b00");
             return;
           }
-
           if (!unidad) {
             mostrarModal("⚠️ Selecciona una unidad antes de escanear.", "#d99b00");
             return;
           }
 
-          // 1) Obtener datos con tu parser actual
+          // 1) Parseo base (sin inventar datos)
+          const referenciaRaw = extraerReferenciaPlano(contenido);
+          if (!referenciaRaw) {
+            mostrarModal("❌ No se detectó referencia válida.", "#B00042");
+            return;
+          }
+          const referenciaNormalizada = referenciaRaw.toString().trim().toUpperCase();
+
+          // Lote (fallback regex + datos QR)
+          let lote = null;
+          const matchLote = contenido.match(/L[:>]\s*([A-Za-z0-9\-]+)/i);
+          lote = matchLote ? matchLote[1].trim() : null;
+
+          // Caducidad (opcional)
+          let caducidad = null;
+          const matchCad = contenido.match(/C[:>]\s*(\d{4}-\d{2}-\d{2})/i);
+          caducidad = matchCad ? matchCad[1] : null;
+
+          // Datos por parser “formal” si existe
           const datos = extraerDatosQR(contenido) || {};
-          console.log("🧩 extraerDatosQR() →", datos);
+          console.log("🧩 [INV] extraerDatosQR() →", datos);
 
-          referencia = datos.referencia || extraerReferenciaPlano(contenido);
-          lote = datos.lote || lote; // Use parsed lote if available, otherwise from datos
-          caducidad = datos.caducidad || caducidad; // Use parsed caducidad if available, otherwise from datos
-          // timestamp = datos.timestamp || extraerTimestampPlano(contenido); // Already extracted above
+          // Preferencia: datos del parser > regex/plano
+          let referencia = (datos.referencia || referenciaNormalizada || "").toString().trim().toUpperCase();
+          lote = (datos.lote || lote || "S/L").toString().trim().toUpperCase();
+          caducidad = (datos.caducidad || caducidad || null);
 
-          console.log("🎯 referencia preliminar:", referencia, "| lote:", lote, "| caducidad:", caducidad, "| timestamp:", timestamp);
+          // ID unitario: NO inventamos si falta
+          // Si tu QR de unidad ya entregada trae el id como “timestamp”, este valor corresponde a ts_eliminado en BD.
+          const tsUnitario = (() => {
+            const t1 = datos.timestamp ?? null;
+            const t2 = extraerTimestampPlano(contenido) ?? null;
+            const val = (t1 ?? t2);
+            const num = (val !== null && val !== undefined && val !== "" && !isNaN(Number(val))) ? Number(val) : null;
+            return num;
+          })();
+
+          console.log("🎯 [INV] parse final:", { referencia, lote, caducidad, tsUnitario });
 
           if (!referencia) {
             mostrarModal("❌ No se encontró la referencia en el QR.", "#B00042");
             return;
           }
 
-          // 2) Bloquear si el timestamp ya se escaneó antes
-          if (timestamp) {
-            console.log("⏱ timestamp detectado:", timestamp);
-            if (timestampsEscaneadosInventario.has(timestamp)) {
-              console.warn("⛔ timestamp ya escaneado:", timestamp);
-              mostrarModal("⛔ Esta etiqueta ya fue escaneada anteriormente.", "#B00042");
+          // 2) Protección de duplicado en sesión (solo si hay tsUnitario)
+          if (tsUnitario !== null) {
+            if (timestampsEscaneadosInventario.has(tsUnitario)) {
+              mostrarModal("⚠️ Este QR ya fue escaneado en esta sesión.", "#d97706");
+              sonidoError();
               return;
             }
           } else {
-            console.warn("⚠️ QR sin timestamp, no se puede validar duplicado por T:");
+            // Si no trae ts, dejamos pasar (no es obligatorio), pero lo logueamos
+            console.warn("⚠️ [INV] QR sin timestamp unitario; no se puede proteger duplicado por TS.");
           }
 
-          // const referenciaNormalizada = referencia.toString().trim().toUpperCase(); // Already calculated above
-          console.log("🎯 referencia normalizada:", referenciaNormalizada);
-
-          // 3) Buscar en la tabla de captura
+          // 3) Buscar / actualizar en tabla UI
           const filas = document.querySelectorAll("#tablaCaptura tbody tr");
-          console.log("📊 Filas actuales en tablaCaptura:", filas.length);
+          console.log("📊 [INV] Filas actuales:", filas.length);
 
           let encontrada = false;
           let refExisteEnTabla = false;
           let nombreAsociado = "";
 
-          const loteScanned = lote ? lote.toString().trim().toUpperCase() : "";
+          const loteScanned = (lote || "").toString().trim().toUpperCase();
 
-          // Primero intentamos encontrar match exacto o "claimable"
+          // Recorremos filas buscando ref match y lote exacto/claimable
           for (const fila of filas) {
-            // NEW ORDER: (+) [0], Cant [1], Lote [2], Ref [3], Nombre [4], (x) [5]
+            // Orden columnas: (+)[0], Cant[1], Lote[2], Ref[3], Nombre[4], (x)[5]
             const refFila = fila.children[3]?.textContent.trim();
             const refFilaNorm = (refFila ?? "").toString().trim().toUpperCase();
 
-            if (refFilaNorm === referenciaNormalizada) {
-              refExisteEnTabla = true;
-              nombreAsociado = fila.children[4]?.textContent.trim();
+            if (refFilaNorm !== referenciaNormalizada) continue;
 
-              const inputLote = fila.children[2]?.querySelector("input");
-              const loteFila = inputLote ? inputLote.value.trim().toUpperCase() : "";
+            refExisteEnTabla = true;
+            nombreAsociado = fila.children[4]?.textContent.trim() || "";
 
-              // MATCH LOGIC:
-              // 1. Exact match: Lote scan == Lote fila
-              // 2. Claim match: Lote scan exits AND Lote fila is empty
-              // 3. No-Lot match: Lote scan empty AND Lote fila empty
+            const inputLote = fila.children[2]?.querySelector("input");
+            const loteFila = inputLote ? inputLote.value.trim().toUpperCase() : "";
 
-              const isExactMatch = (loteScanned === loteFila);
-              const isClaimable = (loteScanned !== "" && loteFila === "");
+            const isExactMatch = (loteScanned === loteFila);
+            const isClaimable = (loteScanned !== "" && loteFila === "");
+            const isNoLotMatch = (loteScanned === "" && loteFila === "");
 
-              if (isExactMatch || isClaimable) {
-                const inputCantidad = fila.children[1]?.querySelector("input");
-                if (inputCantidad) {
-                  const actual = parseFloat(inputCantidad.value) || 0;
-                  const nueva = actual + 1;
-                  inputCantidad.value = nueva.toString();
+            if (!(isExactMatch || isClaimable || isNoLotMatch)) continue;
 
-                  // If claimed, update lot
-                  if (isClaimable && inputLote) {
-                    inputLote.value = loteScanned;
-                  }
+            const inputCantidad = fila.children[1]?.querySelector("input");
+            if (!inputCantidad) continue;
 
-                  marcarComoCompletada(inputCantidad);
-                  encontrada = true;
-                  moverFilaAlInicio(fila);
+            const actual = parseFloat(inputCantidad.value) || 0;
+            inputCantidad.value = String(actual + 1);
 
-                  // Add TS to row storage
-                  if (timestamp) {
-                    const inputTx = fila.querySelector(".row-timestamps");
-                    let txArr = [];
-                    try { txArr = JSON.parse(inputTx?.value || "[]"); } catch (e) { }
-                    txArr.push(timestamp);
-                    if (inputTx) inputTx.value = JSON.stringify(txArr);
-                    // Global set
-                    timestampsEscaneadosInventario.add(timestamp);
-                  }
+            // Si se “clamea” lote, lo escribimos en la fila
+            if (isClaimable && inputLote) inputLote.value = loteScanned;
 
-                  // Registrar inventario detallado ...
-                  if (typeof actualizarInventarioDetallado === "function") {
-                    actualizarInventarioDetallado(referencia, loteScanned || loteFila, caducidad, 1);
-                  }
+            marcarComoCompletada(inputCantidad);
+            moverFilaAlInicio(fila);
+            encontrada = true;
 
-                  // Registrar timestamp
-                  // This is now handled by the block above
-                }
-                break; // Stop searching if found
-              }
+            // 4) Guardado de TS en la fila (por lote) + set global
+            if (tsUnitario !== null) {
+              const inputTx = fila.querySelector(".row-timestamps");
+              let txArr = [];
+              try { txArr = JSON.parse(inputTx?.value || "[]"); } catch (_) { txArr = []; }
+
+              txArr.push(tsUnitario);
+              // Dedup
+              txArr = [...new Set(txArr)];
+              if (inputTx) inputTx.value = JSON.stringify(txArr);
+
+              timestampsEscaneadosInventario.add(tsUnitario);
             }
+
+            // 5) Inventario detallado (si lo usas)
+            if (typeof actualizarInventarioDetallado === "function") {
+              const loteFinal = (isClaimable ? loteScanned : (loteFila || loteScanned || "S/L"));
+              actualizarInventarioDetallado(referencia, loteFinal, caducidad, 1);
+            }
+
+            break;
           }
 
           if (!encontrada) {
             if (refExisteEnTabla) {
-              // Existe la referencia pero con OTRO lote. Crear NUEVA fila para este lote.
+              // Existe la referencia pero con otro lote → crear nueva fila para este lote
               const tbody = document.querySelector("#tablaCaptura tbody");
-
-              // Usamos la funcion que creamos (o inline logic si no esta disponible, pero asumimos que esta)
-              if (typeof agregarFilaCapturaUI === "function") {
-                agregarFilaCapturaUI(tbody, referencia, nombreAsociado, true, loteScanned);
-
-                // La fila se agrego al final, obtenemos la ultima
-                const nuevaFila = tbody.lastElementChild;
-
-                // Set cantidad to 1
-                const inputCantidad = nuevaFila.querySelector(".input-cantidad");
-                if (inputCantidad) {
-                  inputCantidad.value = "1";
-                  marcarComoCompletada(inputCantidad);
-                }
-
-                // Add TS to row storage
-                if (timestamp) {
-                  const inputTx = nuevaFila.querySelector(".row-timestamps");
-                  let txArr = [timestamp];
-                  if (inputTx) inputTx.value = JSON.stringify(txArr);
-                  timestampsEscaneadosInventario.add(timestamp);
-                }
-
-                moverFilaAlInicio(nuevaFila);
-                if (typeof actualizarInventarioDetallado === "function") {
-                  actualizarInventarioDetallado(referencia, loteScanned, caducidad, 1);
-                }
-                // This is now handled by the block above
-                // if (timestamp) timestampsEscaneadosInventario.add(timestamp);
-
-                console.log("✅ Nueva fila creada para Lote:", loteScanned);
-                encontrada = true; // Handled
-              } else {
-                console.error("❌ agregarFilaCapturaUI no definida");
+              if (!tbody) {
+                console.error("❌ [INV] tbody no encontrado");
+                return;
               }
 
+              if (typeof agregarFilaCapturaUI !== "function") {
+                console.error("❌ [INV] agregarFilaCapturaUI no definida");
+                return;
+              }
+
+              agregarFilaCapturaUI(tbody, referencia, nombreAsociado, true, loteScanned || "S/L");
+
+              const nuevaFila = tbody.lastElementChild;
+              if (!nuevaFila) {
+                console.error("❌ [INV] no se pudo obtener nueva fila");
+                return;
+              }
+
+              // Set cantidad = 1
+              const inputCantidad = nuevaFila.querySelector(".input-cantidad");
+              if (inputCantidad) {
+                inputCantidad.value = "1";
+                marcarComoCompletada(inputCantidad);
+              }
+
+              // Guardar TS en nueva fila
+              if (tsUnitario !== null) {
+                const inputTx = nuevaFila.querySelector(".row-timestamps");
+                if (inputTx) inputTx.value = JSON.stringify([tsUnitario]);
+                timestampsEscaneadosInventario.add(tsUnitario);
+              }
+
+              moverFilaAlInicio(nuevaFila);
+
+              if (typeof actualizarInventarioDetallado === "function") {
+                actualizarInventarioDetallado(referencia, loteScanned || "S/L", caducidad, 1);
+              }
+
+              console.log("✅ [INV] Nueva fila creada para lote:", loteScanned);
             } else {
-              // No existe la referencia en absoluto
-              console.warn("⚠️ Referencia no encontrada en tablaCaptura. Unidad actual:", unidad);
+              // Referencia no existe en la tabla “de la unidad”
+              console.warn("⚠️ [INV] Referencia no encontrada en tablaCaptura:", referenciaNormalizada, "Unidad:", unidad);
               mostrarModal("❌ Esta referencia no está en la tabla de la unidad seleccionada.", "#B00042");
               return;
             }
@@ -9832,13 +9865,14 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           const inputCant = document.getElementById("inputCantidad");
           if (inputCant) inputCant.value = "1";
 
-          console.log("🎯 Escaneo inventario final:", { referencia, lote, caducidad, timestamp });
+          console.log("🎯 [INV] Escaneo final:", { referencia, lote, caducidad, tsUnitario });
 
         } catch (err) {
-          console.error("💥 Error en manejarEscaneoInventario:", err);
+          console.error("💥 [INV] Error en manejarEscaneoInventario:", err);
           mostrarModal("❌ Error al procesar el QR de inventario.", "#B00042");
         }
       }
+
 
 
       function agregarFilaCaptura() {
@@ -9978,6 +10012,7 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
             cantidad: 0,
             lote: "", // ya no importa como "principal"
             timestamps: [],
+            timestamps_por_lote: {},
             tipo: r.tipo,
             detalle_lotes: {}
           };
@@ -10018,7 +10053,8 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
 
       function marcarComoCompletada(input) {
         const fila = input.closest("tr");
-        const cantidad = parseFloat(input.value);
+        const cantidadInput = fila.querySelector(".input-cantidad");
+        const cantidad = parseFloat(cantidadInput ? cantidadInput.value : "0");
 
         // Check Lote input
         const inputLote = fila.querySelector(".input-lote"); // using class we added, or indices
@@ -10088,6 +10124,56 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
           const resultado = await res.json();
           if (res.ok && resultado.status === "ok") {
             mostrarModal("✅ Datos enviados correctamente.", "#00B000");
+
+            // === GENERAR EVIDENCIA SI ES INVENTARIO ===
+            if (modo === "inventario") {
+              // Lanzamos la petición en segundo plano para no bloquear
+              (async () => {
+                try {
+                  console.log("📧 [INV] Generando evidencia de inventario...");
+                  const sb = window.getSB?.();
+
+                  // Intentamos obtener meta, pero no nos bloqueamos si falla algo ligero
+                  const meta = await getUsuarioMetaActual().catch(e => null);
+
+                  // Fallback para nip
+                  const nipToSend = meta?.nip
+                    || window.usuarioNip
+                    || usuario
+                    || window.usuarioActivo
+                    || "DESCONOCIDO";
+
+                  // ✅ Reusar columna calculada (10_/25_) y derivar lotes
+                  const colFecha = columna;         // ej. "10_6_2025" o "25_6_2025"
+                  const colLotes = `L_${columna}`;  // ej. "L_10_6_2025"
+
+                  console.log(`📧 [INV] Identificador usado: ${nipToSend}`);
+
+                  if (sb) {
+                    const { data, error } = await sb.functions.invoke("generar_evidencia", {
+                      body: {
+                        modulo: "inventario",
+                        nip: nipToSend,
+                        unidad_medica: unidad, // Variable local de la función
+                        col_fecha: colFecha,
+                        col_lotes: colLotes
+                      }
+                    });
+
+                    if (error) console.error("❌ [INV] Error evidencia:", error);
+                    else {
+                      console.log("✅ [INV] Evidencia generada:", data);
+                      mostrarModal("📧 Evidencia enviada por correo", "#0ea5e9");
+                    }
+                  } else {
+                    console.warn("⚠️ [INV] No se pudo generar evidencia (Falta SB client)");
+                  }
+                } catch (e) {
+                  console.error("❌ [INV] Excepción generando evidencia:", e);
+                }
+              })();
+            }
+
             datosCaptura = [];
             document.querySelector("#tablaCaptura tbody").innerHTML = "";
             localStorage.removeItem("capturaPendiente");
